@@ -1,48 +1,34 @@
-import axios, {
-  AxiosError,
-  AxiosRequestConfig,
-  AxiosResponse,
-} from "axios";
-import { getToken, logout } from "../auth/auth";
+import axios, { AxiosError } from "axios";
+import { getStore } from "../store/storeAccessor";
+import { logoutThunk } from "../store/authSlice";
 
 const api = axios.create({
   baseURL: "http://localhost:8000/api",
-  headers: {
-    Accept: "application/json",
-  },
+  headers: { Accept: "application/json" },
 });
 
-/**
- * 🔐 REQUEST INTERCEPTOR
- * Attach Bearer token automatically
- */
-api.interceptors.request.use(
-  (config: AxiosRequestConfig) => {
-    const token = getToken();
+/* ================= REQUEST ================= */
+api.interceptors.request.use((config) => {
+  const store = getStore();
+  const token = store.getState().auth.token;
 
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+  if (token && config.headers) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
 
-    return config;
-  },
-  (error: AxiosError) => Promise.reject(error)
-);
+  return config;
+});
 
-/**
- * 🚫 RESPONSE INTERCEPTOR
- * Auto logout on 401 (expired / invalid token)
- */
+
+/* ================= RESPONSE ================= */
 api.interceptors.response.use(
-  (response: AxiosResponse) => response,
+  (res) => res,
   (error: AxiosError<any>) => {
     if (error.response?.status === 401) {
-      logout();
-
-      // Hard redirect → guards kick in
+      const store = getStore();
+      store.dispatch(logoutThunk());
       window.location.href = "/login";
     }
-
     return Promise.reject(error);
   }
 );

@@ -4,6 +4,7 @@ import {
   assignRolePermissions,
 } from "../services/roleService";
 import { handleApiError, handleApiSuccess } from "../utils/toastHelper";
+import Modal from "./common/Modal";
 
 export default function RolePermissionModal({ roleId, onClose }: any) {
   const [permissions, setPermissions] = useState<any[]>([]);
@@ -28,43 +29,26 @@ export default function RolePermissionModal({ roleId, onClose }: any) {
     try {
       const res = await assignRolePermissions(roleId, selected);
       handleApiSuccess(res);
-      onClose();
     } catch (e) {
       handleApiError(e);
+    } finally {
+      // ✅ ALWAYS CLOSE (SUCCESS / ERROR)
+      onClose();
     }
   };
 
   return (
-    <div className="modal show d-block">
-      <div className="modal-dialog">
-        <div className="modal-content">
-          <div className="modal-header">
-            <h5>Assign Permissions</h5>
-          </div>
-
-          <div className="modal-body">
-            {permissions.map((p) => (
-              <div key={p.id}>
-                <input
-                  type="checkbox"
-                  checked={selected.includes(p.name)}
-                  onChange={() => toggle(p.name)}
-                />{" "}
-                {p.name}
-              </div>
-            ))}
-          </div>
-
-          <div className="modal-footer">
-            <button className="btn btn-secondary" onClick={onClose}>
-              Cancel
-            </button>
-            <button className="btn btn-primary" onClick={save}>
-              Save
-            </button>
-          </div>
+    <Modal title="Assign Permissions" onClose={onClose} onSave={save}>
+      {permissions.map((p) => (
+        <div key={p.id}>
+          <input
+            type="checkbox"
+            checked={selected.includes(p.name)}
+            onChange={() => toggle(p.name)}
+          />{" "}
+          {p.name}
         </div>
-      </div>
-    </div>
+      ))}
+    </Modal>
   );
 }

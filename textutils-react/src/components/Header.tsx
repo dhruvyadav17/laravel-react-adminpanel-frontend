@@ -1,21 +1,17 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
-import type { RootState, AppDispatch } from "../store";
+import { useDispatch } from "react-redux";
+import { AppDispatch } from "../store";
 import { logoutThunk } from "../store/authSlice";
+import { useAuth } from "../auth/hooks/useAuth";
+import { usePermission } from "../auth/hooks/usePermission";
+import { PERMISSIONS } from "../constants/permissions";
+
 export default function Header() {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
 
-  const { user, permissions } = useSelector(
-    (state: RootState) => state.auth
-  );
-
-  const isAdmin =
-    user?.roles?.includes("admin") ||
-    user?.roles?.includes("super-admin");
-
-  const hasPermission = (perm: string) =>
-    permissions.includes(perm) || isAdmin;
+  const { isAdmin } = useAuth();
+  const can = usePermission();
 
   const handleLogout = async () => {
     await dispatch(logoutThunk());
@@ -27,112 +23,91 @@ export default function Header() {
   return (
     <nav
       className={`navbar navbar-expand-lg ${
-        isAdmin
-          ? "navbar-dark bg-dark"
-          : "navbar-light bg-primary"
+        isAdmin ? "navbar-dark bg-dark" : "navbar-light bg-primary"
       }`}
     >
       <div className="container">
         {/* BRAND */}
         <NavLink
           className="navbar-brand"
-          to={isAdmin ? "/admin/profile" : "/profile"}
+          to={isAdmin ? "/admin/dashboard" : "/profile"}
         >
           {isAdmin ? "Admin Panel" : "User Panel"}
         </NavLink>
 
-        <button
-          className="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#mainNavbar"
-        >
-          <span className="navbar-toggler-icon" />
-        </button>
+        {/* MENU (NO COLLAPSE ISSUE) */}
+        <ul className="navbar-nav ms-auto align-items-center">
+          {/* USER MENU */}
+          {!isAdmin && (
+            <>
+              <li className="nav-item">
+                <NavLink className="nav-link" to="/profile">
+                  Profile
+                </NavLink>
+              </li>
 
-        <div className="collapse navbar-collapse" id="mainNavbar">
-          <ul className="navbar-nav ms-auto align-items-center">
-            {/* ================= USER MODE ================= */}
-            {!isAdmin && (
-              <>
+              <li className="nav-item">
+                <NavLink className="nav-link" to="/roles">
+                  My Roles
+                </NavLink>
+              </li>
+
+              <li className="nav-item">
+                <NavLink className="nav-link" to="/permissions">
+                  My Permissions
+                </NavLink>
+              </li>
+            </>
+          )}
+
+          {/* ADMIN MENU */}
+          {isAdmin && (
+            <>
+              <li className="nav-item">
+                <NavLink className="nav-link" to="/admin/dashboard">
+                  Dashboard
+                </NavLink>
+              </li>
+
+              {can(PERMISSIONS.USER_VIEW) && (
                 <li className="nav-item">
-                  <NavLink className="nav-link" to="/profile">
-                    My Profile
+                  <NavLink className="nav-link" to="/admin/users">
+                    Users
                   </NavLink>
                 </li>
+              )}
 
+              {can(PERMISSIONS.ROLE_MANAGE) && (
                 <li className="nav-item">
-                  <NavLink className="nav-link" to="/roles">
-                    My Roles
+                  <NavLink className="nav-link" to="/admin/roles">
+                    Roles
                   </NavLink>
                 </li>
+              )}
 
-                <li className="nav-item">
-                  <NavLink className="nav-link" to="/permissions">
-                    My Permissions
-                  </NavLink>
-                </li>
-              </>
-            )}
-
-            {/* ================= ADMIN MODE ================= */}
-            {isAdmin && (
-              <>
+              {can(PERMISSIONS.PERMISSION_MANAGE) && (
                 <li className="nav-item">
                   <NavLink
                     className="nav-link"
-                    to="/admin/profile"
+                    to="/admin/permissions"
                   >
-                    Admin Profile
+                    Permissions
                   </NavLink>
                 </li>
+              )}
+            </>
+          )}
 
-                {hasPermission("user-view") && (
-                  <li className="nav-item">
-                    <NavLink
-                      className="nav-link"
-                      to="/admin/users"
-                    >
-                      Users
-                    </NavLink>
-                  </li>
-                )}
-
-                {hasPermission("role-manage") && (
-                  <li className="nav-item">
-                    <NavLink
-                      className="nav-link"
-                      to="/admin/roles"
-                    >
-                      Roles
-                    </NavLink>
-                  </li>
-                )}
-
-                {hasPermission("role-manage") && (
-                  <li className="nav-item">
-                    <NavLink
-                      className="nav-link"
-                      to="/admin/permissions"
-                    >
-                      Permissions
-                    </NavLink>
-                  </li>
-                )}
-              </>
-            )}
-
-            {/* LOGOUT */}
-            <li className="nav-item ms-3">
-              <button
-                className="btn btn-danger btn-sm"
-                onClick={handleLogout}
-              >
-                Logout
-              </button>
-            </li>
-          </ul>
-        </div>
+          {/* LOGOUT */}
+          <li className="nav-item ms-3">
+            <button
+              className="btn btn-danger btn-sm"
+              onClick={handleLogout}
+            >
+              Logout
+            </button>
+          </li>
+        </ul>
       </div>
     </nav>
   );

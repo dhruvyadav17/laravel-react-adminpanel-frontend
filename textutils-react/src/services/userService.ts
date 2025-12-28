@@ -16,11 +16,30 @@ export const getUsers = async () => {
   return res;
 };
 
-export const createUser = (data: any) =>
-  api.post("/admin/users", data);
-
+/* ================= USERS ================= */
+export const createUser = (data: {
+  name: string;
+  email: string;
+  password: string;
+  roles: string[];
+}) => api.post("/admin/users", data);
 export const updateUser = (id: number, data: any) =>
   api.put(`/admin/users/${id}`, data);
 
 export const deleteUser = (id: number) =>
   api.delete(`/admin/users/${id}`);
+
+export const assignUserRoles = (
+  userId: number,
+  roles: string[]
+) => {
+  return api.post(`/admin/users/${userId}/assign-role`, {
+    roles,
+  });
+};
+
+/* ================= ROLES ================= */
+
+export const getRoles = () => {
+  return api.get("/admin/roles");
+};

@@ -4,11 +4,16 @@ import { loginThunk } from "../../store/authSlice";
 import { RootState, AppDispatch } from "../../store";
 import { useNavigate } from "react-router-dom";
 
-export default function LoginForm({ title }: { title: string }) {
+type Props = {
+  title: string;
+};
+
+export default function LoginForm({ title }: Props) {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
+
   const loading = useSelector(
-    (s: RootState) => s.auth.loading
+    (state: RootState) => state.auth.loading
   );
 
   const [email, setEmail] = useState("");
@@ -23,10 +28,10 @@ export default function LoginForm({ title }: { title: string }) {
 
     if (loginThunk.fulfilled.match(res)) {
       const roles = res.payload.user.roles || [];
+
       navigate(
-        roles.includes("admin") ||
-          roles.includes("super-admin")
-          ? "/admin/profile"
+        roles.includes("admin") || roles.includes("super-admin")
+          ? "/admin/dashboard"
           : "/profile",
         { replace: true }
       );
@@ -34,20 +39,28 @@ export default function LoginForm({ title }: { title: string }) {
   };
 
   return (
-    <div className="container mt-5">
-      <h4>{title}</h4>
+    <div className="container mt-5" style={{ maxWidth: 420 }}>
+      <h4 className="mb-3 text-center">{title}</h4>
+
       <form onSubmit={submit}>
         <input
-          className="form-control mb-2"
+          className="form-control mb-3"
+          type="email"
           placeholder="Email"
+          value={email}
+          required
           onChange={(e) => setEmail(e.target.value)}
         />
+
         <input
-          className="form-control mb-2"
+          className="form-control mb-3"
           type="password"
           placeholder="Password"
+          value={password}
+          required
           onChange={(e) => setPassword(e.target.value)}
         />
+
         <button
           className="btn btn-primary w-100"
           disabled={loading}

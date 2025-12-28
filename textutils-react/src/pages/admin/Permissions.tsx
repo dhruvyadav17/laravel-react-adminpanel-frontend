@@ -4,169 +4,107 @@ import {
   createPermission,
   updatePermission,
   deletePermission,
-  togglePermission,
 } from "../../services/permissionService";
-import {
-  handleApiError,
-  handleApiSuccess,
-} from "../../utils/toastHelper";
+import { handleApiError, handleApiSuccess } from "../../utils/toastHelper";
+import Modal from "../../components/common/Modal";
+import { usePermission } from "../../auth/hooks/usePermission";
+import { PERMISSIONS } from "../../constants/permissions";
+import { useAppModal } from "../../hooks/useAppModal";
 
 export default function Permissions() {
-  const [permissions, setPermissions] = useState<any[]>([]);
-  const [showModal, setShowModal] = useState(false);
-  const [editPermission, setEditPermission] = useState<any>(null);
+  const [list, setList] = useState<any[]>([]);
   const [name, setName] = useState("");
 
-  const fetchPermissions = async () => {
+  const can = usePermission();
+  const { modalType, modalData, openModal, closeModal } =
+    useAppModal<any>();
+
+  const fetchData = async () => {
     try {
       const res = await getPermissions();
-      
-      setPermissions(res.data.data);
-      console.log(res.data);
+      setList(res.data.data);
     } catch (e) {
       handleApiError(e);
     }
   };
 
   useEffect(() => {
-    fetchPermissions();
+    fetchData();
   }, []);
 
-  const openAdd = () => {
-    setEditPermission(null);
-    setName("");
-    setShowModal(true);
-  };
-
-  const openEdit = (p: any) => {
-    setEditPermission(p);
-    setName(p.name);
-    setShowModal(true);
-  };
+  if (!can(PERMISSIONS.PERMISSION_MANAGE)) {
+    return <p className="text-danger">Unauthorized</p>;
+  }
 
   const save = async () => {
     try {
-      const res = editPermission
-        ? await updatePermission(editPermission.id, { name })
+      const res = modalData?.id
+        ? await updatePermission(modalData.id, { name })
         : await createPermission({ name });
 
       handleApiSuccess(res);
-      setShowModal(false);
-      fetchPermissions();
+      fetchData();
     } catch (e) {
       handleApiError(e);
-    }
-  };
-
-  const remove = async (id: number) => {
-    if (!confirm("Delete this permission?")) return;
-
-    try {
-      const res = await deletePermission(id);
-      handleApiSuccess(res);
-      fetchPermissions();
-    } catch (e) {
-      handleApiError(e);
-    }
-  };
-
-  const toggle = async (id: number) => {
-    try {
-      const res = await togglePermission(id);
-      handleApiSuccess(res);
-      fetchPermissions();
-    } catch (e) {
-      handleApiError(e);
+    } finally {
+      closeModal(); // ✅ CENTRALIZED CLOSE
+      setName("");
     }
   };
 
   return (
     <div className="container mt-4">
-      <div className="d-flex justify-content-between mb-3">
-        <h3>Permissions</h3>
-        <button className="btn btn-primary" onClick={openAdd}>
-          + Add Permission
-        </button>
-      </div>
+      <h3>Permissions</h3>
 
-      <table className="table table-bordered">
-        <thead className="table-dark">
-          <tr>
-            <th>Name</th>
-            <th>Status</th>
-            <th width="220">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {permissions.map((p) => (
-            <tr key={p.id}>
-              <td>{p.name}</td>
-              <td>
-                {p.is_active ? (
-                  <span className="badge bg-success">Active</span>
-                ) : (
-                  <span className="badge bg-danger">Inactive</span>
-                )}
-              </td>
-              <td>
-                <button
-                  className="btn btn-sm btn-info me-1"
-                  onClick={() => toggle(p.id)}
-                >
-                  Enable / Disable
-                </button>
-                <button
-                  className="btn btn-sm btn-warning me-1"
-                  onClick={() => openEdit(p)}
-                >
-                  Edit
-                </button>
-                <button
-                  className="btn btn-sm btn-danger"
-                  onClick={() => remove(p.id)}
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <button
+        className="btn btn-primary mb-3"
+        onClick={() => openModal("permission")}
+      >
+        + Add Permission
+      </button>
 
-      {/* ADD / EDIT MODAL */}
-      {showModal && (
-        <div className="modal show d-block">
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5>
-                  {editPermission ? "Edit Permission" : "Add Permission"}
-                </h5>
-              </div>
+      <ul className="list-group">
+        {list.map((p) => (
+          <li key={p.id} className="list-group-item d-flex justify-content-between">
+            {p.name}
+            <div>
+              <button
+                className="btn btn-sm btn-warning"
+                onClick={() => {
+                  setName(p.name);
+                  openModal("permission", p);
+                }}
+              >
+                Edit
+              </button>
 
-              <div className="modal-body">
-                <input
-                  className="form-control"
-                  placeholder="Permission name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </div>
-
-              <div className="modal-footer">
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => setShowModal(false)}
-                >
-                  Cancel
-                </button>
-                <button className="btn btn-primary" onClick={save}>
-                  Save
-                </button>
-              </div>
+              <button
+                className="btn btn-sm btn-danger ms-1"
+                onClick={async () => {
+                  try {
+                    const res = await deletePermission(p.id);
+                    handleApiSuccess(res);
+                    fetchData();
+                  } catch (e) {
+                    handleApiError(e);
+                  }
+                }}
+              >
+                Delete
+              </button>
             </div>
-          </div>
-        </div>
+          </li>
+        ))}
+      </ul>
+
+      {modalType === "permission" && (
+        <Modal title="Permission" onClose={closeModal} onSave={save}>
+          <input
+            className="form-control"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </Modal>
       )}
     </div>
   );

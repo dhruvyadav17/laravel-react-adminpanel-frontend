@@ -1,16 +1,18 @@
 import { Navigate } from "react-router-dom";
-import { isAuth } from "../../auth/auth";
 import LoginForm from "./LoginForm";
+import { useAuth } from "../../auth/hooks/useAuth";
 
 export default function Login() {
-  if (isAuth()) {
-    return <Navigate to="/profile" replace />;
+  const { isAuth, isAdmin } = useAuth();
+
+  if (isAuth) {
+    return (
+      <Navigate
+        to={isAdmin ? "/admin/dashboard" : "/profile"}
+        replace
+      />
+    );
   }
 
-  return (
-    <LoginForm
-      title="User Login"
-      mode="user"
-    />
-  );
+  return <LoginForm title="User Login" />;
 }
