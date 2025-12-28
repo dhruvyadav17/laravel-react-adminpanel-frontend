@@ -1,0 +1,11 @@
+Method	URL
+POST	/api/register
+
+POST	/api/login
+POST	/api/forgot-password
+POST	/api/reset-password
+GET	/api/profile
+GET	/api/admin/users
+POST	/api/admin/users
+PUT	/api/admin/users/{id}
+DELETE	/api/admin/users/{id}

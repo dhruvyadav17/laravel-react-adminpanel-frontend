@@ -1,0 +1,43 @@
+# =========================
+# OS / Editor
+# =========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# =========================
+# Laravel (textutils-laravel)
+# =========================
+textutils-laravel/vendor/
+textutils-laravel/node_modules/
+textutils-laravel/.env
+textutils-laravel/.env.*
+textutils-laravel/storage/*.key
+textutils-laravel/storage/app/*
+!textutils-laravel/storage/app/public
+textutils-laravel/storage/framework/cache/*
+textutils-laravel/storage/framework/sessions/*
+textutils-laravel/storage/framework/views/*
+textutils-laravel/storage/logs/*
+textutils-laravel/bootstrap/cache/*
+textutils-laravel/public/storage
+textutils-laravel/.phpunit.result.cache
+
+# =========================
+# React (textutils-react)
+# =========================
+textutils-react/node_modules/
+textutils-react/dist/
+textutils-react/build/
+textutils-react/.env
+textutils-react/.env.*
+textutils-react/.vite/
+textutils-react/.cache/
+textutils-react/npm-debug.log*
+textutils-react/yarn-error.log*
+
+# =========================
+# Logs
+# =========================
+*.log
