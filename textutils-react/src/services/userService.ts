@@ -40,6 +40,6 @@ export const assignUserRoles = (
 
 /* ================= ROLES ================= */
 
-export const getRoles = () => {
-  return api.get("/admin/roles");
-};
+// export const getRoles = () => {
+//   return api.get("/admin/roles");
+// };

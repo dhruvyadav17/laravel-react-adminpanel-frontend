@@ -64,6 +64,7 @@ export default function UserFormModal({
       onClose={onClose}   // ❌ Cancel / X
       onSave={save}
       saveDisabled={loading}
+      button_name="Save"
     >
       <input
         className="form-control mb-2"

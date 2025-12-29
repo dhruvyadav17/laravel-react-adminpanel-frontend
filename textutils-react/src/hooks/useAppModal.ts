@@ -1,7 +1,7 @@
 import { useState } from "react";
 
-export type ModalType = "permission" | "role" | "role-edit" | null;
-
+//port type ModalType = "permission" | "role" | "role-edit" | null;
+import { ModalType } from "../types/modal";
 export function useAppModal<T = any>() {
   const [type, setType] = useState<ModalType>(null);
   const [data, setData] = useState<T | null>(null);

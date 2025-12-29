@@ -16,8 +16,7 @@ export default function Permissions() {
   const [name, setName] = useState("");
 
   const can = usePermission();
-  const { modalType, modalData, openModal, closeModal } =
-    useAppModal<any>();
+  const { modalType, modalData, openModal, closeModal } = useAppModal<any>();
 
   const fetchData = async () => {
     try {
@@ -55,20 +54,22 @@ export default function Permissions() {
   return (
     <div className="container mt-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
-      <h3>Permissions</h3>
+        <h3>Permissions</h3>
 
-      <button
-        className="btn btn-primary mb-3"
-        onClick={() => openModal("permission")}
-      >
-        + Add Permission
-      </button>
+        <button
+          className="btn btn-primary mb-3"
+          onClick={() => openModal("permission")}
+        >
+          + Add Permission
+        </button>
       </div>
-
 
       <ul className="list-group">
         {list.map((p) => (
-          <li key={p.id} className="list-group-item d-flex justify-content-between">
+          <li
+            key={p.id}
+            className="list-group-item d-flex justify-content-between"
+          >
             {p.name}
             <div>
               <button
@@ -101,7 +102,13 @@ export default function Permissions() {
       </ul>
 
       {modalType === "permission" && (
-        <Modal title="Permission" onClose={closeModal} onSave={save}>
+        <Modal
+          title="Permission"
+          onClose={closeModal}
+          onSave={save}
+          saveDisabled={false}
+          button_name="Save"
+        >
           <input
             className="form-control"
             value={name}

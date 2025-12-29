@@ -72,14 +72,14 @@ export const assignRolePermissions = (
 /**
  * Assign roles to user (admin / super-admin only)
  */
-export const assignUserRoles = (
-  userId: number,
-  roles: string[]
-) => {
-  return api.post(`/admin/users/${userId}/assign-role`, {
-    roles,
-  });
-};
+// export const assignUserRoles = (
+//   userId: number,
+//   roles: string[]
+// ) => {
+//   return api.post(`/admin/users/${userId}/assign-role`, {
+//     roles,
+//   });
+// };
 export const getUserRoles = (userId: number) => {
   return api.get(`/admin/users/${userId}/roles`);
 };

@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import Modal from "./common/Modal";
 import {
-  getRoles,
   assignUserRoles,
 } from "../services/userService";
+import {
+  getRoles,
+} from "../services/roleService";
+
 import {
   handleApiSuccess,
   handleApiError,
@@ -56,7 +59,6 @@ const save = async () => {
       );
 
       onSaved();
-      onClose();
     } catch (err: any) {
       // ❌ ERROR TOAST
       handleApiError(err);
@@ -70,6 +72,8 @@ const save = async () => {
       title={`Assign Roles – ${user.name}`}
       onClose={onClose}
       onSave={save}
+      saveDisabled={false}
+      button_name="Assign Roles"
     >
       {roles.map((r) => (
         <div key={r} className="form-check">

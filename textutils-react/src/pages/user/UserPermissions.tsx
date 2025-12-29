@@ -1,7 +1,6 @@
+import { useAuth } from "../../auth/hooks/useAuth";
 export default function UserPermissions() {
-  const permissions = JSON.parse(
-    localStorage.getItem("permissions") || "[]"
-  );
+const { permissions } = useAuth();
 
   return (
     <div className="container mt-4">

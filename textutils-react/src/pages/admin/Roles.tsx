@@ -147,6 +147,8 @@ export default function Roles() {
           title={modalType === "role-edit" ? "Edit Role" : "Add Role"}
           onClose={closeModal}
           onSave={saveRole}
+          saveDisabled={false}
+          button_name={modalType === "role-edit" ? "Update" : "Save"}
         >
           <input
             className="form-control"

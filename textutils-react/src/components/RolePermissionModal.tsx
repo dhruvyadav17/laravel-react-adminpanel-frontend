@@ -38,7 +38,8 @@ export default function RolePermissionModal({ roleId, onClose }: any) {
   };
 
   return (
-    <Modal title="Assign Permissions" onClose={onClose} onSave={save}>
+    <Modal title="Assign Permissions" onClose={onClose} onSave={save} 
+    saveDisabled={false} button_name="Assign Permissions">
       {permissions.map((p) => (
         <div key={p.id}>
           <input
