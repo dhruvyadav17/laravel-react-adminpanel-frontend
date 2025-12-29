@@ -8,6 +8,7 @@ import {
 import { handleApiError, handleApiSuccess } from "../../utils/toastHelper";
 import RolePermissionModal from "../../components/RolePermissionModal";
 import Modal from "../../components/common/Modal";
+import ConfirmModal from "../../components/common/ConfirmModal";
 import { usePermission } from "../../auth/hooks/usePermission";
 import { PERMISSIONS } from "../../constants/permissions";
 import { useAppModal } from "../../hooks/useAppModal";
@@ -15,12 +16,11 @@ import { useAppModal } from "../../hooks/useAppModal";
 export default function Roles() {
   const [roles, setRoles] = useState<any[]>([]);
   const [roleName, setRoleName] = useState("");
-  const [permissionRoleId, setPermissionRoleId] =
-    useState<number | null>(null);
+  const [permissionRoleId, setPermissionRoleId] = useState<number | null>(null);
 
   const can = usePermission();
-  const { modalType, modalData, openModal, closeModal } =
-    useAppModal<any>();
+  const { modalType, modalData, openModal, closeModal } = useAppModal<any>();
+  const [deleteRoleId, setDeleteRoleId] = useState<number | null>(null);
 
   /* ================= FETCH ================= */
   const fetchRoles = async () => {
@@ -164,6 +164,24 @@ export default function Roles() {
         <RolePermissionModal
           roleId={permissionRoleId}
           onClose={() => setPermissionRoleId(null)}
+        />
+      )}
+
+      {deleteRoleId && (
+        <ConfirmModal
+          message="Are you sure you want to delete this role?"
+          onClose={() => setDeleteRoleId(null)}
+          onConfirm={async () => {
+            try {
+              const res = await deleteRole(deleteRoleId);
+              handleApiSuccess(res);
+              fetchRoles();
+            } catch (e) {
+              handleApiError(e);
+            } finally {
+              setDeleteRoleId(null);
+            }
+          }}
         />
       )}
     </div>

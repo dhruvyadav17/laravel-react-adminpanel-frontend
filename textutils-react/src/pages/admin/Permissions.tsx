@@ -10,14 +10,15 @@ import Modal from "../../components/common/Modal";
 import { usePermission } from "../../auth/hooks/usePermission";
 import { PERMISSIONS } from "../../constants/permissions";
 import { useAppModal } from "../../hooks/useAppModal";
-
+import ConfirmModal from "../../components/common/ConfirmModal";
+import { useBackendForm } from "../../hooks/useBackendForm";
 export default function Permissions() {
   const [list, setList] = useState<any[]>([]);
-  const [name, setName] = useState("");
+  //const [name, setName] = useState("");
 
   const can = usePermission();
   const { modalType, modalData, openModal, closeModal } = useAppModal<any>();
-
+  const [deleteId, setDeleteId] = useState<number | null>(null);
   const fetchData = async () => {
     try {
       const res = await getPermissions();
@@ -26,7 +27,8 @@ export default function Permissions() {
       handleApiError(e);
     }
   };
-
+  const { values, errors, loading, setLoading, setField, handleError, reset } =
+    useBackendForm({ name: "" });
   useEffect(() => {
     fetchData();
   }, []);
@@ -35,22 +37,40 @@ export default function Permissions() {
     return <p className="text-danger">Unauthorized</p>;
   }
 
+  // const save = async () => {
+  //   try {
+  //     const res = modalData?.id
+  //       ? await updatePermission(modalData.id, { name })
+  //       : await createPermission({ name });
+
+  //     handleApiSuccess(res);
+  //     fetchData();
+  //   } catch (e) {
+  //     handleApiError(e);
+  //   } finally {
+  //     closeModal(); // ✅ CENTRALIZED CLOSE
+  //     setName("");
+  //   }
+  // };
   const save = async () => {
     try {
+      setLoading(true);
+      console.log(modalData?.id);
       const res = modalData?.id
-        ? await updatePermission(modalData.id, { name })
-        : await createPermission({ name });
+        ? await updatePermission(modalData.id, values)
+        : await createPermission(values);
 
       handleApiSuccess(res);
       fetchData();
+      closeModal();
+      reset();
     } catch (e) {
-      handleApiError(e);
+      handleError(e); // ✅ field errors
+      handleApiError(e); // ✅ toast
     } finally {
-      closeModal(); // ✅ CENTRALIZED CLOSE
-      setName("");
+      setLoading(false);
     }
   };
-
   return (
     <div className="container mt-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
@@ -75,14 +95,14 @@ export default function Permissions() {
               <button
                 className="btn btn-sm btn-warning"
                 onClick={() => {
-                  setName(p.name);
+                  setField("name", p.name);
                   openModal("permission", p);
                 }}
               >
                 Edit
               </button>
 
-              <button
+              {/* <button
                 className="btn btn-sm btn-danger ms-1"
                 onClick={async () => {
                   try {
@@ -93,6 +113,13 @@ export default function Permissions() {
                     handleApiError(e);
                   }
                 }}
+              >
+                Delete
+              </button> */}
+
+              <button
+                className="btn btn-sm btn-danger ms-1"
+                onClick={() => setDeleteId(p.id)}
               >
                 Delete
               </button>
@@ -107,14 +134,37 @@ export default function Permissions() {
           onClose={closeModal}
           onSave={save}
           saveDisabled={false}
-          button_name="Save"
+          button_name={modalData?.id ? "Update" : "Save"}
         >
           <input
-            className="form-control"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            className={`form-control ${errors.name ? "is-invalid" : ""}`}
+            value={values.name}
+            onChange={(e) => setField("name",e.target.value)}
           />
+          {errors.name && (
+  <div className="invalid-feedback">
+    {errors.name[0]}
+  </div>
+)}
         </Modal>
+      )}
+
+      {deleteId && (
+        <ConfirmModal
+          message="Are you sure you want to delete this permission?"
+          onClose={() => setDeleteId(null)}
+          onConfirm={async () => {
+            try {
+              const res = await deletePermission(deleteId);
+              handleApiSuccess(res);
+              fetchData();
+            } catch (e) {
+              handleApiError(e);
+            } finally {
+              setDeleteId(null);
+            }
+          }}
+        />
       )}
     </div>
   );
