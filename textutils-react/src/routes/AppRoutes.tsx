@@ -16,7 +16,7 @@ import PermissionRoute from "../auth/guards/PermissionRoute";
 /* USER PAGES */
 import Profile from "../pages/user/Profile";
 import UserRoles from "../pages/user/UserRoles";
-import UserPermissions from "../pages/user/UserPermissions";
+//import UserPermissions from "../pages/user/UserPermissions";
 
 /* ADMIN PAGES */
 import Dashboard from "../pages/admin/Dashboard";
@@ -39,7 +39,7 @@ export default function AppRoutes() {
         <Route element={<UserLayout />}>
           <Route path="/profile" element={<Profile />} />
           <Route path="/roles" element={<UserRoles />} />
-          <Route path="/permissions" element={<UserPermissions />} />
+          {/* <Route path="/permissions" element={<UserPermissions />} /> */}
         </Route>
       </Route>
 

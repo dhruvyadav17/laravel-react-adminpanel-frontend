@@ -1,11 +1,4 @@
-type ModalProps = {
-  title: string;
-  children: React.ReactNode;
-  onClose: () => void;
-  onSave?: () => void;
-  saveDisabled?: boolean;
-  button_name?: string;
-};
+import Button from "./Button";
 
 export default function Modal({
   title,
@@ -14,7 +7,7 @@ export default function Modal({
   onSave,
   saveDisabled,
   button_name,
-}: ModalProps) {
+}: any) {
   return (
     <div className="modal show d-block">
       <div className="modal-dialog">
@@ -26,18 +19,18 @@ export default function Modal({
           <div className="modal-body">{children}</div>
 
           <div className="modal-footer">
-            <button className="btn btn-secondary" onClick={onClose}>
-              Cancel
-            </button>
+            <Button
+              label="Cancel"
+              variant="secondary"
+              onClick={onClose}
+            />
 
             {onSave && (
-              <button
-                className="btn btn-primary"
+              <Button
+                label={button_name || "Save"}
                 onClick={onSave}
-                disabled={saveDisabled}
-              >
-                {button_name || "Save"}
-              </button>
+                loading={saveDisabled}
+              />
             )}
           </div>
         </div>

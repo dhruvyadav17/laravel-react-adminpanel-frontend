@@ -12,9 +12,7 @@ type AuthState = {
 /* ================= INITIAL STATE ================= */
 const initialState: AuthState = {
   user: JSON.parse(localStorage.getItem("user") || "null"),
-  permissions: JSON.parse(
-    localStorage.getItem("permissions") || "[]"
-  ),
+  permissions: JSON.parse(localStorage.getItem("permissions") || "[]"),
   token: localStorage.getItem("token"),
   loading: false,
 };
@@ -22,32 +20,21 @@ const initialState: AuthState = {
 /* ================= LOGIN ================= */
 export const loginThunk = createAsyncThunk(
   "auth/login",
-  async (
-    data: { email: string; password: string },
-    { rejectWithValue }
-  ) => {
+  async (data: { email: string; password: string }, { rejectWithValue }) => {
     try {
-      const res = await loginService(
-        data.email,
-        data.password
-      );
+      const res = await loginService(data.email, data.password);
       return res.data.data;
     } catch (e: any) {
-      return rejectWithValue(
-        e.response?.data?.message || "Login failed"
-      );
+      return rejectWithValue(e.response?.data?.message || "Login failed");
     }
   }
 );
 
 /* ================= LOGOUT ================= */
-export const logoutThunk = createAsyncThunk(
-  "auth/logout",
-  async () => {
-    localStorage.clear();
-    return true;
-  }
-);
+export const logoutThunk = createAsyncThunk("auth/logout", async () => {
+  localStorage.clear();
+  return true;
+});
 
 /* ================= SLICE ================= */
 const authSlice = createSlice({
@@ -57,10 +44,7 @@ const authSlice = createSlice({
     /* 🔥 BACKEND ALWAYS WINS */
     setPermissions: (state, action) => {
       state.permissions = action.payload;
-      localStorage.setItem(
-        "permissions",
-        JSON.stringify(action.payload)
-      );
+      localStorage.setItem("permissions", JSON.stringify(action.payload));
     },
   },
   extraReducers: (builder) => {
@@ -75,18 +59,12 @@ const authSlice = createSlice({
         state.permissions = action.payload.permissions;
         state.token = action.payload.token;
 
-        localStorage.setItem(
-          "user",
-          JSON.stringify(action.payload.user)
-        );
+        localStorage.setItem("user", JSON.stringify(action.payload.user));
         localStorage.setItem(
           "permissions",
           JSON.stringify(action.payload.permissions)
         );
-        localStorage.setItem(
-          "token",
-          action.payload.token
-        );
+        localStorage.setItem("token", action.payload.token);
       })
       .addCase(loginThunk.rejected, (state) => {
         state.loading = false;

@@ -1,31 +1,48 @@
+//import { useState } from "react";
+
 import Modal from "../../components/common/Modal";
-import ConfirmModal from "../../components/common/ConfirmModal";
+import RowActions from "../../components/common/RowActions";
+import Button from "../../components/common/Button";
+import { useConfirm } from "../../hooks/useConfirm";
+
 import { PERMISSIONS } from "../../constants/permissions";
 import { usePermission } from "../../auth/hooks/usePermission";
 import { useAppModal } from "../../hooks/useAppModal";
 import { useBackendForm } from "../../hooks/useBackendForm";
+
 import {
   useGetPermissionsQuery,
   useCreatePermissionMutation,
   useUpdatePermissionMutation,
   useDeletePermissionMutation,
 } from "../../store/api";
-import { handleApiError, handleApiSuccess } from "../../utils/toastHelper";
-import { useState } from "react";
+
+import {
+  handleApiError,
+  handleApiSuccess,
+} from "../../utils/toastHelper";
 
 export default function Permissions() {
   const can = usePermission();
   const { modalType, modalData, openModal, closeModal } =
     useAppModal<any>();
 
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const { confirm, ConfirmUI } = useConfirm();
 
-  const { data = [], isLoading } = useGetPermissionsQuery();
+  /* ================= DATA ================= */
+  const {
+    data: permissions = [],
+    isLoading,
+  } = useGetPermissionsQuery();
 
-  const [createPermission] = useCreatePermissionMutation();
-  const [updatePermission] = useUpdatePermissionMutation();
-  const [deletePermission] = useDeletePermissionMutation();
+  const [createPermission] =
+    useCreatePermissionMutation();
+  const [updatePermission] =
+    useUpdatePermissionMutation();
+  const [deletePermission] =
+    useDeletePermissionMutation();
 
+  /* ================= FORM ================= */
   const {
     values,
     errors,
@@ -38,10 +55,10 @@ export default function Permissions() {
 
   /* ================= GUARD ================= */
   if (!can(PERMISSIONS.PERMISSION_MANAGE)) {
-    return <p className="text-danger">Unauthorized</p>;
+    return <p className="text-danger mt-4">Unauthorized</p>;
   }
 
-  /* ================= SAVE ================= */
+  /* ================= SAVE (ADD / EDIT) ================= */
   const save = async () => {
     try {
       setLoading(true);
@@ -53,12 +70,18 @@ export default function Permissions() {
           }).unwrap()
         : await createPermission(values).unwrap();
 
-      handleApiSuccess(res);
+      handleApiSuccess(
+        res,
+        modalData?.id
+          ? "Permission updated"
+          : "Permission created"
+      );
+
       closeModal();
       reset();
     } catch (e) {
-      handleError(e);
-      handleApiError(e);
+      handleError(e);     // backend field errors
+      handleApiError(e);  // toast
     } finally {
       setLoading(false);
     }
@@ -66,53 +89,88 @@ export default function Permissions() {
 
   return (
     <div className="container mt-4">
+      {/* ================= HEADER ================= */}
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h3>Permissions</h3>
 
-        <button
-          className="btn btn-primary"
+        <Button
+          label="+ Add Permission"
           onClick={() => {
             reset();
             openModal("permission");
           }}
-        >
-          + Add Permission
-        </button>
+        />
       </div>
 
-      {/* ================= LIST ================= */}
+      {/* ================= TABLE ================= */}
       {isLoading ? (
         <p>Loading...</p>
       ) : (
-        <ul className="list-group">
-          {data.map((p: any) => (
-            <li
-              key={p.id}
-              className="list-group-item d-flex justify-content-between"
-            >
-              {p.name}
+        <table className="table table-bordered">
+          <thead className="table-dark">
+            <tr>
+              <th>Name</th>
+              <th
+                style={{ width: 180 }}
+                className="text-end"
+              >
+                Actions
+              </th>
+            </tr>
+          </thead>
 
-              <div>
-                <button
-                  className="btn btn-sm btn-warning"
-                  onClick={() => {
-                    setField("name", p.name);
-                    openModal("permission", p);
-                  }}
-                >
-                  Edit
-                </button>
+          <tbody>
+            {permissions.map((p: any) => (
+              <tr key={p.id}>
+                <td>{p.name}</td>
 
-                <button
-                  className="btn btn-sm btn-danger ms-1"
-                  onClick={() => setDeleteId(p.id)}
+                <td className="text-end">
+                  <RowActions
+                    actions={[
+                      {
+                        label: "Edit",
+                        variant: "warning",
+                        onClick: () => {
+                          setField("name", p.name);
+                          openModal("permission", p);
+                        },
+                      },
+                      {
+                        label: "Delete",
+                        variant: "danger",
+                        onClick: () =>
+                          confirm(async () => {
+                            try {
+                              await deletePermission(
+                                p.id
+                              ).unwrap();
+                              handleApiSuccess(
+                                null,
+                                "Permission deleted"
+                              );
+                            } catch (e) {
+                              handleApiError(e);
+                            }
+                          }),
+                      },
+                    ]}
+                  />
+                </td>
+              </tr>
+            ))}
+
+            {!permissions.length && (
+              <tr>
+                <td
+                  colSpan={2}
+                  className="text-center"
                 >
-                  Delete
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
+                  No permissions found
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       )}
 
       {/* ================= ADD / EDIT MODAL ================= */}
@@ -122,16 +180,20 @@ export default function Permissions() {
           onClose={closeModal}
           onSave={save}
           saveDisabled={loading}
-          button_name={modalData?.id ? "Update" : "Save"}
+          button_name={
+            modalData?.id ? "Update" : "Save"
+          }
         >
           <input
             className={`form-control ${
               errors.name ? "is-invalid" : ""
             }`}
+            placeholder="Permission name"
             value={values.name}
             onChange={(e) =>
               setField("name", e.target.value)
             }
+            disabled={loading}
           />
 
           {errors.name && (
@@ -142,23 +204,8 @@ export default function Permissions() {
         </Modal>
       )}
 
-      {/* ================= DELETE CONFIRM ================= */}
-      {deleteId && (
-        <ConfirmModal
-          message="Are you sure you want to delete this permission?"
-          onClose={() => setDeleteId(null)}
-          onConfirm={async () => {
-            try {
-              await deletePermission(deleteId).unwrap();
-              handleApiSuccess(null, "Permission deleted");
-            } catch (e) {
-              handleApiError(e);
-            } finally {
-              setDeleteId(null);
-            }
-          }}
-        />
-      )}
+      {/* ================= CONFIRM MODAL ================= */}
+      {ConfirmUI}
     </div>
   );
 }

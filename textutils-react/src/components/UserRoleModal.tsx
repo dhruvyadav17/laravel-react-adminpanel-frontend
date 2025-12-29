@@ -1,32 +1,48 @@
 import { useEffect, useState } from "react";
 import Modal from "./common/Modal";
 import {
-  assignUserRoles,
-} from "../services/userService";
+  useGetRolesQuery,
+  useAssignUserRolesMutation,
+} from "../store/api";
 import {
-  getRoles,
-} from "../services/roleService";
-
-import {
-  handleApiSuccess,
   handleApiError,
+  handleApiSuccess,
 } from "../utils/toastHelper";
+
+type Props = {
+  user: {
+    id: number;
+    name: string;
+    roles: string[];
+  };
+  onClose: () => void;
+  onSaved: () => void;
+};
 
 export default function UserRoleModal({
   user,
   onClose,
   onSaved,
-}: any) {
-  const [roles, setRoles] = useState<string[]>([]);
-  const [selected, setSelected] = useState<string[]>(
-    user.roles || []
-  );
+}: Props) {
+  const [selected, setSelected] = useState<string[]>([]);
 
+  /* ================= FETCH ROLES ================= */
+  const {
+    data: roles = [],
+    isLoading,
+    isError,
+  } = useGetRolesQuery();
+
+  /* ================= ASSIGN ROLE ================= */
+  const [
+    assignUserRoles,
+    { isLoading: saving },
+  ] = useAssignUserRolesMutation();
+
+  /* ================= SYNC USER ROLES ================= */
   useEffect(() => {
-    getRoles().then((res) => {
-      setRoles(res.data.data.map((r: any) => r.name));
-    });
-  }, []);
+    setSelected(user.roles || []);
+  }, [user.roles]);
 
   const toggle = (role: string) => {
     setSelected((prev) =>
@@ -36,34 +52,24 @@ export default function UserRoleModal({
     );
   };
 
-const save = async () => {
-    if (!selected.length) {
-      handleApiError(
-        null,
-        "Please select at least one role"
-      );
-      return;
-    }
-
+  /* ================= SAVE ================= */
+  const save = async () => {
     try {
-        console.log("Assigning roles:", selected);
-      const res = await assignUserRoles(
-        user.id,
-        selected
-      );
+      await assignUserRoles({
+        id: user.id,
+        roles: selected,
+      }).unwrap();
 
-      // ✅ SUCCESS TOAST
       handleApiSuccess(
-        res,
-        "Role assigned to user successfully"
+        null,
+        "Roles assigned successfully"
       );
 
-      onSaved();
-    } catch (err: any) {
-      // ❌ ERROR TOAST
-      handleApiError(err);
-    }finally {
-      onClose();
+      onSaved(); // parent handles close + refetch
+    } catch (e) {
+      handleApiError(e);
+    } finally {
+      onClose(); // ✅ always close modal
     }
   };
 
@@ -72,22 +78,44 @@ const save = async () => {
       title={`Assign Roles – ${user.name}`}
       onClose={onClose}
       onSave={save}
-      saveDisabled={false}
-      button_name="Assign Roles"
+      saveDisabled={saving}
+      button_name={saving ? "Saving..." : "Assign"}
     >
-      {roles.map((r) => (
-        <div key={r} className="form-check">
-          <input
-            className="form-check-input"
-            type="checkbox"
-            checked={selected.includes(r)}
-            onChange={() => toggle(r)}
-          />
-          <label className="form-check-label">
-            {r}
-          </label>
-        </div>
-      ))}
+      {/* ================= STATES ================= */}
+      {isLoading && <p>Loading roles...</p>}
+
+      {isError && (
+        <p className="text-danger">
+          Failed to load roles
+        </p>
+      )}
+
+      {!isLoading && !roles.length && (
+        <p className="text-muted">
+          No roles available
+        </p>
+      )}
+
+      {/* ================= LIST ================= */}
+      {!isLoading &&
+        roles.map((r: any) => (
+          <div key={r.id} className="form-check">
+            <input
+              className="form-check-input"
+              type="checkbox"
+              id={`role-${r.id}`}
+              checked={selected.includes(r.name)}
+              onChange={() => toggle(r.name)}
+              disabled={saving}
+            />
+            <label
+              className="form-check-label"
+              htmlFor={`role-${r.id}`}
+            >
+              {r.name}
+            </label>
+          </div>
+        ))}
     </Modal>
   );
 }

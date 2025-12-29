@@ -1,6 +1,6 @@
-import { useState } from "react";
 import Modal from "./common/Modal";
-import { createUser } from "../services/userService";
+import { useBackendForm } from "../hooks/useBackendForm";
+import { useCreateUserMutation } from "../store/api";
 import {
   handleApiSuccess,
   handleApiError,
@@ -15,92 +15,128 @@ export default function UserFormModal({
   onClose,
   onSaved,
 }: Props) {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [passwordConfirm, setPasswordConfirm] =
-    useState("");
-  const [loading, setLoading] = useState(false);
+  /* ================= FORM ================= */
+  const {
+    values,
+    errors,
+    loading,
+    setLoading,
+    setField,
+    handleError,
+    reset,
+  } = useBackendForm({
+    name: "",
+    email: "",
+    password: "",
+    password_confirmation: "",
+  });
 
+  /* ================= API ================= */
+  const [createUser] = useCreateUserMutation();
+
+  /* ================= SAVE ================= */
   const save = async () => {
-    if (
-      !name.trim() ||
-      !email.trim() ||
-      password.length < 8 ||
-      password !== passwordConfirm
-    ) {
-      handleApiError(
-        null,
-        "Fill all fields correctly (password must match & be 8+ chars)"
-      );
-      return;
-    }
-
     try {
       setLoading(true);
 
-      const res = await createUser({
-        name,
-        email,
-        password,
-        password_confirmation: passwordConfirm,
-      });
+      await createUser(values).unwrap();
 
-      handleApiSuccess(res, "User created successfully");
+      handleApiSuccess(null, "User created successfully");
 
-      // 🔥 SUCCESS → parent will close modal
-      onSaved();
-    } catch (err) {
-      handleApiError(err);
+      reset();
+      onSaved(); // ✅ close modal from parent
+    } catch (e) {
+      handleError(e);     // backend validation errors
+      handleApiError(e);  // toast
     } finally {
       setLoading(false);
-      //onClose();
     }
   };
 
   return (
     <Modal
       title="Add User"
-      onClose={onClose}   // ❌ Cancel / X
+      onClose={onClose}
       onSave={save}
       saveDisabled={loading}
-      button_name="Save"
+      button_name={loading ? "Saving..." : "Save"}
     >
+      {/* ================= NAME ================= */}
       <input
-        className="form-control mb-2"
+        className={`form-control mb-2 ${
+          errors.name ? "is-invalid" : ""
+        }`}
         placeholder="Name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
+        value={values.name}
+        onChange={(e) => setField("name", e.target.value)}
         disabled={loading}
       />
+      {errors.name && (
+        <div className="invalid-feedback">
+          {errors.name[0]}
+        </div>
+      )}
 
+      {/* ================= EMAIL ================= */}
       <input
-        className="form-control mb-2"
+        className={`form-control mb-2 ${
+          errors.email ? "is-invalid" : ""
+        }`}
         placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        disabled={loading}
-      />
-
-      <input
-        className="form-control mb-2"
-        type="password"
-        placeholder="Password (min 8 chars)"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        disabled={loading}
-      />
-
-      <input
-        className="form-control mb-2"
-        type="password"
-        placeholder="Confirm Password"
-        value={passwordConfirm}
+        value={values.email}
         onChange={(e) =>
-          setPasswordConfirm(e.target.value)
+          setField("email", e.target.value)
         }
         disabled={loading}
       />
+      {errors.email && (
+        <div className="invalid-feedback">
+          {errors.email[0]}
+        </div>
+      )}
+
+      {/* ================= PASSWORD ================= */}
+      <input
+        className={`form-control mb-2 ${
+          errors.password ? "is-invalid" : ""
+        }`}
+        type="password"
+        placeholder="Password (min 8 chars)"
+        value={values.password}
+        onChange={(e) =>
+          setField("password", e.target.value)
+        }
+        disabled={loading}
+      />
+      {errors.password && (
+        <div className="invalid-feedback">
+          {errors.password[0]}
+        </div>
+      )}
+
+      {/* ================= CONFIRM PASSWORD ================= */}
+      <input
+        className={`form-control mb-2 ${
+          errors.password_confirmation
+            ? "is-invalid"
+            : ""
+        }`}
+        type="password"
+        placeholder="Confirm Password"
+        value={values.password_confirmation}
+        onChange={(e) =>
+          setField(
+            "password_confirmation",
+            e.target.value
+          )
+        }
+        disabled={loading}
+      />
+      {errors.password_confirmation && (
+        <div className="invalid-feedback">
+          {errors.password_confirmation[0]}
+        </div>
+      )}
     </Modal>
   );
 }

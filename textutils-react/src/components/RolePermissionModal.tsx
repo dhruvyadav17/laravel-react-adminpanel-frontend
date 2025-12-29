@@ -1,55 +1,133 @@
 import { useEffect, useState } from "react";
-import {
-  getRolePermissions,
-  assignRolePermissions,
-} from "../services/roleService";
-import { handleApiError, handleApiSuccess } from "../utils/toastHelper";
 import Modal from "./common/Modal";
+import {
+  useGetRolePermissionsQuery,
+  useAssignRolePermissionsMutation,
+} from "../store/api";
+import {
+  handleApiError,
+  handleApiSuccess,
+} from "../utils/toastHelper";
 
-export default function RolePermissionModal({ roleId, onClose }: any) {
-  const [permissions, setPermissions] = useState<any[]>([]);
+type Props = {
+  roleId: number;
+  onClose: () => void;
+};
+
+type Permission = {
+  id: number;
+  name: string;
+};
+
+type RolePermissionResponse = {
+  permissions: Permission[];
+  assigned: string[];
+};
+
+export default function RolePermissionModal({
+  roleId,
+  onClose,
+}: Props) {
   const [selected, setSelected] = useState<string[]>([]);
 
-  useEffect(() => {
-    getRolePermissions(roleId)
-      .then((res) => {
-        setPermissions(res.data.data.permissions);
-        setSelected(res.data.data.assigned);
-      })
-      .catch(handleApiError);
-  }, [roleId]);
+  /* ================= FETCH ================= */
+  const {
+    data,
+    isLoading,
+    isError,
+  } = useGetRolePermissionsQuery(roleId, {
+    skip: !roleId,
+  }) as {
+    data?: RolePermissionResponse;
+    isLoading: boolean;
+    isError: boolean;
+  };
 
-  const toggle = (name: string) => {
+  /* ================= MUTATION ================= */
+  const [
+    assignRolePermissions,
+    { isLoading: saving },
+  ] = useAssignRolePermissionsMutation();
+
+  /* ================= SYNC ASSIGNED ================= */
+  useEffect(() => {
+    if (data?.assigned) {
+      setSelected(data.assigned);
+    }
+  }, [data?.assigned]);
+
+  const toggle = (permission: string) => {
     setSelected((prev) =>
-      prev.includes(name) ? prev.filter((p) => p !== name) : [...prev, name]
+      prev.includes(permission)
+        ? prev.filter((p) => p !== permission)
+        : [...prev, permission]
     );
   };
 
+  /* ================= SAVE ================= */
   const save = async () => {
     try {
-      const res = await assignRolePermissions(roleId, selected);
-      handleApiSuccess(res);
+      await assignRolePermissions({
+        id: roleId,
+        permissions: selected,
+      }).unwrap();
+
+      handleApiSuccess(
+        null,
+        "Permissions assigned successfully"
+      );
     } catch (e) {
       handleApiError(e);
     } finally {
-      // ✅ ALWAYS CLOSE (SUCCESS / ERROR)
-      onClose();
+      onClose(); // ✅ modal lifecycle handled here
     }
   };
 
   return (
-    <Modal title="Assign Permissions" onClose={onClose} onSave={save} 
-    saveDisabled={false} button_name="Assign Permissions">
-      {permissions.map((p) => (
-        <div key={p.id}>
-          <input
-            type="checkbox"
-            checked={selected.includes(p.name)}
-            onChange={() => toggle(p.name)}
-          />{" "}
-          {p.name}
-        </div>
-      ))}
+    <Modal
+      title="Assign Permissions"
+      onClose={onClose}
+      onSave={save}
+      saveDisabled={saving}
+      button_name={saving ? "Saving..." : "Assign"}
+    >
+      {/* ================= STATES ================= */}
+      {isLoading && <p>Loading permissions...</p>}
+
+      {isError && (
+        <p className="text-danger">
+          Failed to load permissions
+        </p>
+      )}
+
+      {!isLoading &&
+        !isError &&
+        data?.permissions?.length === 0 && (
+          <p className="text-muted">
+            No permissions available
+          </p>
+        )}
+
+      {/* ================= LIST ================= */}
+      {!isLoading &&
+        data?.permissions?.map((p) => (
+          <div key={p.id} className="form-check">
+            <input
+              className="form-check-input"
+              type="checkbox"
+              id={`perm-${p.id}`}
+              checked={selected.includes(p.name)}
+              onChange={() => toggle(p.name)}
+              disabled={saving}
+            />
+            <label
+              className="form-check-label"
+              htmlFor={`perm-${p.id}`}
+            >
+              {p.name}
+            </label>
+          </div>
+        ))}
     </Modal>
   );
 }

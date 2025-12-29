@@ -14,7 +14,10 @@ export const api = createApi({
       return headers;
     },
   }),
-  tagTypes: ["Permissions","roles","users"],
+
+  // ✅ FIXED TAGS (CASE SENSITIVE)
+  tagTypes: ["Permissions", "Roles", "Users"],
+
   endpoints: (builder) => ({
     /* ================= PERMISSIONS ================= */
 
@@ -33,10 +36,7 @@ export const api = createApi({
       invalidatesTags: ["Permissions"],
     }),
 
-    updatePermission: builder.mutation<
-      any,
-      { id: number; name: string }
-    >({
+    updatePermission: builder.mutation<any, { id: number; name: string }>({
       query: ({ id, ...data }) => ({
         url: `/admin/permissions/${id}`,
         method: "PUT",
@@ -52,73 +52,103 @@ export const api = createApi({
       }),
       invalidatesTags: ["Permissions"],
     }),
+
     /* ================= USERS ================= */
 
-getUsers: builder.query<any[], void>({
-  query: () => "/admin/users",
-  transformResponse: (res: any) => res.data,
-  providesTags: ["Users"],
-}),
+    getUsers: builder.query<any[], void>({
+      query: () => "/admin/users",
+      transformResponse: (res: any) =>
+        res.data.map((u: any) => ({
+          ...u,
+          roles: Array.isArray(u.roles)
+            ? u.roles.map((r: any) => (typeof r === "string" ? r : r.name))
+            : [],
+        })),
+      providesTags: ["Users"],
+    }),
 
-createUser: builder.mutation<any, any>({
-  query: (data) => ({
-    url: "/admin/users",
-    method: "POST",
-    body: data,
-  }),
-  invalidatesTags: ["Users"],
-}),
+    createUser: builder.mutation<any, any>({
+      query: (data) => ({
+        url: "/admin/users",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Users"],
+    }),
 
-assignUserRoles: builder.mutation<any, { id: number; roles: string[] }>({
-  query: ({ id, roles }) => ({
-    url: `/admin/users/${id}/assign-role`,
-    method: "POST",
-    body: { roles },
-  }),
-  invalidatesTags: ["Users"],
-}),
+    assignUserRoles: builder.mutation<any, { id: number; roles: string[] }>({
+      query: ({ id, roles }) => ({
+        url: `/admin/users/${id}/assign-role`,
+        method: "POST",
+        body: { roles },
+      }),
+      invalidatesTags: ["Users"],
+    }),
 
-deleteUser: builder.mutation<any, number>({
-  query: (id) => ({
-    url: `/admin/users/${id}`,
-    method: "DELETE",
-  }),
-  invalidatesTags: ["Users"],
-}),
+    deleteUser: builder.mutation<any, number>({
+      query: (id) => ({
+        url: `/admin/users/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Users"],
+    }),
 
-/* ================= ROLES ================= */
+    /* ================= ROLES ================= */
 
-getRoles: builder.query<any[], void>({
-  query: () => "/admin/roles",
-  transformResponse: (res: any) => res.data,
-  providesTags: ["Roles"],
-}),
+    getRoles: builder.query<any[], void>({
+      query: () => "/admin/roles",
+      transformResponse: (res: any) => res.data,
+      providesTags: ["Roles"],
+    }),
 
-createRole: builder.mutation<any, { name: string }>({
-  query: (data) => ({
-    url: "/admin/roles",
-    method: "POST",
-    body: data,
-  }),
-  invalidatesTags: ["Roles"],
-}),
+    createRole: builder.mutation<any, { name: string }>({
+      query: (data) => ({
+        url: "/admin/roles",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Roles"],
+    }),
 
-updateRole: builder.mutation<any, { id: number; name: string }>({
-  query: ({ id, ...data }) => ({
-    url: `/admin/roles/${id}`,
-    method: "PUT",
-    body: data,
-  }),
-  invalidatesTags: ["Roles"],
-}),
+    updateRole: builder.mutation<any, { id: number; name: string }>({
+      query: ({ id, ...data }) => ({
+        url: `/admin/roles/${id}`,
+        method: "PUT",
+        body: data,
+      }),
+      invalidatesTags: ["Roles"],
+    }),
 
-deleteRole: builder.mutation<any, number>({
-  query: (id) => ({
-    url: `/admin/roles/${id}`,
-    method: "DELETE",
-  }),
-  invalidatesTags: ["Roles"],
-}),
+    deleteRole: builder.mutation<any, number>({
+      query: (id) => ({
+        url: `/admin/roles/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Roles"],
+    }),
+
+    /* ================= ROLE → PERMISSIONS ================= */
+
+    getRolePermissions: builder.query<
+      { permissions: any[]; assigned: string[] },
+      number
+    >({
+      query: (id) => `/admin/roles/${id}/permissions`,
+      transformResponse: (res: any) => res.data,
+      providesTags: ["Roles"],
+    }),
+
+    assignRolePermissions: builder.mutation<
+      any,
+      { id: number; permissions: string[] }
+    >({
+      query: ({ id, permissions }) => ({
+        url: `/admin/roles/${id}/permissions`,
+        method: "POST",
+        body: { permissions },
+      }),
+      invalidatesTags: ["Roles"],
+    }),
   }),
 });
 
@@ -127,7 +157,8 @@ export const {
   useCreatePermissionMutation,
   useUpdatePermissionMutation,
   useDeletePermissionMutation,
-    useGetUsersQuery,
+
+  useGetUsersQuery,
   useCreateUserMutation,
   useAssignUserRolesMutation,
   useDeleteUserMutation,
@@ -136,4 +167,8 @@ export const {
   useCreateRoleMutation,
   useUpdateRoleMutation,
   useDeleteRoleMutation,
+
+  // ✅ IMPORTANT (role permission)
+  useGetRolePermissionsQuery,
+  useAssignRolePermissionsMutation,
 } = api;
