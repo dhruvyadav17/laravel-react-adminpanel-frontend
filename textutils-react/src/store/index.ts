@@ -1,17 +1,16 @@
+
 import { configureStore } from "@reduxjs/toolkit";
 import authReducer from "./authSlice";
-import userReducer from "./userSlice";
-import { setStore } from "./storeAccessor";
+import { api } from "./api";
 
 export const store = configureStore({
   reducer: {
     auth: authReducer,
-    users: userReducer,
+    [api.reducerPath]: api.reducer,
   },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware().concat(api.middleware),
 });
-
-// 🔥 inject store AFTER creation
-setStore(store);
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

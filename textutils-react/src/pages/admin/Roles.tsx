@@ -1,185 +1,185 @@
-import { useEffect, useState } from "react";
-import {
-  getRoles,
-  deleteRole,
-  createRole,
-  updateRole,
-} from "../../services/roleService";
-import { handleApiError, handleApiSuccess } from "../../utils/toastHelper";
-import RolePermissionModal from "../../components/RolePermissionModal";
+import { useState } from "react";
 import Modal from "../../components/common/Modal";
+import RolePermissionModal from "../../components/RolePermissionModal";
 import ConfirmModal from "../../components/common/ConfirmModal";
-import { usePermission } from "../../auth/hooks/usePermission";
 import { PERMISSIONS } from "../../constants/permissions";
+import { usePermission } from "../../auth/hooks/usePermission";
 import { useAppModal } from "../../hooks/useAppModal";
+import { useBackendForm } from "../../hooks/useBackendForm";
+import {
+  useGetRolesQuery,
+  useCreateRoleMutation,
+  useUpdateRoleMutation,
+  useDeleteRoleMutation,
+} from "../../store/api";
+import { handleApiError, handleApiSuccess } from "../../utils/toastHelper";
 
 export default function Roles() {
-  const [roles, setRoles] = useState<any[]>([]);
-  const [roleName, setRoleName] = useState("");
-  const [permissionRoleId, setPermissionRoleId] = useState<number | null>(null);
-
   const can = usePermission();
-  const { modalType, modalData, openModal, closeModal } = useAppModal<any>();
-  const [deleteRoleId, setDeleteRoleId] = useState<number | null>(null);
+  const { modalType, modalData, openModal, closeModal } =
+    useAppModal<any>();
 
-  /* ================= FETCH ================= */
-  const fetchRoles = async () => {
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+
+  const { data = [], isLoading } = useGetRolesQuery();
+  const [createRole] = useCreateRoleMutation();
+  const [updateRole] = useUpdateRoleMutation();
+  const [deleteRole] = useDeleteRoleMutation();
+
+  const {
+    values,
+    errors,
+    loading,
+    setLoading,
+    setField,
+    handleError,
+    reset,
+  } = useBackendForm({ name: "" });
+
+  if (!can(PERMISSIONS.ROLE_MANAGE)) {
+    return <p className="text-danger">Unauthorized</p>;
+  }
+
+  const save = async () => {
     try {
-      const res = await getRoles();
-      setRoles(res.data.data);
-    } catch (e) {
-      handleApiError(e);
-    }
-  };
+      setLoading(true);
 
-  useEffect(() => {
-    fetchRoles();
-  }, []);
+      const res = modalData?.id
+        ? await updateRole({
+            id: modalData.id,
+            name: values.name,
+          }).unwrap()
+        : await createRole(values).unwrap();
 
-  /* ================= SAVE (ADD / EDIT) ================= */
-  const saveRole = async () => {
-    if (!roleName.trim()) {
-      handleApiError(null, "Role name is required");
+      handleApiSuccess(res);
       closeModal();
-      return;
-    }
-
-    try {
-      const res =
-        modalType === "role-edit"
-          ? await updateRole(modalData.id, { name: roleName })
-          : await createRole({ name: roleName });
-
-      handleApiSuccess(
-        res,
-        modalType === "role-edit" ? "Role updated" : "Role created"
-      );
-
-      fetchRoles();
+      reset();
     } catch (e) {
+      handleError(e);
       handleApiError(e);
     } finally {
-      closeModal(); // ✅ ALWAYS CLOSE
-      setRoleName("");
+      setLoading(false);
     }
   };
-
-  /* ================= GUARD ================= */
-  if (!can(PERMISSIONS.ROLE_MANAGE)) {
-    return <p className="text-danger mt-4">Unauthorized</p>;
-  }
 
   return (
     <div className="container mt-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h3>Roles</h3>
+
         <button
           className="btn btn-primary"
-          onClick={() => openModal("role-add")}
+          onClick={() => {
+            reset();
+            openModal("role-add");
+          }}
         >
           + Add Role
         </button>
       </div>
 
-      <table className="table table-bordered">
-        <thead className="table-dark">
-          <tr>
-            <th>Name</th>
-            <th style={{ width: 260 }}>Actions</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {roles.map((r) => (
-            <tr key={r.id}>
-              <td>{r.name}</td>
-
-              {/* 🔥 ACTIONS LAST */}
-              <td>
-                <button
-                  className="btn btn-sm btn-secondary me-1"
-                  onClick={() => setPermissionRoleId(r.id)}
-                >
-                  Permissions
-                </button>
-
-                <button
-                  className="btn btn-sm btn-warning me-1"
-                  onClick={() => {
-                    setRoleName(r.name);
-                    openModal("role-edit", r);
-                  }}
-                >
-                  Edit
-                </button>
-
-                <button
-                  className="btn btn-sm btn-danger"
-                  onClick={async () => {
-                    try {
-                      const res = await deleteRole(r.id);
-                      handleApiSuccess(res, "Role deleted");
-                      fetchRoles();
-                    } catch (e) {
-                      handleApiError(e);
-                    }
-                  }}
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-          ))}
-
-          {!roles.length && (
+      {isLoading ? (
+        <p>Loading...</p>
+      ) : (
+        <table className="table table-bordered">
+          <thead className="table-dark">
             <tr>
-              <td colSpan={2} className="text-center">
-                No roles found
-              </td>
+              <th>Name</th>
+              <th width="260">Actions</th>
             </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {data.map((r: any) => (
+              <tr key={r.id}>
+                <td>{r.name}</td>
+                <td>
+                  <button
+                    className="btn btn-sm btn-secondary me-1"
+                    onClick={() =>
+                      openModal("permission", r)
+                    }
+                  >
+                    Permissions
+                  </button>
 
-      {/* ================= ADD / EDIT MODAL ================= */}
+                  <button
+                    className="btn btn-sm btn-warning me-1"
+                    onClick={() => {
+                      setField("name", r.name);
+                      openModal("role-edit", r);
+                    }}
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    className="btn btn-sm btn-danger"
+                    onClick={() => setDeleteId(r.id)}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+
+            {!data.length && (
+              <tr>
+                <td colSpan={2} className="text-center">
+                  No roles found
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      )}
+
       {(modalType === "role-add" || modalType === "role-edit") && (
         <Modal
-          title={modalType === "role-edit" ? "Edit Role" : "Add Role"}
+          title={
+            modalType === "role-edit"
+              ? "Edit Role"
+              : "Add Role"
+          }
           onClose={closeModal}
-          onSave={saveRole}
-          saveDisabled={false}
-          button_name={modalType === "role-edit" ? "Update" : "Save"}
+          onSave={save}
+          saveDisabled={loading}
         >
           <input
-            className="form-control"
-            placeholder="Role name"
-            value={roleName}
-            onChange={(e) => setRoleName(e.target.value)}
+            className={`form-control ${
+              errors.name ? "is-invalid" : ""
+            }`}
+            value={values.name}
+            onChange={(e) =>
+              setField("name", e.target.value)
+            }
           />
+          {errors.name && (
+            <div className="invalid-feedback">
+              {errors.name[0]}
+            </div>
+          )}
         </Modal>
       )}
 
-      {/* ================= PERMISSION MODAL ================= */}
-      {permissionRoleId && (
+      {modalType === "permission" && modalData && (
         <RolePermissionModal
-          roleId={permissionRoleId}
-          onClose={() => setPermissionRoleId(null)}
+          roleId={modalData.id}
+          onClose={closeModal}
         />
       )}
 
-      {deleteRoleId && (
+      {deleteId && (
         <ConfirmModal
           message="Are you sure you want to delete this role?"
-          onClose={() => setDeleteRoleId(null)}
+          onClose={() => setDeleteId(null)}
           onConfirm={async () => {
             try {
-              const res = await deleteRole(deleteRoleId);
-              handleApiSuccess(res);
-              fetchRoles();
+              await deleteRole(deleteId).unwrap();
+              handleApiSuccess(null, "Role deleted");
             } catch (e) {
               handleApiError(e);
             } finally {
-              setDeleteRoleId(null);
+              setDeleteId(null);
             }
           }}
         />

@@ -12,12 +12,14 @@ type AuthState = {
 /* ================= INITIAL STATE ================= */
 const initialState: AuthState = {
   user: JSON.parse(localStorage.getItem("user") || "null"),
-  permissions: JSON.parse(localStorage.getItem("permissions") || "[]"),
+  permissions: JSON.parse(
+    localStorage.getItem("permissions") || "[]"
+  ),
   token: localStorage.getItem("token"),
   loading: false,
 };
 
-/* ================= LOGIN THUNK ================= */
+/* ================= LOGIN ================= */
 export const loginThunk = createAsyncThunk(
   "auth/login",
   async (
@@ -25,7 +27,10 @@ export const loginThunk = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const res = await loginService(data.email, data.password);
+      const res = await loginService(
+        data.email,
+        data.password
+      );
       return res.data.data;
     } catch (e: any) {
       return rejectWithValue(
@@ -35,7 +40,7 @@ export const loginThunk = createAsyncThunk(
   }
 );
 
-/* ================= LOGOUT THUNK ================= */
+/* ================= LOGOUT ================= */
 export const logoutThunk = createAsyncThunk(
   "auth/logout",
   async () => {
@@ -48,7 +53,16 @@ export const logoutThunk = createAsyncThunk(
 const authSlice = createSlice({
   name: "auth",
   initialState,
-  reducers: {},
+  reducers: {
+    /* 🔥 BACKEND ALWAYS WINS */
+    setPermissions: (state, action) => {
+      state.permissions = action.payload;
+      localStorage.setItem(
+        "permissions",
+        JSON.stringify(action.payload)
+      );
+    },
+  },
   extraReducers: (builder) => {
     builder
       /* ---------- LOGIN ---------- */
@@ -87,4 +101,5 @@ const authSlice = createSlice({
   },
 });
 
+export const { setPermissions } = authSlice.actions;
 export default authSlice.reducer;

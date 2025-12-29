@@ -1,61 +1,46 @@
-import { useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { fetchUsersThunk } from "../../store/userSlice";
-import { RootState, AppDispatch } from "../../store";
-import { usePermission } from "../../auth/hooks/usePermission";
+import { useState } from "react";
 import { PERMISSIONS } from "../../constants/permissions";
+import { usePermission } from "../../auth/hooks/usePermission";
+import { useAppModal } from "../../hooks/useAppModal";
+import ConfirmModal from "../../components/common/ConfirmModal";
 import UserFormModal from "../../components/UserFormModal";
 import UserRoleModal from "../../components/UserRoleModal";
-import { useAppModal } from "../../hooks/useAppModal";
+import {
+  useGetUsersQuery,
+  useDeleteUserMutation,
+} from "../../store/api";
+import { handleApiError, handleApiSuccess } from "../../utils/toastHelper";
 
 export default function Users() {
-  const dispatch = useDispatch<AppDispatch>();
-
-  const { list, loading } = useSelector((state: RootState) => state.users);
-
   const can = usePermission();
+  const { modalType, modalData, openModal, closeModal } =
+    useAppModal<any>();
 
-  // 🔥 Centralized modal state
-  const { modalType, modalData, openModal, closeModal } = useAppModal<any>();
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
-  /* ================= LOAD USERS ================= */
-  const loadUsers = () => {
-    dispatch(fetchUsersThunk());
-  };
+  const { data = [], isLoading } = useGetUsersQuery();
+  const [deleteUser] = useDeleteUserMutation();
 
-  useEffect(() => {
-    if (can(PERMISSIONS.USER_VIEW)) {
-      loadUsers();
-    }
-  }, []);
-
-  /* ================= GUARD ================= */
   if (!can(PERMISSIONS.USER_VIEW)) {
-    return (
-      <div className="container mt-4">
-        <p className="text-danger">Unauthorized</p>
-      </div>
-    );
+    return <p className="text-danger">Unauthorized</p>;
   }
 
   return (
     <div className="container mt-4">
-      {/* ================= HEADER ================= */}
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h3>Users</h3>
 
         {can(PERMISSIONS.USER_CREATE) && (
           <button
             className="btn btn-primary"
-            onClick={() => openModal("user-form")} // ✅ OPEN ADD USER
+            onClick={() => openModal("user-form")}
           >
             + Add User
           </button>
         )}
       </div>
 
-      {/* ================= LIST ================= */}
-      {loading ? (
+      {isLoading ? (
         <p>Loading...</p>
       ) : (
         <table className="table table-bordered">
@@ -64,11 +49,11 @@ export default function Users() {
               <th>Name</th>
               <th>Email</th>
               <th>Roles</th>
-              <th width="160">Actions</th>
+              <th width="180">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {list.map((u) => (
+            {data.map((u: any) => (
               <tr key={u.id}>
                 <td>{u.name}</td>
                 <td>{u.email}</td>
@@ -76,19 +61,26 @@ export default function Users() {
                 <td>
                   {can(PERMISSIONS.USER_ASSIGN_ROLE) && (
                     <button
-                      className="btn btn-sm btn-secondary"
-                      onClick={
-                        () => openModal("user-role", u) // ✅ OPEN ASSIGN ROLE
+                      className="btn btn-sm btn-secondary me-1"
+                      onClick={() =>
+                        openModal("user-role", u)
                       }
                     >
                       Assign Role
                     </button>
                   )}
+
+                  <button
+                    className="btn btn-sm btn-danger"
+                    onClick={() => setDeleteId(u.id)}
+                  >
+                    Delete
+                  </button>
                 </td>
               </tr>
             ))}
 
-            {!list.length && (
+            {!data.length && (
               <tr>
                 <td colSpan={4} className="text-center">
                   No users found
@@ -99,27 +91,37 @@ export default function Users() {
         </table>
       )}
 
-      {/* ================= ADD USER MODAL ================= */}
+      {/* ADD USER */}
       {modalType === "user-form" && (
         <UserFormModal
-          onClose={closeModal} // ❌ Cancel / X
-          onSaved={() => {
-            loadUsers(); // ✅ refresh list
-            closeModal(); // ✅ CLOSE POPUP
-          }}
+          onClose={closeModal}
+          onSaved={closeModal} // RTK Query auto-refetch
         />
       )}
 
-      {/* ================= ASSIGN ROLE MODAL ================= */}
+      {/* ASSIGN ROLE */}
       {modalType === "user-role" && modalData && (
         <UserRoleModal
           user={modalData}
           onClose={closeModal}
-          onSaved={(success) => {
-            
-              loadUsers(); // refresh only on success
-            
-            closeModal(); // ✅ CLOSE IN BOTH CASES
+          onSaved={closeModal}
+        />
+      )}
+
+      {/* DELETE */}
+      {deleteId && (
+        <ConfirmModal
+          message="Are you sure you want to delete this user?"
+          onClose={() => setDeleteId(null)}
+          onConfirm={async () => {
+            try {
+              await deleteUser(deleteId).unwrap();
+              handleApiSuccess(null, "User deleted");
+            } catch (e) {
+              handleApiError(e);
+            } finally {
+              setDeleteId(null);
+            }
           }}
         />
       )}
