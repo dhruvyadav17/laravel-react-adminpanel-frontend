@@ -20,7 +20,7 @@ import {
 import { handleApiError, handleApiSuccess } from "../../utils/toastHelper";
 import { useConfirmDelete } from "../../hooks/useConfirmDelete";
 import { execute } from "../../utils/execute";
-
+import TableSkeleton from "../../components/common/TableSkeleton";
 export default function Roles() {
   const can = usePermission();
   const { modalType, modalData, openModal, closeModal } = useAppModal<any>();
@@ -84,9 +84,7 @@ export default function Roles() {
       </div>
 
       {/* ================= LIST ================= */}
-      {isLoading ? (
-        <p>Loading...</p>
-      ) : (
+      
         <table className="table table-bordered">
           <thead className="table-dark">
             <tr>
@@ -94,57 +92,59 @@ export default function Roles() {
               <th style={{ width: 260 }}>Actions</th>
             </tr>
           </thead>
-
-          <tbody>
-            {roles.map((r: any) => (
-              <tr key={r.id}>
-                <td>{r.name}</td>
-                <td>
-                  <RowActions
-                    actions={[
-                      {
-                        label: "Permissions",
-                        variant: "secondary",
-                        onClick: () => openModal("permission", r),
-                      },
-                      {
-                        label: "Edit",
-                        variant: "warning",
-                        onClick: () => {
-                          setField("name", r.name);
-                          openModal("role-edit", r);
+          {isLoading ? (
+            <TableSkeleton rows={5} cols={4} />
+          ) : (
+            <tbody>
+              {roles.map((r: any) => (
+                <tr key={r.id}>
+                  <td>{r.name}</td>
+                  <td>
+                    <RowActions
+                      actions={[
+                        {
+                          label: "Permissions",
+                          variant: "secondary",
+                          onClick: () => openModal("permission", r),
                         },
-                      },
-                      {
-                        label: "Delete",
-                        variant: "danger",
-                        onClick: () =>
-                          confirmDelete(
-                            "Are you sure you want to delete this role?",
-                            async () => {
-                              await execute(
-                                () => deleteRole(r.id).unwrap(),
-                                "Role deleted"
-                              );
-                            }
-                          ),
-                      },
-                    ]}
-                  />
-                </td>
-              </tr>
-            ))}
+                        {
+                          label: "Edit",
+                          variant: "warning",
+                          onClick: () => {
+                            setField("name", r.name);
+                            openModal("role-edit", r);
+                          },
+                        },
+                        {
+                          label: "Delete",
+                          variant: "danger",
+                          onClick: () =>
+                            confirmDelete(
+                              "Are you sure you want to delete this role?",
+                              async () => {
+                                await execute(
+                                  () => deleteRole(r.id).unwrap(),
+                                  "Role deleted"
+                                );
+                              }
+                            ),
+                        },
+                      ]}
+                    />
+                  </td>
+                </tr>
+              ))}
 
-            {!roles.length && (
-              <tr>
-                <td colSpan={2} className="text-center">
-                  No roles found
-                </td>
-              </tr>
-            )}
-          </tbody>
+              {!roles.length && (
+                <tr>
+                  <td colSpan={2} className="text-center">
+                    No roles found
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          )}
         </table>
-      )}
 
       {/* ================= ADD / EDIT MODAL ================= */}
       {(modalType === "role-add" || modalType === "role-edit") && (

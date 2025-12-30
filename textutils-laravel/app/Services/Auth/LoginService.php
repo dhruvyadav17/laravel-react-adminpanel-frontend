@@ -17,7 +17,7 @@ class LoginService
             ]);
         }
 
-        $user->tokens()->delete();
+        //$user->tokens()->delete();
 
         return [
             'token' => $user->createToken(

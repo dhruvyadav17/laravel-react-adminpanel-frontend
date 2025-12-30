@@ -8,13 +8,11 @@ import Button from "../../components/common/Button";
 import UserFormModal from "../../components/UserFormModal";
 import UserRoleModal from "../../components/UserRoleModal";
 
-import {
-  useGetUsersQuery,
-  useDeleteUserMutation,
-} from "../../store/api";
+import { useGetUsersQuery, useDeleteUserMutation } from "../../store/api";
 
 import { execute } from "../../utils/execute";
 import type { User } from "../../types/models";
+import TableSkeleton from "../../components/common/TableSkeleton";
 
 /* ================= COMPONENT ================= */
 
@@ -22,19 +20,11 @@ export default function Users() {
   const can = usePermission();
 
   // 🔥 modalData is now strictly typed as User
-  const {
-    modalType,
-    modalData,
-    openModal,
-    closeModal,
-  } = useAppModal<User>();
+  const { modalType, modalData, openModal, closeModal } = useAppModal<User>();
 
   const confirmDelete = useConfirmDelete();
 
-  const {
-    data: users = [],
-    isLoading,
-  } = useGetUsersQuery();
+  const { data: users = [], isLoading } = useGetUsersQuery();
 
   const [deleteUser] = useDeleteUserMutation();
 
@@ -52,34 +42,28 @@ export default function Users() {
         <h3>Users</h3>
 
         {can(PERMISSIONS.USER.CREATE) && (
-          <Button
-            label="+ Add User"
-            onClick={() => openModal("user-form")}
-          />
+          <Button label="+ Add User" onClick={() => openModal("user-form")} />
         )}
       </div>
 
-      {isLoading ? (
-        <p>Loading...</p>
-      ) : (
-        <table className="table table-bordered">
-          <thead className="table-dark">
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Roles</th>
-              <th width="200">Actions</th>
-            </tr>
-          </thead>
-
+      <table className="table table-bordered">
+        <thead className="table-dark">
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Roles</th>
+            <th width="200">Actions</th>
+          </tr>
+        </thead>
+        {isLoading ? (
+          <TableSkeleton rows={5} cols={4} />
+        ) : (
           <tbody>
             {users.map((u: User) => (
               <tr key={u.id}>
                 <td>{u.name}</td>
                 <td>{u.email}</td>
-                <td>
-                  {u.roles.length ? u.roles.join(", ") : "—"}
-                </td>
+                <td>{u.roles.length ? u.roles.join(", ") : "—"}</td>
 
                 <td>
                   <RowActions
@@ -89,8 +73,7 @@ export default function Users() {
                             {
                               label: "Assign Role",
                               variant: "secondary",
-                              onClick: () =>
-                                openModal("user-role", u),
+                              onClick: () => openModal("user-role", u),
                             },
                           ]
                         : []),
@@ -103,8 +86,7 @@ export default function Users() {
                             "Are you sure you want to delete this user?",
                             async () => {
                               await execute(
-                                () =>
-                                  deleteUser(u.id).unwrap(),
+                                () => deleteUser(u.id).unwrap(),
                                 "User deleted"
                               );
                             }
@@ -115,28 +97,14 @@ export default function Users() {
                 </td>
               </tr>
             ))}
-
-            {!users.length && (
-              <tr>
-                <td
-                  colSpan={4}
-                  className="text-center"
-                >
-                  No users found
-                </td>
-              </tr>
-            )}
           </tbody>
-        </table>
-      )}
+        )}
+      </table>
 
       {/* ================= MODALS ================= */}
 
       {modalType === "user-form" && (
-        <UserFormModal
-          onClose={closeModal}
-          onSaved={closeModal}
-        />
+        <UserFormModal onClose={closeModal} onSaved={closeModal} />
       )}
 
       {modalType === "user-role" && modalData && (

@@ -19,6 +19,7 @@ import {
 import { handleApiError, handleApiSuccess } from "../../utils/toastHelper";
 import { useConfirmDelete } from "../../hooks/useConfirmDelete";
 import { execute } from "../../utils/execute";
+import TableSkeleton from "../../components/common/TableSkeleton";
 
 export default function Permissions() {
   const can = usePermission();
@@ -81,19 +82,19 @@ export default function Permissions() {
       </div>
 
       {/* ================= TABLE ================= */}
-      {isLoading ? (
-        <p>Loading...</p>
-      ) : (
-        <table className="table table-bordered">
-          <thead className="table-dark">
-            <tr>
-              <th>Name</th>
-              <th style={{ width: 180 }} className="text-end">
-                Actions
-              </th>
-            </tr>
-          </thead>
 
+      <table className="table table-bordered">
+        <thead className="table-dark">
+          <tr>
+            <th>Name</th>
+            <th style={{ width: 180 }} className="text-end">
+              Actions
+            </th>
+          </tr>
+        </thead>
+        {isLoading ? (
+          <TableSkeleton rows={5} cols={4} />
+        ) : (
           <tbody>
             {permissions.map((p: any) => (
               <tr key={p.id}>
@@ -138,8 +139,8 @@ export default function Permissions() {
               </tr>
             )}
           </tbody>
-        </table>
-      )}
+        )}
+      </table>
 
       {/* ================= ADD / EDIT MODAL ================= */}
       {modalType === "permission" && (
