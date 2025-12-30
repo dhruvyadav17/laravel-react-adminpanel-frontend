@@ -19,6 +19,8 @@ import {
 
 import { handleApiError, handleApiSuccess } from "../../utils/toastHelper";
 import { useConfirmDelete } from "../../hooks/useConfirmDelete";
+import { execute } from "../../utils/execute";
+
 export default function Roles() {
   const can = usePermission();
   const { modalType, modalData, openModal, closeModal } = useAppModal<any>();
@@ -120,12 +122,10 @@ export default function Roles() {
                           confirmDelete(
                             "Are you sure you want to delete this role?",
                             async () => {
-                              try {
-                                await deleteRole(r.id).unwrap();
-                                handleApiSuccess(null, "Role deleted");
-                              } catch (e) {
-                                handleApiError(e);
-                              }
+                              await execute(
+                                () => deleteRole(r.id).unwrap(),
+                                "Role deleted"
+                              );
                             }
                           ),
                       },

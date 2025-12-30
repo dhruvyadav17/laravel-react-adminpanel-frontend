@@ -18,6 +18,7 @@ import {
 
 import { handleApiError, handleApiSuccess } from "../../utils/toastHelper";
 import { useConfirmDelete } from "../../hooks/useConfirmDelete";
+import { execute } from "../../utils/execute";
 
 export default function Permissions() {
   const can = usePermission();
@@ -44,23 +45,21 @@ export default function Permissions() {
     try {
       setLoading(true);
 
-      const res = modalData?.id
-        ? await updatePermission({
-            id: modalData.id,
-            name: values.name,
-          }).unwrap()
-        : await createPermission(values).unwrap();
-
-      handleApiSuccess(
-        res,
+      await execute(
+        () =>
+          modalData?.id
+            ? updatePermission({
+                id: modalData.id,
+                name: values.name,
+              }).unwrap()
+            : createPermission(values).unwrap(),
         modalData?.id ? "Permission updated" : "Permission created"
       );
 
       closeModal();
       reset();
     } catch (e) {
-      handleError(e); // backend field errors
-      handleApiError(e); // toast
+      handleError(e); // ✅ Laravel 422 field errors ONLY
     } finally {
       setLoading(false);
     }
@@ -118,8 +117,10 @@ export default function Permissions() {
                           confirmDelete(
                             "Are you sure you want to delete this permission?",
                             async () => {
-                              await deletePermission(p.id).unwrap();
-                              handleApiSuccess(null, "Permission deleted");
+                              await execute(
+                                () => deletePermission(p.id).unwrap(),
+                                "Permission deleted"
+                              );
                             }
                           ),
                       },

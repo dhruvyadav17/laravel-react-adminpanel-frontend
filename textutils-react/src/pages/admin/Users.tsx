@@ -8,21 +8,43 @@ import Button from "../../components/common/Button";
 import UserFormModal from "../../components/UserFormModal";
 import UserRoleModal from "../../components/UserRoleModal";
 
-import { useGetUsersQuery, useDeleteUserMutation } from "../../store/api";
-import { handleApiError, handleApiSuccess } from "../../utils/toastHelper";
+import {
+  useGetUsersQuery,
+  useDeleteUserMutation,
+} from "../../store/api";
+
+import { execute } from "../../utils/execute";
+import type { User } from "../../types/models";
+
+/* ================= COMPONENT ================= */
 
 export default function Users() {
   const can = usePermission();
-  const { modalType, modalData, openModal, closeModal } = useAppModal<any>();
+
+  // 🔥 modalData is now strictly typed as User
+  const {
+    modalType,
+    modalData,
+    openModal,
+    closeModal,
+  } = useAppModal<User>();
 
   const confirmDelete = useConfirmDelete();
 
-  const { data: users = [], isLoading } = useGetUsersQuery();
+  const {
+    data: users = [],
+    isLoading,
+  } = useGetUsersQuery();
+
   const [deleteUser] = useDeleteUserMutation();
-  //console.log(users);return null;
+
+  /* ================= GUARD ================= */
+
   if (!can(PERMISSIONS.USER.VIEW)) {
     return <p className="text-danger">Unauthorized</p>;
   }
+
+  /* ================= VIEW ================= */
 
   return (
     <div className="container mt-4">
@@ -30,7 +52,10 @@ export default function Users() {
         <h3>Users</h3>
 
         {can(PERMISSIONS.USER.CREATE) && (
-          <Button label="+ Add User" onClick={() => openModal("user-form")} />
+          <Button
+            label="+ Add User"
+            onClick={() => openModal("user-form")}
+          />
         )}
       </div>
 
@@ -48,11 +73,14 @@ export default function Users() {
           </thead>
 
           <tbody>
-            {users.map((u: any) => (
+            {users.map((u: User) => (
               <tr key={u.id}>
                 <td>{u.name}</td>
                 <td>{u.email}</td>
-                <td>{u.roles?.join(", ") || "-"}</td>
+                <td>
+                  {u.roles.length ? u.roles.join(", ") : "—"}
+                </td>
+
                 <td>
                   <RowActions
                     actions={[
@@ -61,10 +89,12 @@ export default function Users() {
                             {
                               label: "Assign Role",
                               variant: "secondary",
-                              onClick: () => openModal("user-role", u),
+                              onClick: () =>
+                                openModal("user-role", u),
                             },
                           ]
                         : []),
+
                       {
                         label: "Delete",
                         variant: "danger",
@@ -72,8 +102,11 @@ export default function Users() {
                           confirmDelete(
                             "Are you sure you want to delete this user?",
                             async () => {
-                              await deleteUser(u.id).unwrap();
-                              handleApiSuccess(null, "User deleted");
+                              await execute(
+                                () =>
+                                  deleteUser(u.id).unwrap(),
+                                "User deleted"
+                              );
                             }
                           ),
                       },
@@ -85,7 +118,10 @@ export default function Users() {
 
             {!users.length && (
               <tr>
-                <td colSpan={4} className="text-center">
+                <td
+                  colSpan={4}
+                  className="text-center"
+                >
                   No users found
                 </td>
               </tr>
@@ -94,8 +130,13 @@ export default function Users() {
         </table>
       )}
 
+      {/* ================= MODALS ================= */}
+
       {modalType === "user-form" && (
-        <UserFormModal onClose={closeModal} onSaved={closeModal} />
+        <UserFormModal
+          onClose={closeModal}
+          onSaved={closeModal}
+        />
       )}
 
       {modalType === "user-role" && modalData && (

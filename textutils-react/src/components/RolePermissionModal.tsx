@@ -4,10 +4,8 @@ import {
   useGetRolePermissionsQuery,
   useAssignRolePermissionsMutation,
 } from "../store/api";
-import {
-  handleApiError,
-  handleApiSuccess,
-} from "../utils/toastHelper";
+import { handleApiError, handleApiSuccess } from "../utils/toastHelper";
+import { execute } from "../utils/execute";
 
 type Props = {
   roleId: number;
@@ -24,18 +22,11 @@ type RolePermissionResponse = {
   assigned: string[];
 };
 
-export default function RolePermissionModal({
-  roleId,
-  onClose,
-}: Props) {
+export default function RolePermissionModal({ roleId, onClose }: Props) {
   const [selected, setSelected] = useState<string[]>([]);
 
   /* ================= FETCH ================= */
-  const {
-    data,
-    isLoading,
-    isError,
-  } = useGetRolePermissionsQuery(roleId, {
+  const { data, isLoading, isError } = useGetRolePermissionsQuery(roleId, {
     skip: !roleId,
   }) as {
     data?: RolePermissionResponse;
@@ -44,10 +35,8 @@ export default function RolePermissionModal({
   };
 
   /* ================= MUTATION ================= */
-  const [
-    assignRolePermissions,
-    { isLoading: saving },
-  ] = useAssignRolePermissionsMutation();
+  const [assignRolePermissions, { isLoading: saving }] =
+    useAssignRolePermissionsMutation();
 
   /* ================= SYNC ASSIGNED ================= */
   useEffect(() => {
@@ -66,21 +55,16 @@ export default function RolePermissionModal({
 
   /* ================= SAVE ================= */
   const save = async () => {
-    try {
-      await assignRolePermissions({
-        id: roleId,
-        permissions: selected,
-      }).unwrap();
+    await execute(
+      () =>
+        assignRolePermissions({
+          id: roleId,
+          permissions: selected,
+        }).unwrap(),
+      "Permissions assigned successfully"
+    );
 
-      handleApiSuccess(
-        null,
-        "Permissions assigned successfully"
-      );
-    } catch (e) {
-      handleApiError(e);
-    } finally {
-      onClose(); // ✅ modal lifecycle handled here
-    }
+    onClose();
   };
 
   return (
@@ -94,19 +78,11 @@ export default function RolePermissionModal({
       {/* ================= STATES ================= */}
       {isLoading && <p>Loading permissions...</p>}
 
-      {isError && (
-        <p className="text-danger">
-          Failed to load permissions
-        </p>
-      )}
+      {isError && <p className="text-danger">Failed to load permissions</p>}
 
-      {!isLoading &&
-        !isError &&
-        data?.permissions?.length === 0 && (
-          <p className="text-muted">
-            No permissions available
-          </p>
-        )}
+      {!isLoading && !isError && data?.permissions?.length === 0 && (
+        <p className="text-muted">No permissions available</p>
+      )}
 
       {/* ================= LIST ================= */}
       {!isLoading &&
@@ -120,10 +96,7 @@ export default function RolePermissionModal({
               onChange={() => toggle(p.name)}
               disabled={saving}
             />
-            <label
-              className="form-check-label"
-              htmlFor={`perm-${p.id}`}
-            >
+            <label className="form-check-label" htmlFor={`perm-${p.id}`}>
               {p.name}
             </label>
           </div>

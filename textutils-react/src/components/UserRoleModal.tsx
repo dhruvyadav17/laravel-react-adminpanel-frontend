@@ -1,13 +1,8 @@
 import { useEffect, useState } from "react";
 import Modal from "./common/Modal";
-import {
-  useGetRolesQuery,
-  useAssignUserRolesMutation,
-} from "../store/api";
-import {
-  handleApiError,
-  handleApiSuccess,
-} from "../utils/toastHelper";
+import { useGetRolesQuery, useAssignUserRolesMutation } from "../store/api";
+import { handleApiError, handleApiSuccess } from "../utils/toastHelper";
+import { execute } from "../utils/execute";
 
 type Props = {
   user: {
@@ -19,25 +14,14 @@ type Props = {
   onSaved: () => void;
 };
 
-export default function UserRoleModal({
-  user,
-  onClose,
-  onSaved,
-}: Props) {
+export default function UserRoleModal({ user, onClose, onSaved }: Props) {
   const [selected, setSelected] = useState<string[]>([]);
 
   /* ================= FETCH ROLES ================= */
-  const {
-    data: roles = [],
-    isLoading,
-    isError,
-  } = useGetRolesQuery();
+  const { data: roles = [], isLoading, isError } = useGetRolesQuery();
 
   /* ================= ASSIGN ROLE ================= */
-  const [
-    assignUserRoles,
-    { isLoading: saving },
-  ] = useAssignUserRolesMutation();
+  const [assignUserRoles, { isLoading: saving }] = useAssignUserRolesMutation();
 
   /* ================= SYNC USER ROLES ================= */
   useEffect(() => {
@@ -46,31 +30,18 @@ export default function UserRoleModal({
 
   const toggle = (role: string) => {
     setSelected((prev) =>
-      prev.includes(role)
-        ? prev.filter((r) => r !== role)
-        : [...prev, role]
+      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]
     );
   };
 
   /* ================= SAVE ================= */
   const save = async () => {
-    try {
-      await assignUserRoles({
-        id: user.id,
-        roles: selected,
-      }).unwrap();
-
-      handleApiSuccess(
-        null,
-        "Roles assigned successfully"
-      );
-
-      onSaved(); // parent handles close + refetch
-    } catch (e) {
-      handleApiError(e);
-    } finally {
-      onClose(); // ✅ always close modal
-    }
+    await execute(
+      () => assignUserRoles({ id: user.id, roles: selected }).unwrap(),
+      "Roles assigned successfully"
+    );
+    onSaved();
+    onClose();
   };
 
   return (
@@ -84,16 +55,10 @@ export default function UserRoleModal({
       {/* ================= STATES ================= */}
       {isLoading && <p>Loading roles...</p>}
 
-      {isError && (
-        <p className="text-danger">
-          Failed to load roles
-        </p>
-      )}
+      {isError && <p className="text-danger">Failed to load roles</p>}
 
       {!isLoading && !roles.length && (
-        <p className="text-muted">
-          No roles available
-        </p>
+        <p className="text-muted">No roles available</p>
       )}
 
       {/* ================= LIST ================= */}
@@ -108,10 +73,7 @@ export default function UserRoleModal({
               onChange={() => toggle(r.name)}
               disabled={saving}
             />
-            <label
-              className="form-check-label"
-              htmlFor={`role-${r.id}`}
-            >
+            <label className="form-check-label" htmlFor={`role-${r.id}`}>
               {r.name}
             </label>
           </div>
