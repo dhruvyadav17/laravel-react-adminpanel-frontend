@@ -5,7 +5,8 @@ export default function PermissionRoute({ permission }: { permission: string }) 
   const can = usePermission();
 
   if (!can(permission)) {
-    return <Navigate to="/admin/dashboard" replace />;
+    //return <Navigate to="/admin/dashboard" replace />;
+    return <Navigate to="/admin/unauthorized" replace />;
   }
 
   return <Outlet />;

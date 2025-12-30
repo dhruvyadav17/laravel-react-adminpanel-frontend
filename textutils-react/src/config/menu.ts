@@ -31,6 +31,10 @@ export const ADMIN_MENU: MenuItem[] = [
     path: "/admin/permissions",
     permission: "permission-manage",
   },
+  //   {
+  //   label: "Logout",
+  //   path: "/admin/logout",
+  // },
 ];
 
 /* ================= USER MENU ================= */

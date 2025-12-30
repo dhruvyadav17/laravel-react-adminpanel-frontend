@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\{
 | PUBLIC ROUTES
 |--------------------------------------------------------------------------
 */
+
 Route::post('/register', RegisterController::class);
 Route::post('/login', LoginController::class);
 Route::post('/forgot-password', ForgotPasswordController::class);
@@ -33,7 +34,7 @@ Route::post('/reset-password', ResetPasswordController::class);
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth:sanctum')->group(function () {
-        Route::get('/user', function () {
+    Route::get('/user', function () {
         return auth()->user();
     });
     /*
@@ -95,11 +96,35 @@ Route::middleware('auth:sanctum')->group(function () {
             /*
             |-------------- PERMISSIONS -------------
             */
-            Route::get('/permissions', [PermissionController::class, 'index']);
-            Route::post('/permissions', [PermissionController::class, 'store']);
-            Route::put('/permissions/{permission}', [PermissionController::class, 'update']);
-            Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy']);
-            Route::patch('/permissions/{permission}/toggle', [PermissionController::class, 'toggle']);
-            Route::get('/permissions/{permission}', [PermissionController::class, 'show']);
+            // Route::get('/permissions', [PermissionController::class, 'index']);
+            // Route::post('/permissions', [PermissionController::class, 'store']);
+            // Route::put('/permissions/{permission}', [PermissionController::class, 'update']);
+            // Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy']);
+            // Route::patch('/permissions/{permission}/toggle', [PermissionController::class, 'toggle']);
+            // Route::get('/permissions/{permission}', [PermissionController::class, 'show']);
+
+            // Route::middleware(['auth:sanctum'])->group(function () {
+
+                Route::prefix('permissions')->group(function () {
+
+                    Route::get('/', [PermissionController::class, 'index']);
+                        //->middleware('permission:permission-view');
+
+                    Route::get('/{permission}', [PermissionController::class, 'show']);
+                        //->middleware('permission:permission-view');
+
+                    Route::post('/', [PermissionController::class, 'store']);
+                        //->middleware('permission:permission-create');
+
+                    Route::put('/{permission}', [PermissionController::class, 'update']);
+                        //->middleware('permission:permission-edit');
+
+                    Route::delete('/{permission}', [PermissionController::class, 'destroy']);
+                        //->middleware('permission:permission-delete');
+
+                    Route::patch('/{permission}/toggle', [PermissionController::class, 'toggle']);
+                        //->middleware('permission:permission-toggle');
+                });
+            // });
         });
 });

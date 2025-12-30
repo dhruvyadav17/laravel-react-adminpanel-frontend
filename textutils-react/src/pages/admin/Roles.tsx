@@ -37,7 +37,8 @@ export default function Roles() {
   const confirmDelete = useConfirmDelete();
 
   /* ================= GUARD ================= */
-  if (!can(PERMISSIONS.ROLE_MANAGE)) {
+  console.log(PERMISSIONS.ROLE.MANAGE);
+  if (!can(PERMISSIONS.ROLE.MANAGE)) {
     return <p className="text-danger mt-4">Unauthorized</p>;
   }
 

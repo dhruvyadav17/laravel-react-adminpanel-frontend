@@ -35,7 +35,7 @@ export default function Permissions() {
     useBackendForm({ name: "" });
 
   /* ================= GUARD ================= */
-  if (!can(PERMISSIONS.PERMISSION_MANAGE)) {
+  if (!can(PERMISSIONS.PERMISSION.MANAGE)) {
     return <p className="text-danger mt-4">Unauthorized</p>;
   }
 

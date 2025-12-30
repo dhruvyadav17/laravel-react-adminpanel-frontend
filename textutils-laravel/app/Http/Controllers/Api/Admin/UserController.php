@@ -64,16 +64,16 @@ class UserController extends Controller
          * 🔒 RULE:
          * super-admin role ko assign / remove nahi kar sakte
          */
-        if (
-            in_array('super-admin', $roles) ||
-            $user->hasRole('super-admin')
-        ) {
-            return $this->error(
-                'Super admin role cannot be assigned or removed',
-                null,
-                403
-            );
-        }
+        // if (
+        //     in_array('super-admin', $roles) ||
+        //     $user->hasRole('super-admin')
+        // ) {
+        //     return $this->error(
+        //         'Super admin role cannot be assigned or removed',
+        //         null,
+        //         403
+        //     );
+        // }
 
         // ✅ baaki roles freely sync honge
         $user->syncRoles($roles);

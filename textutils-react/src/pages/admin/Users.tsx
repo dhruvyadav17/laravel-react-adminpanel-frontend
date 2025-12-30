@@ -19,8 +19,8 @@ export default function Users() {
 
   const { data: users = [], isLoading } = useGetUsersQuery();
   const [deleteUser] = useDeleteUserMutation();
-
-  if (!can(PERMISSIONS.USER_VIEW)) {
+  //console.log(users);return null;
+  if (!can(PERMISSIONS.USER.VIEW)) {
     return <p className="text-danger">Unauthorized</p>;
   }
 
@@ -29,7 +29,7 @@ export default function Users() {
       <div className="d-flex justify-content-between mb-3">
         <h3>Users</h3>
 
-        {can(PERMISSIONS.USER_CREATE) && (
+        {can(PERMISSIONS.USER.CREATE) && (
           <Button label="+ Add User" onClick={() => openModal("user-form")} />
         )}
       </div>
@@ -56,7 +56,7 @@ export default function Users() {
                 <td>
                   <RowActions
                     actions={[
-                      ...(can(PERMISSIONS.USER_ASSIGN_ROLE)
+                      ...(can(PERMISSIONS.USER.ASSIGN_ROLE)
                         ? [
                             {
                               label: "Assign Role",

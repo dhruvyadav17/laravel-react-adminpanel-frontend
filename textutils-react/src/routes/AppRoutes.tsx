@@ -53,7 +53,7 @@ export default function AppRoutes() {
 
           <Route
             element={
-              <PermissionRoute permission={PERMISSIONS.USER_VIEW} />
+              <PermissionRoute permission={PERMISSIONS.USER.VIEW} />
             }
           >
             <Route path="users" element={<Users />} />
@@ -61,7 +61,7 @@ export default function AppRoutes() {
 
           <Route
             element={
-              <PermissionRoute permission={PERMISSIONS.ROLE_MANAGE} />
+              <PermissionRoute permission={PERMISSIONS.ROLE.MANAGE} />
             }
           >
             <Route path="roles" element={<Roles />} />
@@ -69,7 +69,7 @@ export default function AppRoutes() {
 
           <Route
             element={
-              <PermissionRoute permission={PERMISSIONS.PERMISSION_MANAGE} />
+              <PermissionRoute permission={PERMISSIONS.PERMISSION.MANAGE} />
             }
           >
             <Route path="permissions" element={<Permissions />} />
