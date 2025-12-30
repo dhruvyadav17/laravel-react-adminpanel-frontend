@@ -5,12 +5,13 @@ import { Provider } from "react-redux";
 
 import App from "./App";
 import { store } from "./store";
+import { setStore } from "./store/storeAccessor";
 import { AppModalProvider } from "./context/AppModalContext";
 
 import "bootstrap/dist/css/bootstrap.min.css";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
+setStore(store);
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     {/* 🔴 Redux outermost */}

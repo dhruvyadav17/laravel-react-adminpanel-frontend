@@ -3,7 +3,7 @@
 export type MenuItem = {
   label: string;
   path: string;
-  permission?: string; // optional
+  permission?: string;
 };
 
 /* ================= ADMIN MENU ================= */
@@ -11,6 +11,10 @@ export const ADMIN_MENU: MenuItem[] = [
   {
     label: "Dashboard",
     path: "/admin/dashboard",
+  },
+  {
+    label: "Profile",
+    path: "/admin/profile",
   },
   {
     label: "Users",
@@ -38,9 +42,5 @@ export const USER_MENU: MenuItem[] = [
   {
     label: "My Roles",
     path: "/roles",
-  },
-  {
-    label: "My Permissions",
-    path: "/permissions",
   },
 ];
