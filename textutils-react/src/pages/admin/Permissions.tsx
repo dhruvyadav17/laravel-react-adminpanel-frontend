@@ -3,7 +3,6 @@
 import Modal from "../../components/common/Modal";
 import RowActions from "../../components/common/RowActions";
 import Button from "../../components/common/Button";
-import { useConfirm } from "../../hooks/useConfirm";
 
 import { PERMISSIONS } from "../../constants/permissions";
 import { usePermission } from "../../auth/hooks/usePermission";
@@ -17,41 +16,23 @@ import {
   useDeletePermissionMutation,
 } from "../../store/api";
 
-import {
-  handleApiError,
-  handleApiSuccess,
-} from "../../utils/toastHelper";
+import { handleApiError, handleApiSuccess } from "../../utils/toastHelper";
+import { useConfirmDelete } from "../../hooks/useConfirmDelete";
 
 export default function Permissions() {
   const can = usePermission();
-  const { modalType, modalData, openModal, closeModal } =
-    useAppModal<any>();
-
-  const { confirm, ConfirmUI } = useConfirm();
+  const { modalType, modalData, openModal, closeModal } = useAppModal<any>();
 
   /* ================= DATA ================= */
-  const {
-    data: permissions = [],
-    isLoading,
-  } = useGetPermissionsQuery();
+  const { data: permissions = [], isLoading } = useGetPermissionsQuery();
 
-  const [createPermission] =
-    useCreatePermissionMutation();
-  const [updatePermission] =
-    useUpdatePermissionMutation();
-  const [deletePermission] =
-    useDeletePermissionMutation();
+  const [createPermission] = useCreatePermissionMutation();
+  const [updatePermission] = useUpdatePermissionMutation();
+  const [deletePermission] = useDeletePermissionMutation();
 
   /* ================= FORM ================= */
-  const {
-    values,
-    errors,
-    loading,
-    setLoading,
-    setField,
-    handleError,
-    reset,
-  } = useBackendForm({ name: "" });
+  const { values, errors, loading, setLoading, setField, handleError, reset } =
+    useBackendForm({ name: "" });
 
   /* ================= GUARD ================= */
   if (!can(PERMISSIONS.PERMISSION_MANAGE)) {
@@ -72,21 +53,19 @@ export default function Permissions() {
 
       handleApiSuccess(
         res,
-        modalData?.id
-          ? "Permission updated"
-          : "Permission created"
+        modalData?.id ? "Permission updated" : "Permission created"
       );
 
       closeModal();
       reset();
     } catch (e) {
-      handleError(e);     // backend field errors
-      handleApiError(e);  // toast
+      handleError(e); // backend field errors
+      handleApiError(e); // toast
     } finally {
       setLoading(false);
     }
   };
-
+  const confirmDelete = useConfirmDelete();
   return (
     <div className="container mt-4">
       {/* ================= HEADER ================= */}
@@ -110,10 +89,7 @@ export default function Permissions() {
           <thead className="table-dark">
             <tr>
               <th>Name</th>
-              <th
-                style={{ width: 180 }}
-                className="text-end"
-              >
+              <th style={{ width: 180 }} className="text-end">
                 Actions
               </th>
             </tr>
@@ -139,19 +115,13 @@ export default function Permissions() {
                         label: "Delete",
                         variant: "danger",
                         onClick: () =>
-                          confirm(async () => {
-                            try {
-                              await deletePermission(
-                                p.id
-                              ).unwrap();
-                              handleApiSuccess(
-                                null,
-                                "Permission deleted"
-                              );
-                            } catch (e) {
-                              handleApiError(e);
+                          confirmDelete(
+                            "Are you sure you want to delete this permission?",
+                            async () => {
+                              await deletePermission(p.id).unwrap();
+                              handleApiSuccess(null, "Permission deleted");
                             }
-                          }),
+                          ),
                       },
                     ]}
                   />
@@ -161,10 +131,7 @@ export default function Permissions() {
 
             {!permissions.length && (
               <tr>
-                <td
-                  colSpan={2}
-                  className="text-center"
-                >
+                <td colSpan={2} className="text-center">
                   No permissions found
                 </td>
               </tr>
@@ -180,32 +147,21 @@ export default function Permissions() {
           onClose={closeModal}
           onSave={save}
           saveDisabled={loading}
-          button_name={
-            modalData?.id ? "Update" : "Save"
-          }
+          button_name={modalData?.id ? "Update" : "Save"}
         >
           <input
-            className={`form-control ${
-              errors.name ? "is-invalid" : ""
-            }`}
+            className={`form-control ${errors.name ? "is-invalid" : ""}`}
             placeholder="Permission name"
             value={values.name}
-            onChange={(e) =>
-              setField("name", e.target.value)
-            }
+            onChange={(e) => setField("name", e.target.value)}
             disabled={loading}
           />
 
           {errors.name && (
-            <div className="invalid-feedback">
-              {errors.name[0]}
-            </div>
+            <div className="invalid-feedback">{errors.name[0]}</div>
           )}
         </Modal>
       )}
-
-      {/* ================= CONFIRM MODAL ================= */}
-      {ConfirmUI}
     </div>
   );
 }

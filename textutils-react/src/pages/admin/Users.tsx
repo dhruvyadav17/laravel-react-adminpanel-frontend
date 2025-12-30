@@ -1,54 +1,39 @@
 import { usePermission } from "../../auth/hooks/usePermission";
 import { PERMISSIONS } from "../../constants/permissions";
 import { useAppModal } from "../../hooks/useAppModal";
-import { useConfirm } from "../../hooks/useConfirm";
+import { useConfirmDelete } from "../../hooks/useConfirmDelete";
 
 import RowActions from "../../components/common/RowActions";
 import Button from "../../components/common/Button";
 import UserFormModal from "../../components/UserFormModal";
 import UserRoleModal from "../../components/UserRoleModal";
 
-import {
-  useGetUsersQuery,
-  useDeleteUserMutation,
-} from "../../store/api";
-import {
-  handleApiError,
-  handleApiSuccess,
-} from "../../utils/toastHelper";
+import { useGetUsersQuery, useDeleteUserMutation } from "../../store/api";
+import { handleApiError, handleApiSuccess } from "../../utils/toastHelper";
 
 export default function Users() {
   const can = usePermission();
-  const { modalType, modalData, openModal, closeModal } =
-    useAppModal<any>();
+  const { modalType, modalData, openModal, closeModal } = useAppModal<any>();
 
-  const { confirm, ConfirmUI } = useConfirm();
+  const confirmDelete = useConfirmDelete();
 
-  /* ================= DATA ================= */
-  const { data: users = [], isLoading } =
-    useGetUsersQuery();
+  const { data: users = [], isLoading } = useGetUsersQuery();
   const [deleteUser] = useDeleteUserMutation();
 
-  /* ================= GUARD ================= */
   if (!can(PERMISSIONS.USER_VIEW)) {
     return <p className="text-danger">Unauthorized</p>;
   }
 
   return (
     <div className="container mt-4">
-      {/* ================= HEADER ================= */}
-      <div className="d-flex justify-content-between align-items-center mb-3">
+      <div className="d-flex justify-content-between mb-3">
         <h3>Users</h3>
 
         {can(PERMISSIONS.USER_CREATE) && (
-          <Button
-            label="+ Add User"
-            onClick={() => openModal("user-form")}
-          />
+          <Button label="+ Add User" onClick={() => openModal("user-form")} />
         )}
       </div>
 
-      {/* ================= LIST ================= */}
       {isLoading ? (
         <p>Loading...</p>
       ) : (
@@ -71,15 +56,12 @@ export default function Users() {
                 <td>
                   <RowActions
                     actions={[
-                      ...(can(
-                        PERMISSIONS.USER_ASSIGN_ROLE
-                      )
+                      ...(can(PERMISSIONS.USER_ASSIGN_ROLE)
                         ? [
                             {
                               label: "Assign Role",
                               variant: "secondary",
-                              onClick: () =>
-                                openModal("user-role", u),
+                              onClick: () => openModal("user-role", u),
                             },
                           ]
                         : []),
@@ -87,19 +69,13 @@ export default function Users() {
                         label: "Delete",
                         variant: "danger",
                         onClick: () =>
-                          confirm(async () => {
-                            try {
-                              await deleteUser(
-                                u.id
-                              ).unwrap();
-                              handleApiSuccess(
-                                null,
-                                "User deleted"
-                              );
-                            } catch (e) {
-                              handleApiError(e);
+                          confirmDelete(
+                            "Are you sure you want to delete this user?",
+                            async () => {
+                              await deleteUser(u.id).unwrap();
+                              handleApiSuccess(null, "User deleted");
                             }
-                          }),
+                          ),
                       },
                     ]}
                   />
@@ -109,10 +85,7 @@ export default function Users() {
 
             {!users.length && (
               <tr>
-                <td
-                  colSpan={4}
-                  className="text-center"
-                >
+                <td colSpan={4} className="text-center">
                   No users found
                 </td>
               </tr>
@@ -121,15 +94,10 @@ export default function Users() {
         </table>
       )}
 
-      {/* ================= ADD USER ================= */}
       {modalType === "user-form" && (
-        <UserFormModal
-          onClose={closeModal}
-          onSaved={closeModal}
-        />
+        <UserFormModal onClose={closeModal} onSaved={closeModal} />
       )}
 
-      {/* ================= ASSIGN ROLE ================= */}
       {modalType === "user-role" && modalData && (
         <UserRoleModal
           user={modalData}
@@ -137,9 +105,6 @@ export default function Users() {
           onSaved={closeModal}
         />
       )}
-
-      {/* ================= CONFIRM MODAL ================= */}
-      {ConfirmUI}
     </div>
   );
 }

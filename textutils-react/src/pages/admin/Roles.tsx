@@ -3,7 +3,7 @@ import Modal from "../../components/common/Modal";
 import RolePermissionModal from "../../components/RolePermissionModal";
 import RowActions from "../../components/common/RowActions";
 import Button from "../../components/common/Button";
-import { useConfirm } from "../../hooks/useConfirm";
+//import { useConfirm } from "../../hooks/useConfirm";
 
 import { PERMISSIONS } from "../../constants/permissions";
 import { usePermission } from "../../auth/hooks/usePermission";
@@ -18,13 +18,12 @@ import {
 } from "../../store/api";
 
 import { handleApiError, handleApiSuccess } from "../../utils/toastHelper";
-
+import { useConfirmDelete } from "../../hooks/useConfirmDelete";
 export default function Roles() {
   const can = usePermission();
-  const { modalType, modalData, openModal, closeModal } =
-    useAppModal<any>();
+  const { modalType, modalData, openModal, closeModal } = useAppModal<any>();
 
-  const { confirm, ConfirmUI } = useConfirm();
+  //const { confirm, ConfirmUI } = useConfirm();
 
   /* ================= DATA ================= */
   const { data: roles = [], isLoading } = useGetRolesQuery();
@@ -33,15 +32,9 @@ export default function Roles() {
   const [deleteRole] = useDeleteRoleMutation();
 
   /* ================= FORM ================= */
-  const {
-    values,
-    errors,
-    loading,
-    setLoading,
-    setField,
-    handleError,
-    reset,
-  } = useBackendForm({ name: "" });
+  const { values, errors, loading, setLoading, setField, handleError, reset } =
+    useBackendForm({ name: "" });
+  const confirmDelete = useConfirmDelete();
 
   /* ================= GUARD ================= */
   if (!can(PERMISSIONS.ROLE_MANAGE)) {
@@ -60,16 +53,13 @@ export default function Roles() {
           }).unwrap()
         : await createRole(values).unwrap();
 
-      handleApiSuccess(
-        res,
-        modalData?.id ? "Role updated" : "Role created"
-      );
+      handleApiSuccess(res, modalData?.id ? "Role updated" : "Role created");
 
       closeModal();
       reset();
     } catch (e) {
-      handleError(e);     // backend field errors
-      handleApiError(e);  // toast
+      handleError(e); // backend field errors
+      handleApiError(e); // toast
     } finally {
       setLoading(false);
     }
@@ -112,8 +102,7 @@ export default function Roles() {
                       {
                         label: "Permissions",
                         variant: "secondary",
-                        onClick: () =>
-                          openModal("permission", r),
+                        onClick: () => openModal("permission", r),
                       },
                       {
                         label: "Edit",
@@ -127,17 +116,17 @@ export default function Roles() {
                         label: "Delete",
                         variant: "danger",
                         onClick: () =>
-                          confirm(async () => {
-                            try {
-                              await deleteRole(r.id).unwrap();
-                              handleApiSuccess(
-                                null,
-                                "Role deleted"
-                              );
-                            } catch (e) {
-                              handleApiError(e);
+                          confirmDelete(
+                            "Are you sure you want to delete this role?",
+                            async () => {
+                              try {
+                                await deleteRole(r.id).unwrap();
+                                handleApiSuccess(null, "Role deleted");
+                              } catch (e) {
+                                handleApiError(e);
+                              }
                             }
-                          }),
+                          ),
                       },
                     ]}
                   />
@@ -159,49 +148,29 @@ export default function Roles() {
       {/* ================= ADD / EDIT MODAL ================= */}
       {(modalType === "role-add" || modalType === "role-edit") && (
         <Modal
-          title={
-            modalType === "role-edit"
-              ? "Edit Role"
-              : "Add Role"
-          }
+          title={modalType === "role-edit" ? "Edit Role" : "Add Role"}
           onClose={closeModal}
           onSave={save}
           saveDisabled={loading}
-          button_name={
-            modalType === "role-edit"
-              ? "Update"
-              : "Save"
-          }
+          button_name={modalType === "role-edit" ? "Update" : "Save"}
         >
           <input
-            className={`form-control ${
-              errors.name ? "is-invalid" : ""
-            }`}
+            className={`form-control ${errors.name ? "is-invalid" : ""}`}
             placeholder="Role name"
             value={values.name}
-            onChange={(e) =>
-              setField("name", e.target.value)
-            }
+            onChange={(e) => setField("name", e.target.value)}
           />
 
           {errors.name && (
-            <div className="invalid-feedback">
-              {errors.name[0]}
-            </div>
+            <div className="invalid-feedback">{errors.name[0]}</div>
           )}
         </Modal>
       )}
 
       {/* ================= ASSIGN PERMISSIONS ================= */}
       {modalType === "permission" && modalData && (
-        <RolePermissionModal
-          roleId={modalData.id}
-          onClose={closeModal}
-        />
+        <RolePermissionModal roleId={modalData.id} onClose={closeModal} />
       )}
-
-      {/* ================= CONFIRM MODAL ================= */}
-      {ConfirmUI}
     </div>
   );
 }
