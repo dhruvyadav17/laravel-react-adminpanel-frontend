@@ -3,19 +3,22 @@ import type { RootState } from "./index";
 
 export const api = createApi({
   reducerPath: "api",
+
   baseQuery: fetchBaseQuery({
     baseUrl: "http://localhost:8000/api",
     prepareHeaders: (headers, { getState }) => {
       const token = (getState() as RootState).auth.token;
+
       if (token) {
         headers.set("Authorization", `Bearer ${token}`);
       }
+
       headers.set("Accept", "application/json");
       return headers;
     },
   }),
 
-  // ✅ FIXED TAGS (CASE SENSITIVE)
+  // 🔥 TAGS (case-sensitive)
   tagTypes: ["Permissions", "Roles", "Users"],
 
   endpoints: (builder) => ({
@@ -36,7 +39,10 @@ export const api = createApi({
       invalidatesTags: ["Permissions"],
     }),
 
-    updatePermission: builder.mutation<any, { id: number; name: string }>({
+    updatePermission: builder.mutation<
+      any,
+      { id: number; name: string }
+    >({
       query: ({ id, ...data }) => ({
         url: `/admin/permissions/${id}`,
         method: "PUT",
@@ -61,7 +67,9 @@ export const api = createApi({
         res.data.map((u: any) => ({
           ...u,
           roles: Array.isArray(u.roles)
-            ? u.roles.map((r: any) => (typeof r === "string" ? r : r.name))
+            ? u.roles.map((r: any) =>
+                typeof r === "string" ? r : r.name
+              )
             : [],
         })),
       providesTags: ["Users"],
@@ -76,7 +84,10 @@ export const api = createApi({
       invalidatesTags: ["Users"],
     }),
 
-    assignUserRoles: builder.mutation<any, { id: number; roles: string[] }>({
+    assignUserRoles: builder.mutation<
+      any,
+      { id: number; roles: string[] }
+    >({
       query: ({ id, roles }) => ({
         url: `/admin/users/${id}/assign-role`,
         method: "POST",
@@ -110,7 +121,10 @@ export const api = createApi({
       invalidatesTags: ["Roles"],
     }),
 
-    updateRole: builder.mutation<any, { id: number; name: string }>({
+    updateRole: builder.mutation<
+      any,
+      { id: number; name: string }
+    >({
       query: ({ id, ...data }) => ({
         url: `/admin/roles/${id}`,
         method: "PUT",
@@ -158,6 +172,7 @@ export const api = createApi({
     >({
       query: (id) => `/admin/users/${id}/permissions`,
       transformResponse: (res: any) => res.data,
+      providesTags: ["Users"], // 🔥 important
     }),
 
     assignUserPermissions: builder.mutation<
@@ -173,6 +188,8 @@ export const api = createApi({
     }),
   }),
 });
+
+/* ================= HOOK EXPORTS ================= */
 
 export const {
   useGetPermissionsQuery,
@@ -190,11 +207,11 @@ export const {
   useUpdateRoleMutation,
   useDeleteRoleMutation,
 
-  // ✅ IMPORTANT (role permission)
+  // 🔥 Role permissions
   useGetRolePermissionsQuery,
   useAssignRolePermissionsMutation,
 
-  // ✅ IMPORTANT (user permission)
+  // 🔥 User permissions
   useGetUserPermissionsQuery,
-useAssignUserPermissionsMutation,
+  useAssignUserPermissionsMutation,
 } = api;

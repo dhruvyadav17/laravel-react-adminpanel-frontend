@@ -1,29 +1,46 @@
 import { toast } from "react-toastify";
 
+/* ================= SUCCESS ================= */
+
 /**
- * SUCCESS handler (Laravel ApiResponse compatible)
+ * Show success toast
+ * - backend response supported
+ * - fallback message optional
  */
-export const handleApiSuccess = (
-  res: any,
+export const toastSuccess = (
+  resOrMessage?: any,
   fallbackMessage = "Action completed successfully"
 ) => {
   const message =
-    res?.data?.message ??
-    fallbackMessage;
+    typeof resOrMessage === "string"
+      ? resOrMessage
+      : resOrMessage?.data?.message ?? fallbackMessage;
 
   toast.success(message);
 };
 
+/* ================= ERROR ================= */
+
 /**
- * ERROR handler (Laravel ApiResponse compatible)
+ * Show error toast
+ * - Laravel / Axios / RTK compatible
  */
-export const handleApiError = (
+export const toastError = (
   error: any,
   fallbackMessage = "Something went wrong"
 ) => {
   const message =
     error?.response?.data?.message ??
+    error?.error ??
     fallbackMessage;
 
   toast.error(message);
 };
+
+/* ================= ALIASES (BACKWARD COMPAT) ================= */
+
+/**
+ * For old code compatibility
+ */
+export const handleApiSuccess = toastSuccess;
+export const handleApiError = toastError;

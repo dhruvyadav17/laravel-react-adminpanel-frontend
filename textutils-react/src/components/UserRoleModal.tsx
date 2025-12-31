@@ -28,15 +28,19 @@ export default function UserRoleModal({
     isLoading,
     isError,
   } = useGetRolesQuery(undefined, {
-    refetchOnMountOrArgChange: true, // 🔥 FIX
+    refetchOnMountOrArgChange: true,
   });
 
   const [assignUserRoles, { isLoading: saving }] =
     useAssignUserRolesMutation();
 
+  /* ================= SYNC ================= */
+
   useEffect(() => {
     setSelected(user.roles || []);
   }, [user.id, user.roles]);
+
+  /* ================= HANDLERS ================= */
 
   const toggle = (role: string) => {
     setSelected((prev) =>
@@ -55,9 +59,12 @@ export default function UserRoleModal({
         }).unwrap(),
       "Roles assigned successfully"
     );
+
     onSaved();
     onClose();
   };
+
+  /* ================= VIEW ================= */
 
   return (
     <Modal
@@ -69,12 +76,17 @@ export default function UserRoleModal({
       dialogClassName="modal-lg"
     >
       {isLoading && <p>Loading roles...</p>}
+
       {isError && (
-        <p className="text-danger">Failed to load roles</p>
+        <p className="text-danger">
+          Failed to load roles
+        </p>
       )}
 
       {!isLoading && !roles.length && (
-        <p className="text-muted">No roles available</p>
+        <p className="text-muted">
+          No roles available
+        </p>
       )}
 
       {!isLoading && roles.length > 0 && (

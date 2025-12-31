@@ -23,19 +23,19 @@ export default function RolePermissionModal({
     isError,
   } = useGetRolePermissionsQuery(roleId, {
     skip: !roleId,
-    refetchOnMountOrArgChange: true, // 🔥 KEY FIX
+    refetchOnMountOrArgChange: true,
   });
 
   const [assignRolePermissions, { isLoading: saving }] =
     useAssignRolePermissionsMutation();
 
+  /* ================= SYNC ================= */
+
   useEffect(() => {
-    if (data?.assigned) {
-      setSelected(data.assigned);
-    } else {
-      setSelected([]);
-    }
-  }, [roleId, data?.assigned]);
+    setSelected(data?.assigned ?? []);
+  }, [data?.assigned]);
+
+  /* ================= HANDLERS ================= */
 
   const toggle = (permission: string) => {
     setSelected((prev) =>
@@ -54,8 +54,11 @@ export default function RolePermissionModal({
         }).unwrap(),
       "Permissions assigned successfully"
     );
+
     onClose();
   };
+
+  /* ================= VIEW ================= */
 
   return (
     <Modal
@@ -67,6 +70,7 @@ export default function RolePermissionModal({
       dialogClassName="modal-md"
     >
       {isLoading && <p>Loading permissions...</p>}
+
       {isError && (
         <p className="text-danger">Failed to load permissions</p>
       )}

@@ -7,30 +7,39 @@ import App from "./App";
 import { store } from "./store";
 import { setStore } from "./store/storeAccessor";
 import { AppModalProvider } from "./context/AppModalContext";
+import ErrorBoundary from "./components/common/ErrorBoundary";
+import { listenAuthEvents } from "./utils/authEvents";
+import { logoutThunk } from "./store/authSlice";
 
 import "bootstrap/dist/css/bootstrap.min.css";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
 setStore(store);
+
+/* 🔥 MULTI-TAB LOGOUT SYNC */
+listenAuthEvents(() => {
+  store.dispatch(logoutThunk());
+  window.location.href = "/login";
+});
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    {/* 🔴 Redux outermost */}
-    <Provider store={store}>
-      {/* 🔥 Router MUST wrap AppRoutes */}
-      <BrowserRouter>
-        {/* 🔥 Global Modal Context */}
-        <AppModalProvider>
-          <App />
+    <ErrorBoundary>
+      <Provider store={store}>
+        <BrowserRouter>
+          <AppModalProvider>
+            <App />
 
-          {/* 🔔 Toast works globally */}
-          <ToastContainer
-            position="top-right"
-            autoClose={3000}
-            pauseOnHover
-            closeOnClick
-          />
-        </AppModalProvider>
-      </BrowserRouter>
-    </Provider>
+            <ToastContainer
+              position="top-right"
+              autoClose={3000}
+              pauseOnHover
+              closeOnClick
+            />
+          </AppModalProvider>
+        </BrowserRouter>
+      </Provider>
+    </ErrorBoundary>
   </React.StrictMode>
 );

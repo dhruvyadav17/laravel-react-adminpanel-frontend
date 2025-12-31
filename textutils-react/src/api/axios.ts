@@ -7,7 +7,7 @@ const api = axios.create({
   headers: { Accept: "application/json" },
 });
 
-/* ================= REQUEST ================= */
+/* REQUEST */
 api.interceptors.request.use((config) => {
   const store = getStore();
   const token = store.getState().auth.token;
@@ -19,16 +19,30 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-
-/* ================= RESPONSE ================= */
+/* RESPONSE */
 api.interceptors.response.use(
   (res) => res,
   (error: AxiosError<any>) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status;
+
+    if (status === 401) {
       const store = getStore();
       store.dispatch(logoutThunk());
-      window.location.href = "/login";
+
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
     }
+
+    if (status === 403) {
+      if (
+        window.location.pathname !==
+        "/admin/unauthorized"
+      ) {
+        window.location.href = "/admin/unauthorized";
+      }
+    }
+
     return Promise.reject(error);
   }
 );

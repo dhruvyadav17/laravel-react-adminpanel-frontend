@@ -1,18 +1,27 @@
 import { Navigate } from "react-router-dom";
-import LoginForm from "./LoginForm";
+import LoginForm from "../../auth/LoginForm";
 import { useAuth } from "../../auth/hooks/useAuth";
 
-export default function Login() {
+type Props = {
+  admin?: boolean; // 🔥 admin or user login
+};
+
+export default function Login({ admin = false }: Props) {
   const { isAuth, isAdmin } = useAuth();
 
+  /* ================= REDIRECT LOGIC ================= */
   if (isAuth) {
-    return (
-      <Navigate
-        to={isAdmin ? "/admin/dashboard" : "/profile"}
-        replace
-      />
-    );
+    if (isAdmin) {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
+    return <Navigate to="/profile" replace />;
   }
 
-  return <LoginForm title="User Login" />;
+  /* ================= VIEW ================= */
+  return (
+    <LoginForm
+      title={admin ? "Admin Login" : "User Login"}
+      redirectAdmin={admin}
+    />
+  );
 }

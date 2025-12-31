@@ -7,9 +7,10 @@ type ModalProps = {
   onSave?: () => void;
   saveDisabled?: boolean;
   button_name?: string;
+  dialogClassName?: string;
 
-  // 🔥 dynamic width support
-  dialogClassName?: string; // e.g. "modal-lg" | "modal-xl"
+  // 🔥 NEW
+  disableClose?: boolean;
 };
 
 export default function Modal({
@@ -20,6 +21,7 @@ export default function Modal({
   saveDisabled,
   button_name,
   dialogClassName,
+  disableClose = false,
 }: ModalProps) {
   return (
     <div className="modal show d-block" role="dialog">
@@ -29,27 +31,30 @@ export default function Modal({
         }`}
       >
         <div className="modal-content shadow">
-          {/* ===== HEADER ===== */}
+          {/* HEADER */}
           <div className="modal-header">
             <h5 className="modal-title">{title}</h5>
 
-            <button
-              type="button"
-              className="btn-close"
-              aria-label="Close"
-              onClick={onClose}
-            />
+            {!disableClose && (
+              <button
+                type="button"
+                className="btn-close"
+                aria-label="Close"
+                onClick={onClose}
+              />
+            )}
           </div>
 
-          {/* ===== BODY ===== */}
+          {/* BODY */}
           <div className="modal-body px-4">{children}</div>
 
-          {/* ===== FOOTER ===== */}
+          {/* FOOTER */}
           <div className="modal-footer">
             <Button
               label="Cancel"
               variant="secondary"
               onClick={onClose}
+              disabled={disableClose}
             />
 
             {onSave && (
@@ -57,6 +62,7 @@ export default function Modal({
                 label={button_name || "Save"}
                 onClick={onSave}
                 loading={saveDisabled}
+                disabled={disableClose}
               />
             )}
           </div>

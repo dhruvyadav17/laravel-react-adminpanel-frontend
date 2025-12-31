@@ -3,7 +3,7 @@
 export type MenuItem = {
   label: string;
   path: string;
-  permission?: string;
+  permission?: string; // optional permission guard
 };
 
 /* ================= ADMIN MENU ================= */
@@ -31,10 +31,6 @@ export const ADMIN_MENU: MenuItem[] = [
     path: "/admin/permissions",
     permission: "permission-manage",
   },
-  //   {
-  //   label: "Logout",
-  //   path: "/admin/logout",
-  // },
 ];
 
 /* ================= USER MENU ================= */

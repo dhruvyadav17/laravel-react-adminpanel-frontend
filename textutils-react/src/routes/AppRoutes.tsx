@@ -1,84 +1,63 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 
-/* AUTH PAGES (NO HEADER) */
 import Login from "../pages/auth/Login";
-import AdminLogin from "../pages/admin/AdminLogin";
+import Unauthorized from "../pages/errors/Unauthorized";
+import NotFound from "../pages/errors/NotFound";
 
-/* LAYOUTS */
 import UserLayout from "../layouts/UserLayout";
 import AdminLayout from "../layouts/AdminLayout";
+import Guard from "../auth/guards/Guard";
 
-/* GUARDS */
-import UserGuard from "../auth/guards/UserGuard";
-import AdminGuard from "../auth/guards/AdminGuard";
-import PermissionRoute from "../auth/guards/PermissionRoute";
-
-/* USER PAGES */
-import Profile from "../pages/user/Profile";
-import UserRoles from "../pages/user/UserRoles";
-//import UserPermissions from "../pages/user/UserPermissions";
-
-/* ADMIN PAGES */
-import Dashboard from "../pages/admin/Dashboard";
-import Users from "../pages/admin/Users";
-import Roles from "../pages/admin/Roles";
-import Permissions from "../pages/admin/Permissions";
-
-/* CONSTANTS */
-import { PERMISSIONS } from "../constants/permissions";
+import {
+  adminAppRoutes,
+  userAppRoutes,
+} from "../config/appRoutes";
 
 export default function AppRoutes() {
   return (
     <Routes>
-      {/* ========== AUTH (NO HEADER) ========== */}
+      {/* AUTH */}
       <Route path="/login" element={<Login />} />
-      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/admin/login" element={<Login admin />} />
 
-      {/* ========== USER (HEADER ENABLED) ========== */}
-      <Route element={<UserGuard />}>
+      {/* USER */}
+      <Route element={<Guard />}>
         <Route element={<UserLayout />}>
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/roles" element={<UserRoles />} />
-          {/* <Route path="/permissions" element={<UserPermissions />} /> */}
+          {userAppRoutes.map((r) => (
+            <Route
+              key={r.path}
+              path={r.path}
+              element={r.element}
+            />
+          ))}
         </Route>
       </Route>
 
-      {/* ========== ADMIN (HEADER ENABLED) ========== */}
-      <Route element={<AdminGuard />}>
+      {/* ADMIN */}
+      <Route element={<Guard admin />}>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
 
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="profile" element={<Profile />} />
-
-          <Route
-            element={
-              <PermissionRoute permission={PERMISSIONS.USER.VIEW} />
-            }
-          >
-            <Route path="users" element={<Users />} />
-          </Route>
-
-          <Route
-            element={
-              <PermissionRoute permission={PERMISSIONS.ROLE.MANAGE} />
-            }
-          >
-            <Route path="roles" element={<Roles />} />
-          </Route>
-
-          <Route
-            element={
-              <PermissionRoute permission={PERMISSIONS.PERMISSION.MANAGE} />
-            }
-          >
-            <Route path="permissions" element={<Permissions />} />
-          </Route>
+          {adminAppRoutes.map((r) => (
+            <Route
+              key={r.path}
+              element={
+                r.permission ? (
+                  <Guard permission={r.permission} />
+                ) : (
+                  <Guard />
+                )
+              }
+            >
+              <Route path={r.path} element={r.element} />
+            </Route>
+          ))}
         </Route>
       </Route>
 
-      {/* ========== FALLBACK ========== */}
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      {/* ERRORS */}
+      <Route path="/admin/unauthorized" element={<Unauthorized />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }

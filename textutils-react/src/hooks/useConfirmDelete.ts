@@ -1,15 +1,17 @@
 import { useAppModal } from "../context/AppModalContext";
 
+type ConfirmPayload = {
+  message: string;
+  onConfirm: () => Promise<void>;
+};
+
 export function useConfirmDelete() {
-  const { openModal, closeModal } = useAppModal<any>();
+  const { openModal } = useAppModal();
 
   return (message: string, onConfirm: () => Promise<void>) => {
     openModal("confirm-delete", {
       message,
-      onConfirm: async () => {
-        await onConfirm();
-        closeModal();
-      },
-    });
+      onConfirm,
+    } as ConfirmPayload);
   };
 }
