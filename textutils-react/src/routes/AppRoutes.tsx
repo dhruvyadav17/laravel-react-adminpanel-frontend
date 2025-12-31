@@ -8,10 +8,10 @@ import UserLayout from "../layouts/UserLayout";
 import AdminLayout from "../layouts/AdminLayout";
 import Guard from "../auth/guards/Guard";
 
-import {
-  adminAppRoutes,
-  userAppRoutes,
-} from "../config/appRoutes";
+import { adminAppRoutes, userAppRoutes } from "../config/appRoutes";
+
+import ForgotPassword from "../pages/auth/ForgotPassword";
+import ResetPassword from "../pages/auth/ResetPassword";
 
 export default function AppRoutes() {
   return (
@@ -20,15 +20,14 @@ export default function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/admin/login" element={<Login admin />} />
 
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+
       {/* USER */}
       <Route element={<Guard />}>
         <Route element={<UserLayout />}>
           {userAppRoutes.map((r) => (
-            <Route
-              key={r.path}
-              path={r.path}
-              element={r.element}
-            />
+            <Route key={r.path} path={r.path} element={r.element} />
           ))}
         </Route>
       </Route>
@@ -42,11 +41,7 @@ export default function AppRoutes() {
             <Route
               key={r.path}
               element={
-                r.permission ? (
-                  <Guard permission={r.permission} />
-                ) : (
-                  <Guard />
-                )
+                r.permission ? <Guard permission={r.permission} /> : <Guard />
               }
             >
               <Route path={r.path} element={r.element} />

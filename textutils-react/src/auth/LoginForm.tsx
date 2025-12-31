@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { loginThunk } from "../store/authSlice";
 import type { RootState, AppDispatch } from "../store";
@@ -76,6 +76,9 @@ export default function LoginForm({
         >
           {loading ? "Logging in..." : "Login"}
         </button>
+        <Link to="/forgot-password" className="d-block mt-2">
+          Forgot password?
+        </Link>
       </form>
     </div>
   );
