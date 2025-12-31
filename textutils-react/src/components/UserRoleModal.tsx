@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import Modal from "./common/Modal";
-import { useGetRolesQuery, useAssignUserRolesMutation } from "../store/api";
-import { handleApiError, handleApiSuccess } from "../utils/toastHelper";
+import {
+  useGetRolesQuery,
+  useAssignUserRolesMutation,
+} from "../store/api";
 import { execute } from "../utils/execute";
 
 type Props = {
@@ -14,30 +16,43 @@ type Props = {
   onSaved: () => void;
 };
 
-export default function UserRoleModal({ user, onClose, onSaved }: Props) {
+export default function UserRoleModal({
+  user,
+  onClose,
+  onSaved,
+}: Props) {
   const [selected, setSelected] = useState<string[]>([]);
 
-  /* ================= FETCH ROLES ================= */
-  const { data: roles = [], isLoading, isError } = useGetRolesQuery();
+  const {
+    data: roles = [],
+    isLoading,
+    isError,
+  } = useGetRolesQuery(undefined, {
+    refetchOnMountOrArgChange: true, // 🔥 FIX
+  });
 
-  /* ================= ASSIGN ROLE ================= */
-  const [assignUserRoles, { isLoading: saving }] = useAssignUserRolesMutation();
+  const [assignUserRoles, { isLoading: saving }] =
+    useAssignUserRolesMutation();
 
-  /* ================= SYNC USER ROLES ================= */
   useEffect(() => {
     setSelected(user.roles || []);
-  }, [user.roles]);
+  }, [user.id, user.roles]);
 
   const toggle = (role: string) => {
     setSelected((prev) =>
-      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]
+      prev.includes(role)
+        ? prev.filter((r) => r !== role)
+        : [...prev, role]
     );
   };
 
-  /* ================= SAVE ================= */
   const save = async () => {
     await execute(
-      () => assignUserRoles({ id: user.id, roles: selected }).unwrap(),
+      () =>
+        assignUserRoles({
+          id: user.id,
+          roles: selected,
+        }).unwrap(),
       "Roles assigned successfully"
     );
     onSaved();
@@ -51,33 +66,42 @@ export default function UserRoleModal({ user, onClose, onSaved }: Props) {
       onSave={save}
       saveDisabled={saving}
       button_name={saving ? "Saving..." : "Assign"}
+      dialogClassName="modal-lg"
     >
-      {/* ================= STATES ================= */}
       {isLoading && <p>Loading roles...</p>}
-
-      {isError && <p className="text-danger">Failed to load roles</p>}
+      {isError && (
+        <p className="text-danger">Failed to load roles</p>
+      )}
 
       {!isLoading && !roles.length && (
         <p className="text-muted">No roles available</p>
       )}
 
-      {/* ================= LIST ================= */}
-      {!isLoading &&
-        roles.map((r: any) => (
-          <div key={r.id} className="form-check">
-            <input
-              className="form-check-input"
-              type="checkbox"
-              id={`role-${r.id}`}
-              checked={selected.includes(r.name)}
-              onChange={() => toggle(r.name)}
-              disabled={saving}
-            />
-            <label className="form-check-label" htmlFor={`role-${r.id}`}>
-              {r.name}
-            </label>
+      {!isLoading && roles.length > 0 && (
+        <div className="container-fluid px-3">
+          <div className="row g-2">
+            {roles.map((r: any) => (
+              <div
+                key={r.id}
+                className="col-12 col-sm-6 col-md-4"
+              >
+                <div className="form-check">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    checked={selected.includes(r.name)}
+                    onChange={() => toggle(r.name)}
+                    disabled={saving}
+                  />
+                  <label className="form-check-label">
+                    {r.name}
+                  </label>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
+      )}
     </Modal>
   );
 }

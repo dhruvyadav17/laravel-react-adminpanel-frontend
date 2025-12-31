@@ -149,6 +149,28 @@ export const api = createApi({
       }),
       invalidatesTags: ["Roles"],
     }),
+
+    /* ================= USER → PERMISSIONS ================= */
+
+    getUserPermissions: builder.query<
+      { permissions: any[]; assigned: string[] },
+      number
+    >({
+      query: (id) => `/admin/users/${id}/permissions`,
+      transformResponse: (res: any) => res.data,
+    }),
+
+    assignUserPermissions: builder.mutation<
+      any,
+      { id: number; permissions: string[] }
+    >({
+      query: ({ id, permissions }) => ({
+        url: `/admin/users/${id}/permissions`,
+        method: "POST",
+        body: { permissions },
+      }),
+      invalidatesTags: ["Users"],
+    }),
   }),
 });
 
@@ -171,4 +193,8 @@ export const {
   // ✅ IMPORTANT (role permission)
   useGetRolePermissionsQuery,
   useAssignRolePermissionsMutation,
+
+  // ✅ IMPORTANT (user permission)
+  useGetUserPermissionsQuery,
+useAssignUserPermissionsMutation,
 } = api;

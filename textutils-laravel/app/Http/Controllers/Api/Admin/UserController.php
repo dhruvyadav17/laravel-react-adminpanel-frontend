@@ -7,6 +7,7 @@ use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use App\Services\User\UserService;
 use App\Http\Controllers\Controller;
+use Spatie\Permission\Models\Permission;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
 
@@ -91,5 +92,43 @@ class UserController extends Controller
             'User roles fetched',
             $user->roles->pluck('name')
         );
+    }
+
+    public function permissions($id)
+    {
+        $user = User::findOrFail($id);
+
+        return $this->success(
+            'User permissions fetched',
+            [
+                'user_id' => $user->id,
+
+                // ✅ ALL permissions (for checkbox list)
+                'permissions' => Permission::select('id', 'name')
+                    ->orderBy('name')
+                    ->get(),
+
+                // ✅ User ke assigned permissions (role + direct)
+                'assigned' => $user
+                    ->getAllPermissions()
+                    ->pluck('name')
+                    ->values(),
+            ]
+        );
+    }
+
+    public function assignPermissions(Request $request, $id)
+    {
+        $request->validate([
+            'permissions' => ['array'],
+            'permissions.*' => ['string', 'exists:permissions,name'],
+        ]);
+
+        $user = User::findOrFail($id);
+
+        // direct permissions sync (roles untouched)
+        $user->syncPermissions($request->permissions ?? []);
+
+        return $this->success('Permissions updated');
     }
 }

@@ -69,6 +69,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/admin/users/{user}/assign-role', [UserController::class, 'assignRole'])
         ->middleware('permission:role-manage');
 
+    Route::get(
+        '/admin/users/{id}/permissions',
+        [UserController::class, 'permissions']
+    );
+
+    Route::post('/admin/users/{id}/permissions', [UserController::class, 'assignPermissions']);
+
     /*
     |--------------------------------------------------------------------------
     | ROLE & PERMISSION MANAGEMENT
@@ -105,26 +112,27 @@ Route::middleware('auth:sanctum')->group(function () {
 
             // Route::middleware(['auth:sanctum'])->group(function () {
 
-                Route::prefix('permissions')->group(function () {
+            Route::prefix('permissions')->group(function () {
 
-                    Route::get('/', [PermissionController::class, 'index']);
-                        //->middleware('permission:permission-view');
+                Route::get('/', [PermissionController::class, 'index']);
+                //->middleware('permission:permission-view');
 
-                    Route::get('/{permission}', [PermissionController::class, 'show']);
-                        //->middleware('permission:permission-view');
+                Route::get('/{permission}', [PermissionController::class, 'show']);
+                //->middleware('permission:permission-view');
 
-                    Route::post('/', [PermissionController::class, 'store']);
-                        //->middleware('permission:permission-create');
+                Route::post('/', [PermissionController::class, 'store']);
+                //->middleware('permission:permission-create');
 
-                    Route::put('/{permission}', [PermissionController::class, 'update']);
-                        //->middleware('permission:permission-edit');
+                Route::put('/{permission}', [PermissionController::class, 'update']);
+                //->middleware('permission:permission-edit');
 
-                    Route::delete('/{permission}', [PermissionController::class, 'destroy']);
-                        //->middleware('permission:permission-delete');
+                Route::delete('/{permission}', [PermissionController::class, 'destroy']);
+                //->middleware('permission:permission-delete');
 
-                    Route::patch('/{permission}/toggle', [PermissionController::class, 'toggle']);
-                        //->middleware('permission:permission-toggle');
-                });
+                Route::patch('/{permission}/toggle', [PermissionController::class, 'toggle']);
+                //->middleware('permission:permission-toggle');
+
+            });
             // });
         });
 });

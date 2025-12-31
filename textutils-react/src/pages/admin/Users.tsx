@@ -13,6 +13,7 @@ import { useGetUsersQuery, useDeleteUserMutation } from "../../store/api";
 import { execute } from "../../utils/execute";
 import type { User } from "../../types/models";
 import TableSkeleton from "../../components/common/TableSkeleton";
+import UserPermissionModal from "../../components/UserPermissionModal";
 
 /* ================= COMPONENT ================= */
 
@@ -92,6 +93,12 @@ export default function Users() {
                             }
                           ),
                       },
+                      {
+                        label: "Permissions",
+                        variant: "secondary",
+                        show: can(PERMISSIONS.PERMISSION.MANAGE),
+                        onClick: () => openModal("user-permission", u),
+                      },
                     ]}
                   />
                 </td>
@@ -114,6 +121,13 @@ export default function Users() {
           onSaved={closeModal}
         />
       )}
+
+      {modalType === "user-permission" && modalData && (
+  <UserPermissionModal
+    user={modalData}
+    onClose={closeModal}
+  />
+)}
     </div>
   );
 }

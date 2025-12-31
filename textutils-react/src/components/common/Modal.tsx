@@ -1,5 +1,17 @@
 import Button from "./Button";
 
+type ModalProps = {
+  title: string;
+  children: React.ReactNode;
+  onClose: () => void;
+  onSave?: () => void;
+  saveDisabled?: boolean;
+  button_name?: string;
+
+  // 🔥 dynamic width support
+  dialogClassName?: string; // e.g. "modal-lg" | "modal-xl"
+};
+
 export default function Modal({
   title,
   children,
@@ -7,17 +19,32 @@ export default function Modal({
   onSave,
   saveDisabled,
   button_name,
-}: any) {
+  dialogClassName,
+}: ModalProps) {
   return (
-    <div className="modal show d-block">
-      <div className="modal-dialog">
-        <div className="modal-content">
+    <div className="modal show d-block" role="dialog">
+      <div
+        className={`modal-dialog modal-dialog-centered modal-dialog-scrollable ${
+          dialogClassName || ""
+        }`}
+      >
+        <div className="modal-content shadow">
+          {/* ===== HEADER ===== */}
           <div className="modal-header">
-            <h5>{title}</h5>
+            <h5 className="modal-title">{title}</h5>
+
+            <button
+              type="button"
+              className="btn-close"
+              aria-label="Close"
+              onClick={onClose}
+            />
           </div>
 
-          <div className="modal-body">{children}</div>
+          {/* ===== BODY ===== */}
+          <div className="modal-body px-4">{children}</div>
 
+          {/* ===== FOOTER ===== */}
           <div className="modal-footer">
             <Button
               label="Cancel"

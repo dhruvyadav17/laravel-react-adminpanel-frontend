@@ -13,6 +13,6 @@ export const PERMISSIONS = {
     MANAGE: "permission-manage",
   },
 } as const;
-
+//user-permission
 export type Permission =
   | (typeof PERMISSIONS)[keyof typeof PERMISSIONS][keyof (typeof PERMISSIONS)[any]];

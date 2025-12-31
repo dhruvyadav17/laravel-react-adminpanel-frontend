@@ -1,18 +1,21 @@
 import { useEffect, useState } from "react";
 import Modal from "./common/Modal";
 import {
-  useGetRolePermissionsQuery,
-  useAssignRolePermissionsMutation,
+  useGetUserPermissionsQuery,
+  useAssignUserPermissionsMutation,
 } from "../store/api";
 import { execute } from "../utils/execute";
 
 type Props = {
-  roleId: number;
+  user: {
+    id: number;
+    name: string;
+  };
   onClose: () => void;
 };
 
-export default function RolePermissionModal({
-  roleId,
+export default function UserPermissionModal({
+  user,
   onClose,
 }: Props) {
   const [selected, setSelected] = useState<string[]>([]);
@@ -21,21 +24,22 @@ export default function RolePermissionModal({
     data,
     isLoading,
     isError,
-  } = useGetRolePermissionsQuery(roleId, {
-    skip: !roleId,
+  } = useGetUserPermissionsQuery(user.id, {
+    skip: !user.id,
     refetchOnMountOrArgChange: true, // 🔥 KEY FIX
   });
 
-  const [assignRolePermissions, { isLoading: saving }] =
-    useAssignRolePermissionsMutation();
+  const [assignPermissions, { isLoading: saving }] =
+    useAssignUserPermissionsMutation();
 
+  /* 🔁 reset on user change */
   useEffect(() => {
     if (data?.assigned) {
       setSelected(data.assigned);
     } else {
       setSelected([]);
     }
-  }, [roleId, data?.assigned]);
+  }, [user.id, data?.assigned]);
 
   const toggle = (permission: string) => {
     setSelected((prev) =>
@@ -48,23 +52,23 @@ export default function RolePermissionModal({
   const save = async () => {
     await execute(
       () =>
-        assignRolePermissions({
-          id: roleId,
+        assignPermissions({
+          id: user.id,
           permissions: selected,
         }).unwrap(),
-      "Permissions assigned successfully"
+      "Permissions updated"
     );
     onClose();
   };
 
   return (
     <Modal
-      title="Assign Permissions"
+      title={`Assign Permissions – ${user.name}`}
       onClose={onClose}
       onSave={save}
       saveDisabled={saving}
-      button_name={saving ? "Saving..." : "Assign"}
-      dialogClassName="modal-md"
+      button_name={saving ? "Saving..." : "Save"}
+      dialogClassName="modal-lg"
     >
       {isLoading && <p>Loading permissions...</p>}
       {isError && (
