@@ -5,17 +5,20 @@ import Unauthorized from "../pages/errors/Unauthorized";
 import NotFound from "../pages/errors/NotFound";
 
 import UserLayout from "../layouts/UserLayout";
-import AdminLayout from "../layouts/AdminLayout";
+//import AdminLayout from "../layouts/AdminLayout";
 import Guard from "../auth/guards/Guard";
 
 import { adminAppRoutes, userAppRoutes } from "../config/appRoutes";
 
 import ForgotPassword from "../pages/auth/ForgotPassword";
 import ResetPassword from "../pages/auth/ResetPassword";
+import AdminLayout from "../layouts/AdminLayout";
 
 export default function AppRoutes() {
   return (
     <Routes>
+  
+
       {/* AUTH */}
       <Route path="/login" element={<Login />} />
       <Route path="/admin/login" element={<Login admin />} />

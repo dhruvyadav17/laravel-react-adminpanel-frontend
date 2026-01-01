@@ -1,52 +1,31 @@
-import React from "react";
-
-type Variant = "primary" | "secondary" | "warning" | "danger";
-type Size = "sm" | "md";
-
-type ButtonProps = {
-  /** NEW (preferred) */
-  children?: React.ReactNode;
-
-  /** OLD (backward compatible) */
+type Props = {
   label?: string;
-  icon?: React.ReactNode;
-
   onClick?: () => void;
-  type?: "button" | "submit";
-  variant?: Variant;
-  size?: Size;
+  variant?: "primary" | "secondary" | "warning" | "danger";
   loading?: boolean;
   disabled?: boolean;
   className?: string;
 };
 
 export default function Button({
-  children,
   label,
-  icon,
   onClick,
-  type = "button",
   variant = "primary",
-  size = "sm",
-  loading = false,
-  disabled = false,
+  loading,
+  disabled,
   className = "",
-}: ButtonProps) {
-  const content = children ?? (
-    <>
-      {icon && <span className="me-1">{icon}</span>}
-      {label}
-    </>
-  );
-
+}: Props) {
   return (
     <button
-      type={type}
-      className={`btn btn-${variant} btn-${size} ${className}`}
+      type="button"
+      className={`btn btn-${variant} ${className}`}
       onClick={onClick}
       disabled={disabled || loading}
     >
-      {loading ? "Please wait..." : content}
+      {loading && (
+        <span className="spinner-border spinner-border-sm mr-2" />
+      )}
+      {label}
     </button>
   );
 }

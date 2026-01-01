@@ -1,18 +1,23 @@
+// src/config/appRoutes.ts
+
 import Dashboard from "../pages/admin/Dashboard";
 import Users from "../pages/admin/Users";
 import Roles from "../pages/admin/Roles";
-import Permissions from "../pages/admin/Permissions";
+import PermissionsPage from "../pages/admin/PermissionsPage";
 import Profile from "../pages/user/Profile";
 import UserRoles from "../pages/user/UserRoles";
+
 import { PERMISSIONS } from "../constants/permissions";
+import { RouteGroup, ROUTE_GROUPS } from "../constants/routeGroups";
 
 export type AppRoute = {
-  label?: string;            // menu label (optional)
+  label?: string;
   path: string;
   element: JSX.Element;
-  permission?: string;       // permission guard
-  admin?: boolean;           // admin-only
-  showInMenu?: boolean;      // menu visibility
+  permission?: string;
+  admin?: boolean;
+  showInMenu?: boolean;
+  group?: RouteGroup;
 };
 
 /* ================= ADMIN ROUTES ================= */
@@ -23,6 +28,7 @@ export const adminAppRoutes: AppRoute[] = [
     element: <Dashboard />,
     admin: true,
     showInMenu: true,
+    group: ROUTE_GROUPS.SETTINGS,
   },
   {
     label: "Profile",
@@ -30,6 +36,7 @@ export const adminAppRoutes: AppRoute[] = [
     element: <Profile />,
     admin: true,
     showInMenu: true,
+    group: ROUTE_GROUPS.SETTINGS,
   },
   {
     label: "Users",
@@ -38,6 +45,7 @@ export const adminAppRoutes: AppRoute[] = [
     admin: true,
     permission: PERMISSIONS.USER.VIEW,
     showInMenu: true,
+    group: ROUTE_GROUPS.USER_MANAGEMENT, // 🔥 FIX
   },
   {
     label: "Roles",
@@ -46,14 +54,16 @@ export const adminAppRoutes: AppRoute[] = [
     admin: true,
     permission: PERMISSIONS.ROLE.MANAGE,
     showInMenu: true,
+    group: ROUTE_GROUPS.USER_MANAGEMENT, // 🔥 FIX
   },
   {
     label: "Permissions",
     path: "permissions",
-    element: <Permissions />,
+    element: <PermissionsPage />,
     admin: true,
     permission: PERMISSIONS.PERMISSION.MANAGE,
     showInMenu: true,
+    group: ROUTE_GROUPS.USER_MANAGEMENT, // 🔥 FIX
   },
 ];
 
@@ -61,13 +71,13 @@ export const adminAppRoutes: AppRoute[] = [
 export const userAppRoutes: AppRoute[] = [
   {
     label: "Profile",
-    path: "/profile",
+    path: "profile",
     element: <Profile />,
     showInMenu: true,
   },
   {
     label: "My Roles",
-    path: "/roles",
+    path: "roles",
     element: <UserRoles />,
     showInMenu: true,
   },

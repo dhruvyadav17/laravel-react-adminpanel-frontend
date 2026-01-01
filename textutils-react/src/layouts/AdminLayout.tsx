@@ -1,37 +1,29 @@
-// src/layouts/AdminLayout.tsx
-
 import { Outlet } from "react-router-dom";
-import Header from "../components/Header";
-import { useAppModal } from "../context/AppModalContext";
-import ConfirmDeleteModal from "../components/common/ConfirmDeleteModal";
+import AdminNavbar from "../components/admin/AdminNavbar";
+import AdminSidebar from "../components/admin/AdminSidebar";
+import ModalHost from "../components/common/ModalHost";
 
-/**
- * AdminLayout
- * -----------------------------------------
- * - Renders admin header
- * - Hosts admin pages
- * - Owns global admin modals (confirm delete)
- */
 export default function AdminLayout() {
-  const { modalType, modalData, closeModal } =
-    useAppModal<any>();
-
   return (
-    <>
-      <Header />
+    <div className="wrapper">
+      {/* TOP NAVBAR */}
+      <AdminNavbar />
 
-      <main className="container mt-3">
+      {/* SIDEBAR */}
+      <AdminSidebar />
+
+      {/* MAIN CONTENT */}
+      <div className="content-wrapper">
         <Outlet />
-      </main>
+      </div>
 
-      {/* 🔥 GLOBAL CONFIRM DELETE (ADMIN ONLY) */}
-      {modalType === "confirm-delete" && modalData && (
-        <ConfirmDeleteModal
-          message={modalData.message}
-          onConfirm={modalData.onConfirm}
-          onClose={closeModal}
-        />
-      )}
-    </>
+      {/* 🔥 ALL GLOBAL MODALS (DELETE CONFIRM ETC.) */}
+      <ModalHost />
+
+      {/* FOOTER */}
+      <footer className="main-footer text-center">
+        <strong>AdminLTE React</strong>
+      </footer>
+    </div>
   );
 }

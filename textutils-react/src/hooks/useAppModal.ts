@@ -1,24 +1,29 @@
 import { useState } from "react";
+import type { ModalMap } from "../types/modal";
 
-//port type ModalType = "permission" | "role" | "role-edit" | null;
-import { ModalType } from "../types/modal";
-export function useAppModal<T = any>() {
-  const [type, setType] = useState<ModalType>(null);
-  const [data, setData] = useState<T | null>(null);
+export function useAppModal() {
+  const [modalType, setModalType] =
+    useState<keyof ModalMap | null>(null);
 
-  const openModal = (modalType: ModalType, payload?: T) => {
-    setType(modalType);
-    setData(payload || null);
+  const [modalData, setModalData] =
+    useState<ModalMap[keyof ModalMap] | null>(null);
+
+  const openModal = <T extends keyof ModalMap>(
+    type: T,
+    data: ModalMap[T]
+  ) => {
+    setModalType(type);
+    setModalData(data);
   };
 
   const closeModal = () => {
-    setType(null);
-    setData(null);
+    setModalType(null);
+    setModalData(null);
   };
 
   return {
-    modalType: type,
-    modalData: data,
+    modalType,
+    modalData,
     openModal,
     closeModal,
   };

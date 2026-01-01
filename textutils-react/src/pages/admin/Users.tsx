@@ -12,11 +12,21 @@ import UserFormModal from "../../components/UserFormModal";
 import UserRoleModal from "../../components/UserRoleModal";
 import UserPermissionModal from "../../components/UserPermissionModal";
 
-import { useGetUsersQuery, useDeleteUserMutation } from "../../store/api";
+import {
+  useGetUsersQuery,
+  useDeleteUserMutation,
+} from "../../store/api";
+
 import { execute } from "../../utils/execute";
 import type { User } from "../../types/models";
 
-/* ================= COMPONENT ================= */
+/* =====================================================
+   USERS PAGE
+   - AdminLTE 3
+   - Bootstrap 4
+   - Central Confirm Delete
+   - Modular & Reusable
+===================================================== */
 
 export default function Users() {
   const { can } = useAuth();
@@ -25,13 +35,19 @@ export default function Users() {
   const { modalType, modalData, openModal, closeModal } =
     useAppModal<User>();
 
-  const { data: users = [], isLoading } = useGetUsersQuery();
+  const { data: users = [], isLoading } =
+    useGetUsersQuery();
+
   const [deleteUser] = useDeleteUserMutation();
 
   /* ================= GUARD ================= */
 
   if (!can(PERMISSIONS.USER.VIEW)) {
-    return <p className="text-danger">Unauthorized</p>;
+    return (
+      <p className="text-danger mt-4">
+        Unauthorized
+      </p>
+    );
   }
 
   /* ================= HANDLERS ================= */
@@ -42,7 +58,7 @@ export default function Users() {
       async () => {
         await execute(
           () => deleteUser(user.id).unwrap(),
-          "User deleted"
+          "User deleted successfully"
         );
       }
     );
@@ -53,17 +69,25 @@ export default function Users() {
           {
             label: "Assign Role",
             variant: "secondary" as const,
-            onClick: () => openModal("user-role", user),
+            onClick: () =>
+              openModal("user-role", user),
           },
         ]
       : []),
 
-    {
-      label: "Permissions",
-      variant: "secondary" as const,
-      show: can(PERMISSIONS.PERMISSION.MANAGE),
-      onClick: () => openModal("user-permission", user),
-    },
+    ...(can(PERMISSIONS.PERMISSION.MANAGE)
+      ? [
+          {
+            label: "Permissions",
+            variant: "secondary" as const,
+            onClick: () =>
+              openModal(
+                "user-permission",
+                user
+              ),
+          },
+        ]
+      : []),
 
     {
       label: "Delete",
@@ -75,14 +99,16 @@ export default function Users() {
   /* ================= VIEW ================= */
 
   return (
-    <div className="container mt-4">
+    <div className="container-fluid mt-3">
       <PageHeader
         title="Users"
         action={
           can(PERMISSIONS.USER.CREATE) && (
             <Button
               label="+ Add User"
-              onClick={() => openModal("user-form")}
+              onClick={() =>
+                openModal("user-form")
+              }
             />
           )
         }
@@ -96,7 +122,12 @@ export default function Users() {
             <th>Name</th>
             <th>Email</th>
             <th>Roles</th>
-            <th width="200">Actions</th>
+            <th
+              className="text-right"
+              width={220}
+            >
+              Actions
+            </th>
           </tr>
         }
       >
@@ -109,9 +140,11 @@ export default function Users() {
                 ? user.roles.join(", ")
                 : "—"}
             </td>
-            <td>
+            <td className="text-right">
               <RowActions
-                actions={getRowActions(user)}
+                actions={getRowActions(
+                  user
+                )}
               />
             </td>
           </tr>
@@ -127,20 +160,22 @@ export default function Users() {
         />
       )}
 
-      {modalType === "user-role" && modalData && (
-        <UserRoleModal
-          user={modalData}
-          onClose={closeModal}
-          onSaved={closeModal}
-        />
-      )}
+      {modalType === "user-role" &&
+        modalData && (
+          <UserRoleModal
+            user={modalData}
+            onClose={closeModal}
+            onSaved={closeModal}
+          />
+        )}
 
-      {modalType === "user-permission" && modalData && (
-        <UserPermissionModal
-          user={modalData}
-          onClose={closeModal}
-        />
-      )}
+      {modalType === "user-permission" &&
+        modalData && (
+          <UserPermissionModal
+            user={modalData}
+            onClose={closeModal}
+          />
+        )}
     </div>
   );
 }

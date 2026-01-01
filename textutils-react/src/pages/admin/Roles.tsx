@@ -52,7 +52,13 @@ export default function Roles() {
   /* ================= GUARD ================= */
 
   if (!can(PERMISSIONS.ROLE.MANAGE)) {
-    return <p className="text-danger mt-4">Unauthorized</p>;
+    return (
+      <section className="content">
+        <div className="alert alert-danger m-3">
+          Unauthorized
+        </div>
+      </section>
+    );
   }
 
   /* ================= HANDLERS ================= */
@@ -116,83 +122,102 @@ export default function Roles() {
   /* ================= VIEW ================= */
 
   return (
-    <div className="container mt-4">
-      <PageHeader
-        title="Roles"
-        action={
-          <Button
-            label="+ Add Role"
-            onClick={() => {
-              reset();
-              openModal("role-add");
-            }}
-          />
-        }
-      />
-
-      <DataTable
-        isLoading={isLoading}
-        colSpan={2}
-        columns={
-          <tr>
-            <th>Name</th>
-            <th style={{ width: 260 }}>Actions</th>
-          </tr>
-        }
-      >
-        {roles.map((role) => (
-          <tr key={role.id}>
-            <td>{role.name}</td>
-            <td>
-              <RowActions actions={getRowActions(role)} />
-            </td>
-          </tr>
-        ))}
-      </DataTable>
-
-      {/* ================= ADD / EDIT ================= */}
-
-      {(modalType === "role-add" || modalType === "role-edit") && (
-        <Modal
-          title={
-            modalType === "role-edit"
-              ? "Edit Role"
-              : "Add Role"
+    <section className="content pt-3">
+      <div className="container-fluid">
+        {/* ===== PAGE HEADER ===== */}
+        <PageHeader
+          title="Roles"
+          action={
+            <Button
+              label="+ Add Role"
+              onClick={() => {
+                reset();
+                openModal("role-add");
+              }}
+            />
           }
-          onClose={closeModal}
-          onSave={save}
-          saveDisabled={loading}
-          button_name={
-            modalType === "role-edit" ? "Update" : "Save"
-          }
-        >
-          <input
-            className={`form-control ${
-              errors.name ? "is-invalid" : ""
-            }`}
-            placeholder="Role name"
-            value={values.name}
-            onChange={(e) =>
-              setField("name", e.target.value)
-            }
-          />
-
-          {errors.name && (
-            <div className="invalid-feedback">
-              {errors.name[0]}
-            </div>
-          )}
-        </Modal>
-      )}
-
-      {/* ================= ASSIGN PERMISSIONS ================= */}
-
-      {modalType === "permission" && modalData && (
-        <RolePermissionModal
-          roleId={modalData.id}
-          onClose={closeModal}
         />
-      )}
-    </div>
+
+        {/* ===== TABLE CARD ===== */}
+        <div className="card card-outline card-primary">
+          <div className="card-body p-0">
+            <DataTable
+              isLoading={isLoading}
+              colSpan={2}
+              columns={
+                <tr>
+                  <th>Name</th>
+                  <th
+                    style={{ width: 260 }}
+                    className="text-right"
+                  >
+                    Actions
+                  </th>
+                </tr>
+              }
+            >
+              {roles.map((role) => (
+                <tr key={role.id}>
+                  <td>{role.name}</td>
+                  <td className="text-right">
+                    <RowActions
+                      actions={getRowActions(role)}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </DataTable>
+          </div>
+        </div>
+
+        {/* ================= ADD / EDIT ================= */}
+
+        {(modalType === "role-add" ||
+          modalType === "role-edit") && (
+          <Modal
+            title={
+              modalType === "role-edit"
+                ? "Edit Role"
+                : "Add Role"
+            }
+            onClose={closeModal}
+            onSave={save}
+            saveDisabled={loading}
+            button_name={
+              modalType === "role-edit"
+                ? "Update"
+                : "Save"
+            }
+          >
+            <input
+              className={`form-control ${
+                errors.name ? "is-invalid" : ""
+              }`}
+              placeholder="Role name"
+              value={values.name}
+              onChange={(e) =>
+                setField("name", e.target.value)
+              }
+              disabled={loading}
+            />
+
+            {errors.name && (
+              <div className="invalid-feedback">
+                {errors.name[0]}
+              </div>
+            )}
+          </Modal>
+        )}
+
+        {/* ================= ASSIGN PERMISSIONS ================= */}
+
+        {modalType === "permission" && modalData && (
+          <RolePermissionModal
+            roleId={modalData.id}
+            onClose={closeModal}
+          />
+        )}
+      </div>
+    </section>
   );
 }

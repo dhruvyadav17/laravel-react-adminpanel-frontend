@@ -1,22 +1,22 @@
 // src/layouts/UserLayout.tsx
 
 import { Outlet } from "react-router-dom";
-import Header from "../components/Header";
 
 /**
  * UserLayout
- * -----------------------------------------
- * - Renders user header
- * - Hosts user pages
+ * -------------------------------------------------
+ * - Layout for non-admin (user) pages
+ * - No AdminLTE sidebar / navbar
+ * - Clean, Bootstrap-4 compatible
+ *
+ * Future:
+ * - UserNavbar can be added here
  */
+
 export default function UserLayout() {
   return (
-    <>
-      <Header />
-
-      <main className="container mt-3">
-        <Outlet />
-      </main>
-    </>
+    <div className="container-fluid mt-3">
+      <Outlet />
+    </div>
   );
 }

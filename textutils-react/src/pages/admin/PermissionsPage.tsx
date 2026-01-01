@@ -20,9 +20,7 @@ import {
 import { execute } from "../../utils/execute";
 import type { Permission } from "../../types/models";
 
-/* ================= COMPONENT ================= */
-
-export default function Permissions() {
+export default function PermissionsPage() {
   const { can } = useAuth();
   const confirmDelete = useConfirmDelete();
 
@@ -30,7 +28,6 @@ export default function Permissions() {
     useAppModal<Permission>();
 
   /* ================= DATA ================= */
-
   const { data: permissions = [], isLoading } =
     useGetPermissionsQuery();
 
@@ -39,7 +36,6 @@ export default function Permissions() {
   const [deletePermission] = useDeletePermissionMutation();
 
   /* ================= FORM ================= */
-
   const {
     values,
     errors,
@@ -51,9 +47,14 @@ export default function Permissions() {
   } = useBackendForm({ name: "" });
 
   /* ================= GUARD ================= */
-
   if (!can(PERMISSIONS.PERMISSION.MANAGE)) {
-    return <p className="text-danger mt-4">Unauthorized</p>;
+    return (
+      <section className="content">
+        <div className="alert alert-danger m-3">
+          Unauthorized
+        </div>
+      </section>
+    );
   }
 
   /* ================= HANDLERS ================= */
@@ -78,7 +79,7 @@ export default function Permissions() {
       closeModal();
       reset();
     } catch (e) {
-      handleError(e); // 🔥 Laravel 422 only
+      handleError(e);
     } finally {
       setLoading(false);
     }
@@ -114,78 +115,85 @@ export default function Permissions() {
   /* ================= VIEW ================= */
 
   return (
-    <div className="container mt-4">
-      <PageHeader
-        title="Permissions"
-        action={
-          <Button
-            label="+ Add Permission"
-            onClick={() => {
-              reset();
-              openModal("permission");
-            }}
-          />
-        }
-      />
-
-      <DataTable
-        isLoading={isLoading}
-        colSpan={2}
-        columns={
-          <tr>
-            <th>Name</th>
-            <th
-              style={{ width: 180 }}
-              className="text-end"
-            >
-              Actions
-            </th>
-          </tr>
-        }
-      >
-        {permissions.map((permission) => (
-          <tr key={permission.id}>
-            <td>{permission.name}</td>
-            <td className="text-end">
-              <RowActions
-                actions={getRowActions(permission)}
-              />
-            </td>
-          </tr>
-        ))}
-      </DataTable>
-
-      {/* ================= ADD / EDIT ================= */}
-
-      {modalType === "permission" && (
-        <Modal
-          title="Permission"
-          onClose={closeModal}
-          onSave={save}
-          saveDisabled={loading}
-          button_name={
-            modalData?.id ? "Update" : "Save"
+    <section className="content pt-3">
+      <div className="container-fluid">
+        {/* ===== PAGE HEADER ===== */}
+        <PageHeader
+          title="Permissions"
+          action={
+            <Button
+              label="+ Add Permission"
+              onClick={() => {
+                reset();
+                openModal("permission");
+              }}
+            />
           }
-        >
-          <input
-            className={`form-control ${
-              errors.name ? "is-invalid" : ""
-            }`}
-            placeholder="Permission name"
-            value={values.name}
-            onChange={(e) =>
-              setField("name", e.target.value)
-            }
-            disabled={loading}
-          />
+        />
 
-          {errors.name && (
-            <div className="invalid-feedback">
-              {errors.name[0]}
-            </div>
-          )}
-        </Modal>
-      )}
-    </div>
+        {/* ===== TABLE CARD ===== */}
+        <div className="card card-outline card-primary">
+          <div className="card-body p-0">
+            <DataTable
+              isLoading={isLoading}
+              colSpan={2}
+              columns={
+                <tr>
+                  <th>Name</th>
+                  <th
+                    style={{ width: 180 }}
+                    className="text-right"
+                  >
+                    Actions
+                  </th>
+                </tr>
+              }
+            >
+              {permissions.map((permission) => (
+                <tr key={permission.id}>
+                  <td>{permission.name}</td>
+                  <td className="text-right">
+                    <RowActions
+                      actions={getRowActions(permission)}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </DataTable>
+          </div>
+        </div>
+
+        {/* ===== MODAL ===== */}
+        {modalType === "permission" && (
+          <Modal
+            title="Permission"
+            onClose={closeModal}
+            onSave={save}
+            saveDisabled={loading}
+            button_name={
+              modalData?.id ? "Update" : "Save"
+            }
+          >
+            <input
+              className={`form-control ${
+                errors.name ? "is-invalid" : ""
+              }`}
+              placeholder="Permission name"
+              value={values.name}
+              onChange={(e) =>
+                setField("name", e.target.value)
+              }
+              disabled={loading}
+            />
+
+            {errors.name && (
+              <div className="invalid-feedback">
+                {errors.name[0]}
+              </div>
+            )}
+          </Modal>
+        )}
+      </div>
+    </section>
   );
 }
