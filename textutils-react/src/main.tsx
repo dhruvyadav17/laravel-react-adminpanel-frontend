@@ -15,6 +15,17 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+
+/* ===== AdminLTE 3 CSS ===== */
+//import "bootstrap/dist/css/bootstrap.min.css";
+import "@fortawesome/fontawesome-free/css/all.min.css";
+import "admin-lte/dist/css/adminlte.min.css";
+
+/* ===== AdminLTE 3 JS ===== */
+import "bootstrap/dist/js/bootstrap.bundle.min.js";
+import "admin-lte/dist/js/adminlte.min.js";
+
+
 setStore(store);
 
 /* 🔥 MULTI-TAB LOGOUT SYNC */

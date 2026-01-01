@@ -27,6 +27,7 @@ textutils-laravel/.phpunit.result.cache
 # =========================
 # React (textutils-react)
 # =========================
+project-bkp/
 textutils-react/node_modules/
 textutils-react/dist/
 textutils-react/build/
