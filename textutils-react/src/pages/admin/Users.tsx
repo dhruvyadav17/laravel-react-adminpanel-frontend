@@ -15,6 +15,7 @@ import CardBody from "../../ui/CardBody";
 import UserFormModal from "../../components/UserFormModal";
 import UserRoleModal from "../../components/UserRoleModal";
 import UserPermissionModal from "../../components/UserPermissionModal";
+import Pagination from "../../components/common/Pagination";
 
 import {
   useGetUsersQuery,
@@ -42,6 +43,9 @@ export default function Users() {
 
   const users: User[] = data?.data ?? [];
   const meta = data?.meta;
+
+ 
+  const [perPage, setPerPage] = useState(10);
 
   const [deleteUser] = useDeleteUserMutation();
   const [restoreUser] = useRestoreUserMutation();
@@ -160,7 +164,7 @@ export default function Users() {
 
                   <td>
                     {user.roles.length
-                      ? user.roles.join(", ")
+                      ? user?.roles?.map((role) => role?.name).join(", ")
                       : "—"}
                   </td>
 
@@ -186,28 +190,16 @@ export default function Users() {
         </Card>
 
         {/* 🔢 PAGINATION */}
-        {meta && (
-          <div className="d-flex justify-content-between align-items-center mt-3">
-            <div className="text-muted">
-              Page {meta.current_page} of {meta.last_page} • Total{" "}
-              {meta.total}
-            </div>
 
-            <div className="btn-group">
-              <Button
-                label="Prev"
-                variant="secondary"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-              />
-              <Button
-                label="Next"
-                variant="secondary"
-                disabled={page >= meta.last_page}
-                onClick={() => setPage((p) => p + 1)}
-              />
-            </div>
-          </div>
+        {meta && (
+          <Pagination
+            meta={meta}
+            onPageChange={setPage}
+            onPerPageChange={(size) => {
+              setPerPage(size);
+              setPage(1); // 🔥 IMPORTANT
+            }}
+          />
         )}
 
         {/* ================= MODALS ================= */}
