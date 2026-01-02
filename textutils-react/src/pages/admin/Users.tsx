@@ -90,7 +90,7 @@ export default function Users() {
         onClick: () => openModal("user-role", user),
       },
       {
-        label: "Permissions",
+        label: "Assign Permissions",
         variant: "secondary" as const,
         onClick: () => openModal("user-permission", user),
       },

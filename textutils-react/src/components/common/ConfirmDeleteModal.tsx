@@ -30,7 +30,9 @@ export default function ConfirmDeleteModal({
       onClose={onClose}
       onSave={handleConfirm}
       saveDisabled={loading}
-      button_name={loading ? "Deleting..." : "Delete"}
+      saveText="Delete"
+      button_name={loading ? "Deleting..." : "Yes, Delete"}
+      saveVariant="danger" 
       dialogClassName="modal-sm"
       disableClose={loading}
     >

@@ -80,7 +80,7 @@ export default function Roles() {
 
   const getRowActions = (role: Role) => [
     {
-      label: "Permissions",
+      label: "Assign Permissions",
       variant: "secondary" as const,
       onClick: () => openModal("permission", role),
     },
