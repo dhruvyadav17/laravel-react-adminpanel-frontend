@@ -1,30 +1,48 @@
 type Props = {
   label?: string;
   onClick?: () => void;
-  variant?: "primary" | "secondary" | "warning" | "danger";
+  variant?: "primary" | "secondary" | "success" | "warning" | "danger";
   loading?: boolean;
   disabled?: boolean;
+  icon?: string; // fontawesome class
+  size?: "sm" | "md" | "lg";
   className?: string;
+  type?: "button" | "submit";
 };
 
 export default function Button({
   label,
   onClick,
   variant = "primary",
-  loading,
-  disabled,
+  loading = false,
+  disabled = false,
+  icon,
+  size = "md",
   className = "",
+  type = "button",
 }: Props) {
+  const sizeClass =
+    size === "sm"
+      ? "btn-sm"
+      : size === "lg"
+      ? "btn-lg"
+      : "";
+
   return (
     <button
-      type="button"
-      className={`btn btn-${variant} ${className}`}
+      type={type}
+      className={`btn btn-${variant} ${sizeClass} ${className}`}
       onClick={onClick}
       disabled={disabled || loading}
     >
       {loading && (
         <span className="spinner-border spinner-border-sm mr-2" />
       )}
+
+      {icon && !loading && (
+        <i className={`${icon} mr-1`} />
+      )}
+
       {label}
     </button>
   );

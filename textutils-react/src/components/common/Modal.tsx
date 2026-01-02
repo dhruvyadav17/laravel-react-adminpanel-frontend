@@ -1,17 +1,19 @@
 import { useEffect } from "react";
 import Button from "./Button";
 
-type ModalProps = {
+type Props = {
   title: string;
   children: React.ReactNode;
   onClose: () => void;
-
   onSave?: () => void;
-  saveDisabled?: boolean;
-  button_name?: string;
 
-  dialogClassName?: string;
+  saveText?: string;
+  cancelText?: string;
+
+  saveVariant?: "primary" | "success" | "danger";
+  loading?: boolean;
   disableClose?: boolean;
+  size?: "sm" | "md" | "lg";
 };
 
 export default function Modal({
@@ -19,58 +21,49 @@ export default function Modal({
   children,
   onClose,
   onSave,
-  saveDisabled = false,
-  button_name = "Save",
-  dialogClassName = "",
+  saveText = "Save",
+  cancelText = "Cancel",
+  saveVariant = "primary",
+  loading = false,
   disableClose = false,
-}: ModalProps) {
+  size = "md",
+}: Props) {
   useEffect(() => {
     document.body.classList.add("modal-open");
-    return () => {
-      document.body.classList.remove("modal-open");
-    };
+    return () => document.body.classList.remove("modal-open");
   }, []);
+
+  const sizeClass =
+    size === "sm"
+      ? "modal-sm"
+      : size === "lg"
+      ? "modal-lg"
+      : "";
 
   return (
     <>
-      {/* BACKDROP */}
       <div className="modal-backdrop fade show" />
 
-      <div
-        className="modal fade show d-block"
-        tabIndex={-1}
-        role="dialog"
-        aria-modal="true"
-      >
-        <div
-          className={`modal-dialog modal-dialog-centered ${dialogClassName}`}
-          role="document"
-        >
+      <div className="modal fade show d-block">
+        <div className={`modal-dialog modal-dialog-centered ${sizeClass}`}>
           <div className="modal-content">
             {/* HEADER */}
             <div className="modal-header">
               <h5 className="modal-title">{title}</h5>
-
               {!disableClose && (
-                <button
-                  type="button"
-                  className="close"
-                  onClick={onClose}
-                >
-                  <span>&times;</span>
+                <button className="close" onClick={onClose}>
+                  ×
                 </button>
               )}
             </div>
 
             {/* BODY */}
-            <div className="modal-body">
-              {children}
-            </div>
+            <div className="modal-body">{children}</div>
 
             {/* FOOTER */}
             <div className="modal-footer">
               <Button
-                label="Cancel"
+                label={cancelText}
                 variant="secondary"
                 onClick={onClose}
                 disabled={disableClose}
@@ -78,11 +71,10 @@ export default function Modal({
 
               {onSave && (
                 <Button
-                  label={button_name}
-                  variant="danger"
+                  label={saveText}
+                  variant={saveVariant}
                   onClick={onSave}
-                  loading={saveDisabled}
-                  disabled={disableClose}
+                  loading={loading}
                 />
               )}
             </div>
