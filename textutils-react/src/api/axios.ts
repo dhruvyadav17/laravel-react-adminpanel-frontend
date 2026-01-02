@@ -3,11 +3,14 @@ import { getStore } from "../store/storeAccessor";
 import { logoutThunk } from "../store/authSlice";
 
 const api = axios.create({
-  baseURL: "http://localhost:8000/api",
-  headers: { Accept: "application/json" },
+  baseURL: import.meta.env.VITE_API_URL,
+  timeout: 15000,
+  headers: {
+    Accept: "application/json",
+  },
 });
 
-/* REQUEST */
+/* ================= REQUEST ================= */
 api.interceptors.request.use((config) => {
   const store = getStore();
   const token = store.getState().auth.token;
@@ -19,7 +22,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-/* RESPONSE */
+/* ================= RESPONSE ================= */
 api.interceptors.response.use(
   (res) => res,
   (error: AxiosError<any>) => {
@@ -29,17 +32,18 @@ api.interceptors.response.use(
       const store = getStore();
       store.dispatch(logoutThunk());
 
-      if (window.location.pathname !== "/login") {
-        window.location.href = "/login";
+      if (!window.location.pathname.includes("/login")) {
+        window.location.replace("/login");
       }
     }
 
     if (status === 403) {
       if (
-        window.location.pathname !==
-        "/admin/unauthorized"
+        !window.location.pathname.includes(
+          "/admin/unauthorized"
+        )
       ) {
-        window.location.href = "/admin/unauthorized";
+        window.location.replace("/admin/unauthorized");
       }
     }
 

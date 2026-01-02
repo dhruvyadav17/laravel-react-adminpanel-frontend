@@ -7,6 +7,8 @@ import { loginService } from "../services/authService";
 import type { User } from "../types/models";
 import { emitLogoutEvent } from "../utils/authEvents";
 
+/* ================= TYPES ================= */
+
 type AuthState = {
   user: User | null;
   permissions: string[];
@@ -14,13 +16,24 @@ type AuthState = {
   loading: boolean;
 };
 
+/* ================= INITIAL STATE ================= */
+
 const initialState: AuthState = {
   user: JSON.parse(localStorage.getItem("user") || "null"),
-  permissions: JSON.parse(localStorage.getItem("permissions") || "[]"),
+  permissions: JSON.parse(
+    localStorage.getItem("permissions") || "[]"
+  ),
   token: localStorage.getItem("token"),
   loading: false,
 };
 
+/* ================= THUNKS ================= */
+
+/**
+ * LOGIN
+ * - calls backend
+ * - stores user, permissions, token
+ */
 export const loginThunk = createAsyncThunk(
   "auth/login",
   async (
@@ -28,30 +41,44 @@ export const loginThunk = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const res = await loginService(data.email, data.password);
+      const res = await loginService(
+        data.email,
+        data.password
+      );
       return res.data.data;
     } catch (e: any) {
       return rejectWithValue(
-        e.response?.data?.message || "Login failed"
+        e.response?.data?.message ||
+          "Invalid credentials"
       );
     }
   }
 );
 
+/**
+ * LOGOUT
+ * - clears localStorage
+ * - emits multi-tab logout event
+ */
 export const logoutThunk = createAsyncThunk(
   "auth/logout",
   async () => {
     localStorage.clear();
-    emitLogoutEvent(); // 🔥 notify all tabs
+    emitLogoutEvent();
     return true;
   }
 );
+
+/* ================= SLICE ================= */
 
 const authSlice = createSlice({
   name: "auth",
   initialState,
 
   reducers: {
+    /**
+     * Sync permissions from backend (profile API)
+     */
     setPermissions(
       state,
       action: PayloadAction<string[]>
@@ -66,11 +93,14 @@ const authSlice = createSlice({
 
   extraReducers: (builder) => {
     builder
+      /* ===== LOGIN ===== */
       .addCase(loginThunk.pending, (state) => {
         state.loading = true;
       })
+
       .addCase(loginThunk.fulfilled, (state, action) => {
         state.loading = false;
+
         state.user = action.payload.user;
         state.permissions = action.payload.permissions;
         state.token = action.payload.token;
@@ -81,23 +111,33 @@ const authSlice = createSlice({
         );
         localStorage.setItem(
           "permissions",
-          JSON.stringify(action.payload.permissions)
+          JSON.stringify(
+            action.payload.permissions
+          )
         );
         localStorage.setItem(
           "token",
           action.payload.token
         );
       })
+
       .addCase(loginThunk.rejected, (state) => {
         state.loading = false;
       })
+
+      /* ===== LOGOUT ===== */
       .addCase(logoutThunk.fulfilled, (state) => {
         state.user = null;
         state.permissions = [];
         state.token = null;
+        state.loading = false;
       });
   },
 });
 
-export const { setPermissions } = authSlice.actions;
+/* ================= EXPORTS ================= */
+
+export const { setPermissions } =
+  authSlice.actions;
+
 export default authSlice.reducer;

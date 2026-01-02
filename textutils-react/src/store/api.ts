@@ -1,16 +1,31 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import {
+  createApi,
+  fetchBaseQuery,
+} from "@reduxjs/toolkit/query/react";
 import type { RootState } from "./index";
+
+/**
+ * RTK Query API
+ * -------------------------------------------------
+ * - Env based baseUrl (VITE_API_URL)
+ * - Auth token auto attach
+ * - Centralized caching via tags
+ * - Production ready
+ */
 
 export const api = createApi({
   reducerPath: "api",
 
   baseQuery: fetchBaseQuery({
-    baseUrl: "http://localhost:8000/api",
+    baseUrl: import.meta.env.VITE_API_URL,
     prepareHeaders: (headers, { getState }) => {
       const token = (getState() as RootState).auth.token;
 
       if (token) {
-        headers.set("Authorization", `Bearer ${token}`);
+        headers.set(
+          "Authorization",
+          `Bearer ${token}`
+        );
       }
 
       headers.set("Accept", "application/json");
@@ -30,7 +45,10 @@ export const api = createApi({
       providesTags: ["Permissions"],
     }),
 
-    createPermission: builder.mutation<any, { name: string }>({
+    createPermission: builder.mutation<
+      any,
+      { name: string }
+    >({
       query: (data) => ({
         url: "/admin/permissions",
         method: "POST",
@@ -66,9 +84,12 @@ export const api = createApi({
       transformResponse: (res: any) =>
         res.data.map((u: any) => ({
           ...u,
+          // 🔥 normalize roles → string[]
           roles: Array.isArray(u.roles)
             ? u.roles.map((r: any) =>
-                typeof r === "string" ? r : r.name
+                typeof r === "string"
+                  ? r
+                  : r.name
               )
             : [],
         })),
@@ -80,6 +101,14 @@ export const api = createApi({
         url: "/admin/users",
         method: "POST",
         body: data,
+      }),
+      invalidatesTags: ["Users"],
+    }),
+
+    deleteUser: builder.mutation<any, number>({
+      query: (id) => ({
+        url: `/admin/users/${id}`,
+        method: "DELETE",
       }),
       invalidatesTags: ["Users"],
     }),
@@ -96,14 +125,6 @@ export const api = createApi({
       invalidatesTags: ["Users"],
     }),
 
-    deleteUser: builder.mutation<any, number>({
-      query: (id) => ({
-        url: `/admin/users/${id}`,
-        method: "DELETE",
-      }),
-      invalidatesTags: ["Users"],
-    }),
-
     /* ================= ROLES ================= */
 
     getRoles: builder.query<any[], void>({
@@ -112,7 +133,10 @@ export const api = createApi({
       providesTags: ["Roles"],
     }),
 
-    createRole: builder.mutation<any, { name: string }>({
+    createRole: builder.mutation<
+      any,
+      { name: string }
+    >({
       query: (data) => ({
         url: "/admin/roles",
         method: "POST",
@@ -147,7 +171,8 @@ export const api = createApi({
       { permissions: any[]; assigned: string[] },
       number
     >({
-      query: (id) => `/admin/roles/${id}/permissions`,
+      query: (id) =>
+        `/admin/roles/${id}/permissions`,
       transformResponse: (res: any) => res.data,
       providesTags: ["Roles"],
     }),
@@ -170,9 +195,10 @@ export const api = createApi({
       { permissions: any[]; assigned: string[] },
       number
     >({
-      query: (id) => `/admin/users/${id}/permissions`,
+      query: (id) =>
+        `/admin/users/${id}/permissions`,
       transformResponse: (res: any) => res.data,
-      providesTags: ["Users"], // 🔥 important
+      providesTags: ["Users"],
     }),
 
     assignUserPermissions: builder.mutation<
@@ -192,26 +218,29 @@ export const api = createApi({
 /* ================= HOOK EXPORTS ================= */
 
 export const {
+  // permissions
   useGetPermissionsQuery,
   useCreatePermissionMutation,
   useUpdatePermissionMutation,
   useDeletePermissionMutation,
 
+  // users
   useGetUsersQuery,
   useCreateUserMutation,
-  useAssignUserRolesMutation,
   useDeleteUserMutation,
+  useAssignUserRolesMutation,
 
+  // roles
   useGetRolesQuery,
   useCreateRoleMutation,
   useUpdateRoleMutation,
   useDeleteRoleMutation,
 
-  // 🔥 Role permissions
+  // role → permissions
   useGetRolePermissionsQuery,
   useAssignRolePermissionsMutation,
 
-  // 🔥 User permissions
+  // user → permissions
   useGetUserPermissionsQuery,
   useAssignUserPermissionsMutation,
 } = api;
