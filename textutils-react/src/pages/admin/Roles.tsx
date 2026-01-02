@@ -5,9 +5,10 @@ import Button from "../../components/common/Button";
 import PageHeader from "../../components/common/PageHeader";
 import DataTable from "../../components/common/DataTable";
 
-import { PERMISSIONS } from "../../constants/permissions";
-import { useAuth } from "../../auth/hooks/useAuth";
-import { useAppModal } from "../../hooks/useAppModal";
+import Card from "../../ui/Card";
+import CardHeader from "../../ui/CardHeader";
+import CardBody from "../../ui/CardBody";
+import { useAppModal } from "../../context/AppModalContext";
 import { useBackendForm } from "../../hooks/useBackendForm";
 import { useConfirmDelete } from "../../hooks/useConfirmDelete";
 
@@ -21,23 +22,18 @@ import {
 import { execute } from "../../utils/execute";
 import type { Role } from "../../types/models";
 
-/* ================= COMPONENT ================= */
-
 export default function Roles() {
-  const { can } = useAuth();
   const confirmDelete = useConfirmDelete();
 
   const { modalType, modalData, openModal, closeModal } =
     useAppModal<Role>();
 
-  /* ================= DATA ================= */
+  const { data: roles = [], isLoading } =
+    useGetRolesQuery();
 
-  const { data: roles = [], isLoading } = useGetRolesQuery();
   const [createRole] = useCreateRoleMutation();
   const [updateRole] = useUpdateRoleMutation();
   const [deleteRole] = useDeleteRoleMutation();
-
-  /* ================= FORM ================= */
 
   const {
     values,
@@ -49,24 +45,9 @@ export default function Roles() {
     reset,
   } = useBackendForm({ name: "" });
 
-  /* ================= GUARD ================= */
-
-  if (!can(PERMISSIONS.ROLE.MANAGE)) {
-    return (
-      <section className="content">
-        <div className="alert alert-danger m-3">
-          Unauthorized
-        </div>
-      </section>
-    );
-  }
-
-  /* ================= HANDLERS ================= */
-
   const save = async () => {
     try {
       setLoading(true);
-
       await execute(
         () =>
           modalData?.id
@@ -77,7 +58,6 @@ export default function Roles() {
             : createRole(values).unwrap(),
         modalData?.id ? "Role updated" : "Role created"
       );
-
       closeModal();
       reset();
     } catch (e) {
@@ -119,12 +99,9 @@ export default function Roles() {
     },
   ];
 
-  /* ================= VIEW ================= */
-
   return (
     <section className="content pt-3">
       <div className="container-fluid">
-        {/* ===== PAGE HEADER ===== */}
         <PageHeader
           title="Roles"
           action={
@@ -138,19 +115,16 @@ export default function Roles() {
           }
         />
 
-        {/* ===== TABLE CARD ===== */}
-        <div className="card card-outline card-primary">
-          <div className="card-body p-0">
+        <Card>
+          <CardHeader title="Roles List" />
+          <CardBody className="p-0">
             <DataTable
               isLoading={isLoading}
               colSpan={2}
               columns={
                 <tr>
                   <th>Name</th>
-                  <th
-                    style={{ width: 260 }}
-                    className="text-right"
-                  >
+                  <th className="text-right" style={{ width: 260 }}>
                     Actions
                   </th>
                 </tr>
@@ -160,17 +134,13 @@ export default function Roles() {
                 <tr key={role.id}>
                   <td>{role.name}</td>
                   <td className="text-right">
-                    <RowActions
-                      actions={getRowActions(role)}
-                    />
+                    <RowActions actions={getRowActions(role)} />
                   </td>
                 </tr>
               ))}
             </DataTable>
-          </div>
-        </div>
-
-        {/* ================= ADD / EDIT ================= */}
+          </CardBody>
+        </Card>
 
         {(modalType === "role-add" ||
           modalType === "role-edit") && (
@@ -193,14 +163,13 @@ export default function Roles() {
               className={`form-control ${
                 errors.name ? "is-invalid" : ""
               }`}
-              placeholder="Role name"
               value={values.name}
               onChange={(e) =>
                 setField("name", e.target.value)
               }
               disabled={loading}
+              placeholder="Role name"
             />
-
             {errors.name && (
               <div className="invalid-feedback">
                 {errors.name[0]}
@@ -209,14 +178,13 @@ export default function Roles() {
           </Modal>
         )}
 
-        {/* ================= ASSIGN PERMISSIONS ================= */}
-
-        {modalType === "permission" && modalData && (
-          <RolePermissionModal
-            roleId={modalData.id}
-            onClose={closeModal}
-          />
-        )}
+        {modalType === "permission" &&
+          modalData && (
+            <RolePermissionModal
+              roleId={modalData.id}
+              onClose={closeModal}
+            />
+          )}
       </div>
     </section>
   );

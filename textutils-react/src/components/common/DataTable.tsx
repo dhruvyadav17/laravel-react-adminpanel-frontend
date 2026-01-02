@@ -16,7 +16,7 @@ export default function DataTable({
   colSpan,
 }: Props) {
   return (
-    <table className="table table-bordered">
+    <table className="table table-bordered table-hover table-striped">
       <thead className="table-dark">{columns}</thead>
 
       {isLoading ? (

@@ -1,40 +1,55 @@
 import { useAuth } from "../../auth/hooks/useAuth";
+import { useGetUsersQuery } from "../../store/api";
+import StatCard from "../../ui/StatCard";
 
 export default function Dashboard() {
   const { user, permissions } = useAuth();
+  const { data: users = [] } = useGetUsersQuery();
 
   return (
-    <div className="container mt-4">
-      <h3>Admin Dashboard</h3>
+    <section className="content pt-3">
+      <div className="container-fluid">
+        <h3 className="mb-3">Admin Dashboard</h3>
 
-      <div className="row mt-3">
-        <div className="col-md-4">
-          <div className="card text-bg-primary">
-            <div className="card-body">
-              <h5>Total Permissions</h5>
-              <h3>{permissions.length}</h3>
-            </div>
+        {/* ================= STAT CARDS ================= */}
+        <div className="row">
+          <div className="col-lg-3 col-md-6 mb-3">
+            <StatCard
+              title="Total Users"
+              value={users.length}
+              icon="fas fa-users"
+              color="primary"
+            />
           </div>
-        </div>
 
-        <div className="col-md-4">
-          <div className="card text-bg-success">
-            <div className="card-body">
-              <h5>Your Roles</h5>
-              <h3>{user?.roles?.length}</h3>
-            </div>
+          <div className="col-lg-3 col-md-6 mb-3">
+            <StatCard
+              title="Total Permissions"
+              value={permissions.length}
+              icon="fas fa-key"
+              color="success"
+            />
           </div>
-        </div>
 
-        <div className="col-md-4">
-          <div className="card text-bg-dark">
-            <div className="card-body">
-              <h5>Logged In As</h5>
-              <p>{user?.email}</p>
-            </div>
+          <div className="col-lg-3 col-md-6 mb-3">
+            <StatCard
+              title="Your Roles"
+              value={user?.roles?.length || 0}
+              icon="fas fa-user-shield"
+              color="warning"
+            />
+          </div>
+
+          <div className="col-lg-3 col-md-6 mb-3">
+            <StatCard
+              title="Logged In As"
+              value={user?.email || "-"}
+              icon="fas fa-user"
+              color="dark"
+            />
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
