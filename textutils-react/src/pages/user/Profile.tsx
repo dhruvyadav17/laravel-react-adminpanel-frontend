@@ -105,7 +105,7 @@ export default function Profile() {
           <p>
             <strong>Roles:</strong>{" "}
             {profile.roles.length
-              ? profile.roles.join(", ")
+              ? profile.roles.map(r => r.name).join(", ") || JSON.stringify(profile.roles )
               : "—"}
           </p>
         </div>

@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { loginThunk } from "../store/authSlice";
 import type { RootState, AppDispatch } from "../store";
+import { handleApiError } from "../utils/toastHelper";
 
 type Props = {
   title: string;
@@ -31,6 +32,13 @@ export default function LoginForm({
       loginThunk({ email, password })
     );
 
+    // ❌ LOGIN FAILED → SHOW TOAST
+    if (loginThunk.rejected.match(res)) {
+      handleApiError(res.payload || res.error);
+      return;
+    }
+
+    // ✅ LOGIN SUCCESS
     if (loginThunk.fulfilled.match(res)) {
       const roles = res.payload.user.roles || [];
 
@@ -76,6 +84,7 @@ export default function LoginForm({
         >
           {loading ? "Logging in..." : "Login"}
         </button>
+
         <Link to="/forgot-password" className="d-block mt-2">
           Forgot password?
         </Link>

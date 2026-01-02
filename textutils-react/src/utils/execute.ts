@@ -1,15 +1,25 @@
 import { handleApiError, handleApiSuccess } from "./toastHelper";
 
+/**
+ * Central API executor
+ * - shows backend message if present
+ * - otherwise fallback
+ */
 export async function execute<T>(
   fn: () => Promise<T>,
-  successMsg?: string
+  successFallback?: string
 ): Promise<T> {
   try {
-    const res = await fn();
-    if (successMsg) handleApiSuccess(null, successMsg);
+    const res: any = await fn();
+
+    handleApiSuccess(
+      res,
+      successFallback
+    );
+
     return res;
   } catch (e) {
     handleApiError(e);
-    throw e;
+    throw e; // 🔥 do not swallow
   }
 }
