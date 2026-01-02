@@ -5,12 +5,14 @@ type Props = {
   message: string;                 // 🔥 one-line message only
   onConfirm: () => Promise<void>;  // async safe
   onClose: () => void;
+  confirmLabel?: string;
 };
 
 export default function ConfirmDeleteModal({
   message,
   onConfirm,
   onClose,
+  confirmLabel = "Delete", // default
 }: Props) {
   const [loading, setLoading] = useState(false);
 

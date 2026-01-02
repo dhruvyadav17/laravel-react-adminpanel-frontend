@@ -216,6 +216,7 @@ export default function Users() {
             user={modalData}
             onClose={closeModal}
             onSaved={closeModal}
+            saveLabel="Assign Role"
           />
         )}
 
@@ -223,6 +224,7 @@ export default function Users() {
           <UserPermissionModal
             user={modalData}
             onClose={closeModal}
+            saveLabel="Assign Permission"
           />
         )}
       </div>

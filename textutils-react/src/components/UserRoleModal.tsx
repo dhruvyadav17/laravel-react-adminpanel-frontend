@@ -14,6 +14,9 @@ type Props = {
   };
   onClose: () => void;
   onSaved: () => void;
+
+  /* 🔥 NEW */
+  saveLabel?: string;
 };
 
 export default function UserRoleModal({
