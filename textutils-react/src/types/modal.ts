@@ -30,5 +30,6 @@ export type ModalMap = {
   "confirm-delete": {
     message: string;
     onConfirm: () => Promise<void>;
+    confirmLabel?: string; 
   };
 };

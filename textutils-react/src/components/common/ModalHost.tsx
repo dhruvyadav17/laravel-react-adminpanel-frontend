@@ -12,6 +12,7 @@ export default function ModalHost() {
       message={modalData!.message}
       onConfirm={modalData!.onConfirm}
       onClose={closeModal}
+      confirmLabel={modalData!.confirmLabel}
     />
   );
 }
