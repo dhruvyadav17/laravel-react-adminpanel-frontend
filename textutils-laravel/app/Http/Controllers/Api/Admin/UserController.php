@@ -16,11 +16,33 @@ class UserController extends Controller
     use ApiResponse;
 
     // ✅ LIST USERS
-    public function index()
+    public function index(Request $request)
     {
+        $query = User::query()->with('roles');
+
+        // 🔍 SEARCH (name / email)
+        if ($request->filled('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('name', 'like', "%{$request->search}%")
+                    ->orWhere('email', 'like', "%{$request->search}%");
+            });
+        }
+
+        // 📄 PAGINATION
+        $users = $query->latest()->paginate(
+            $request->get('per_page', 10)
+        );
+
         return $this->success(
             'Users list',
-            User::with('roles')->latest()->get()
+            $users->items(),
+            200,
+            [
+                'current_page' => $users->currentPage(),
+                'last_page'    => $users->lastPage(),
+                'per_page'     => $users->perPage(),
+                'total'        => $users->total(),
+            ]
         );
     }
 

@@ -1,7 +1,4 @@
-import {
-  createApi,
-  fetchBaseQuery,
-} from "@reduxjs/toolkit/query/react";
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import type { RootState } from "./index";
 
 /**
@@ -22,10 +19,7 @@ export const api = createApi({
       const token = (getState() as RootState).auth.token;
 
       if (token) {
-        headers.set(
-          "Authorization",
-          `Bearer ${token}`
-        );
+        headers.set("Authorization", `Bearer ${token}`);
       }
 
       headers.set("Accept", "application/json");
@@ -45,10 +39,7 @@ export const api = createApi({
       providesTags: ["Permissions"],
     }),
 
-    createPermission: builder.mutation<
-      any,
-      { name: string }
-    >({
+    createPermission: builder.mutation<any, { name: string }>({
       query: (data) => ({
         url: "/admin/permissions",
         method: "POST",
@@ -57,10 +48,7 @@ export const api = createApi({
       invalidatesTags: ["Permissions"],
     }),
 
-    updatePermission: builder.mutation<
-      any,
-      { id: number; name: string }
-    >({
+    updatePermission: builder.mutation<any, { id: number; name: string }>({
       query: ({ id, ...data }) => ({
         url: `/admin/permissions/${id}`,
         method: "PUT",
@@ -79,20 +67,16 @@ export const api = createApi({
 
     /* ================= USERS ================= */
 
-    getUsers: builder.query<any[], void>({
-      query: () => "/admin/users",
-      transformResponse: (res: any) =>
-        res.data.map((u: any) => ({
-          ...u,
-          // 🔥 normalize roles → string[]
-          roles: Array.isArray(u.roles)
-            ? u.roles.map((r: any) =>
-                typeof r === "string"
-                  ? r
-                  : r.name
-              )
-            : [],
-        })),
+    getUsers: builder.query<
+      { data: User[]; meta: any },
+      { page?: number; search?: string }
+    >({
+      query: ({ page = 1, search = "" }) =>
+        `/admin/users?page=${page}&search=${search}`,
+      transformResponse: (res: any) => ({
+        data: res.data,
+        meta: res.meta,
+      }),
       providesTags: ["Users"],
     }),
 
@@ -113,10 +97,7 @@ export const api = createApi({
       invalidatesTags: ["Users"],
     }),
 
-    assignUserRoles: builder.mutation<
-      any,
-      { id: number; roles: string[] }
-    >({
+    assignUserRoles: builder.mutation<any, { id: number; roles: string[] }>({
       query: ({ id, roles }) => ({
         url: `/admin/users/${id}/assign-role`,
         method: "POST",
@@ -133,10 +114,7 @@ export const api = createApi({
       providesTags: ["Roles"],
     }),
 
-    createRole: builder.mutation<
-      any,
-      { name: string }
-    >({
+    createRole: builder.mutation<any, { name: string }>({
       query: (data) => ({
         url: "/admin/roles",
         method: "POST",
@@ -145,10 +123,7 @@ export const api = createApi({
       invalidatesTags: ["Roles"],
     }),
 
-    updateRole: builder.mutation<
-      any,
-      { id: number; name: string }
-    >({
+    updateRole: builder.mutation<any, { id: number; name: string }>({
       query: ({ id, ...data }) => ({
         url: `/admin/roles/${id}`,
         method: "PUT",
@@ -171,8 +146,7 @@ export const api = createApi({
       { permissions: any[]; assigned: string[] },
       number
     >({
-      query: (id) =>
-        `/admin/roles/${id}/permissions`,
+      query: (id) => `/admin/roles/${id}/permissions`,
       transformResponse: (res: any) => res.data,
       providesTags: ["Roles"],
     }),
@@ -195,8 +169,7 @@ export const api = createApi({
       { permissions: any[]; assigned: string[] },
       number
     >({
-      query: (id) =>
-        `/admin/users/${id}/permissions`,
+      query: (id) => `/admin/users/${id}/permissions`,
       transformResponse: (res: any) => res.data,
       providesTags: ["Users"],
     }),
