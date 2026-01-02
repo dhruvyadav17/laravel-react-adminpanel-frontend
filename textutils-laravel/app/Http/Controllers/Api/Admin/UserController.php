@@ -153,4 +153,19 @@ class UserController extends Controller
 
         return $this->success('Permissions updated');
     }
+
+    // app/Http/Controllers/Api/Admin/UserController.php
+
+    public function restore($id)
+    {
+        $user = User::withTrashed()->findOrFail($id);
+        $user->restore();
+
+        return $this->success(
+            'User restored successfully',
+            null,
+            200
+        );
+    }
+
 }

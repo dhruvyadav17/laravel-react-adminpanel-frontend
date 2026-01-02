@@ -36,9 +36,16 @@ export default function UserRoleModal({
 
   /* ================= SYNC ================= */
 
-  useEffect(() => {
-    setSelected(user.roles || []);
-  }, [user.id, user.roles]);
+useEffect(() => {
+  // 🔥 IMPORTANT FIX
+  setSelected(
+    Array.isArray(user.roles)
+      ? user.roles.map((r: any) =>
+          typeof r === "string" ? r : r.name
+        )
+      : []
+  );
+}, [user]);
 
   /* ================= HANDLERS ================= */
 
@@ -55,7 +62,7 @@ export default function UserRoleModal({
       () =>
         assignUserRoles({
           id: user.id,
-          roles: selected,
+          roles: selected, // ✅ string[]
         }).unwrap(),
       "Roles assigned successfully"
     );

@@ -97,14 +97,20 @@ export const api = createApi({
       invalidatesTags: ["Users"],
     }),
 
-    assignUserRoles: builder.mutation<any, { id: number; roles: string[] }>({
+    assignUserRoles: builder.mutation<
+      any,
+      { id: number; roles: string[] }
+    >({
       query: ({ id, roles }) => ({
         url: `/admin/users/${id}/assign-role`,
         method: "POST",
-        body: { roles },
+        body: {
+          roles, // 🔥 ONLY STRING[] (role names)
+        },
       }),
       invalidatesTags: ["Users"],
     }),
+
 
     /* ================= ROLES ================= */
 

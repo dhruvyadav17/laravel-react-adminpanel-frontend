@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 // use Spatie\Permission\Models\Permission;
 use App\Models\Permission;
 use App\Traits\ApiResponse;
+use Spatie\Permission\PermissionRegistrar;
 
 class PermissionController extends Controller
 {
@@ -20,7 +21,7 @@ class PermissionController extends Controller
     {
 
         $permissions = Permission::all();
-        
+
         return $this->success(
             'Permissions list fetched successfully',
             $permissions
@@ -32,55 +33,32 @@ class PermissionController extends Controller
      */
     public function store(Request $request)
     {
-        $data = $request->validate([
-            'name' => 'required|string|unique:permissions,name',
-        ]);
-
         $permission = Permission::create([
-            'name'       => $data['name'],
-            'guard_name' => 'api', // 🔥 IMPORTANT
+            'name' => $request->name,
+            'guard_name' => 'api',
         ]);
 
-        return $this->success(
-            'Permission created successfully',
-            $permission,
-            201
-        );
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        return $this->success('Permission created', $permission, 201);
     }
 
-    /**
-     * PUT /api/admin/permissions/{id}
-     */
-    public function update(Request $request, $id)
+    public function update(Request $request, Permission $permission)
     {
-        $permission = Permission::findOrFail($id);
+        $permission->update(['name' => $request->name]);
 
-        $data = $request->validate([
-            'name' => 'required|string|unique:permissions,name,' . $permission->id,
-        ]);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        $permission->update([
-            'name' => $data['name'],
-        ]);
-
-        return $this->success(
-            'Permission updated successfully',
-            $permission
-        );
+        return $this->success('Permission updated', $permission);
     }
 
-    /**
-     * DELETE /api/admin/permissions/{id}
-     */
-    public function destroy($id)
+    public function destroy(Permission $permission)
     {
-        $permission = Permission::findOrFail($id);
-
         $permission->delete();
 
-        return $this->success(
-            'Permission deleted successfully'
-        );
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        return $this->success('Permission deleted');
     }
 
     public function show(Permission $permission)

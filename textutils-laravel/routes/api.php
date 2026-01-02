@@ -82,10 +82,16 @@ Route::middleware('auth:sanctum')->group(function () {
     | Only ADMIN / SUPER-ADMIN
     |--------------------------------------------------------------------------
     */
+    // Route::prefix('admin')->middleware('role:admin|super-admin') ->group(function () {
+    //     Route::post( '/users/{id}/restore',  [UserController::class, 'restore'])->middleware('permission:user-restore');
+    // });
+    // Route::post( '/admin/users/{id}/restore',  [UserController::class, 'restore'])->middleware('permission:user-restore');
     Route::prefix('admin')
         ->middleware('role:admin|super-admin')
         ->group(function () {
 
+            Route::post( '/users/{id}/restore',  [UserController::class, 'restore'])
+            ->middleware('permission:user-restore');
             /*
             |---------------- ROLES ----------------
             */
