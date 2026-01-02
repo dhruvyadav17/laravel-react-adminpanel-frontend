@@ -97,10 +97,7 @@ export const api = createApi({
       invalidatesTags: ["Users"],
     }),
 
-    assignUserRoles: builder.mutation<
-      any,
-      { id: number; roles: string[] }
-    >({
+    assignUserRoles: builder.mutation<any, { id: number; roles: string[] }>({
       query: ({ id, roles }) => ({
         url: `/admin/users/${id}/assign-role`,
         method: "POST",
@@ -111,6 +108,13 @@ export const api = createApi({
       invalidatesTags: ["Users"],
     }),
 
+    restoreUser: builder.mutation<any, number>({
+      query: (id) => ({
+        url: `/admin/users/${id}/restore`,
+        method: "POST",
+      }),
+      invalidatesTags: ["Users"],
+    }),
 
     /* ================= ROLES ================= */
 
@@ -208,6 +212,8 @@ export const {
   useCreateUserMutation,
   useDeleteUserMutation,
   useAssignUserRolesMutation,
+
+  useRestoreUserMutation,
 
   // roles
   useGetRolesQuery,

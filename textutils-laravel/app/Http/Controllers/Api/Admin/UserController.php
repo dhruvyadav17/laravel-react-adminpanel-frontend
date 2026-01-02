@@ -18,20 +18,16 @@ class UserController extends Controller
     // ✅ LIST USERS
     public function index(Request $request)
     {
-        $query = User::query()->with('roles');
+        $query = User::withTrashed()->with('roles');
 
-        // 🔍 SEARCH (name / email)
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('name', 'like', "%{$request->search}%")
-                    ->orWhere('email', 'like', "%{$request->search}%");
+                ->orWhere('email', 'like', "%{$request->search}%");
             });
         }
 
-        // 📄 PAGINATION
-        $users = $query->latest()->paginate(
-            $request->get('per_page', 10)
-        );
+        $users = $query->latest()->paginate(10);
 
         return $this->success(
             'Users list',
@@ -40,11 +36,11 @@ class UserController extends Controller
             [
                 'current_page' => $users->currentPage(),
                 'last_page'    => $users->lastPage(),
-                'per_page'     => $users->perPage(),
                 'total'        => $users->total(),
             ]
         );
     }
+
 
     // ✅ ADD USER
     public function store(StoreUserRequest $request, UserService $service)
@@ -67,12 +63,13 @@ class UserController extends Controller
     // ✅ SOFT DELETE USER
     public function destroy(User $user)
     {
-        $user->delete();
+        $user->delete(); // soft delete
 
         return $this->success(
-            'User deleted successfully'
+            'User archived successfully'
         );
     }
+
 
     public function assignRole(Request $request, User $user)
     {
@@ -163,8 +160,7 @@ class UserController extends Controller
 
         return $this->success(
             'User restored successfully',
-            null,
-            200
+            $user
         );
     }
 

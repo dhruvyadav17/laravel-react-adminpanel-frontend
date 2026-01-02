@@ -76,6 +76,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/admin/users/{id}/permissions', [UserController::class, 'assignPermissions']);
 
+    Route::post( '/admin/users/{id}/restore',  [UserController::class, 'restore'])
+    ->middleware('permission:user-restore');
+
     /*
     |--------------------------------------------------------------------------
     | ROLE & PERMISSION MANAGEMENT
@@ -87,11 +90,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // });
     // Route::post( '/admin/users/{id}/restore',  [UserController::class, 'restore'])->middleware('permission:user-restore');
     Route::prefix('admin')
-        ->middleware('role:admin|super-admin')
+        //->middleware('role:admin|super-admin')
         ->group(function () {
 
-            Route::post( '/users/{id}/restore',  [UserController::class, 'restore'])
-            ->middleware('permission:user-restore');
+
             /*
             |---------------- ROLES ----------------
             */

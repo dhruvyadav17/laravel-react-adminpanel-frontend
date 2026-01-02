@@ -5,6 +5,7 @@ export type User = {
   name: string;
   email: string;
   roles: string[];
+  deleted_at?: string;
 };
 
 export type Role = {
