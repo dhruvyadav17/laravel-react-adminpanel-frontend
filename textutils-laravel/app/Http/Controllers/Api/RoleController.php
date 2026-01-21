@@ -2,183 +2,125 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Models\Role;
-use App\Models\Permission;
-use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
-use Spatie\Permission\PermissionRegistrar;
+use App\Services\Role\RoleService;
+use App\Http\Resources\RoleResource;
+use App\Http\Resources\PermissionResource;
+use App\Http\Controllers\Api\BaseApiController;
 
-class RoleController extends Controller
+class RoleController extends BaseApiController
 {
-    use ApiResponse;
+    public function __construct(
+        protected RoleService $service
+    ) {}
 
     /**
-     * 📄 GET /api/admin/roles
-     * List all roles
+     * 📄 GET /api/v1/admin/roles
      */
     public function index()
     {
+        $roles = $this->service->list();
+
         return $this->success(
             'Roles fetched successfully',
-            Role::withCount('permissions')
-                ->orderBy('name')
-                ->get()
+            RoleResource::collection($roles)
         );
     }
 
     /**
-     * ➕ POST /api/admin/roles
-     * Create role
+     * ➕ POST /api/v1/admin/roles
      */
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name' => ['required', 'string', 'unique:roles,name'],
+            'name' => ['required', 'string', 'max:100', 'unique:roles,name'],
         ]);
 
-        $role = Role::create([
-            'name'       => $data['name'],
-            'guard_name' => 'api',
-        ]);
-
-        // 🔥 clear spatie cache
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $role = $this->service->create($data);
 
         return $this->success(
             'Role created successfully',
-            $role,
+            RoleResource::make($role),
+            [],
             201
         );
     }
 
     /**
-     * ✏️ PUT /api/admin/roles/{role}
-     * Update role
+     * ✏️ PUT /api/v1/admin/roles/{role}
      */
     public function update(Request $request, Role $role)
     {
-        // 🔒 Protect super-admin
-        if ($role->name === 'super-admin') {
-            return $this->error(
-                'Super admin role cannot be modified',
-                null,
-                403
-            );
-        }
-
         $data = $request->validate([
             'name' => [
                 'required',
                 'string',
-                'unique:roles,name,' . $role->id
+                'max:100',
+                'unique:roles,name,' . $role->id,
             ],
         ]);
 
-        $role->update([
-            'name' => $data['name'],
-        ]);
-
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $updated = $this->service->update($role, $data);
 
         return $this->success(
             'Role updated successfully',
-            $role
+            RoleResource::make($updated)
         );
     }
 
     /**
-     * ❌ DELETE /api/admin/roles/{role}
-     * Soft delete role
+     * ❌ DELETE /api/v1/admin/roles/{role}
      */
     public function destroy(Role $role)
     {
-        if ($role->name === 'super-admin') {
-            return $this->error(
-                'Super admin role cannot be deleted',
-                null,
-                403
-            );
-        }
+        $this->service->delete($role);
 
-        $role->delete();
-
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-
-        return $this->success(
-            'Role deleted successfully'
-        );
+        return $this->success('Role deleted successfully');
     }
 
     /**
-     * 🔁 PATCH /api/admin/roles/{role}/toggle
-     * Enable / Disable role
+     * 🔁 PATCH /api/v1/admin/roles/{role}/toggle
      */
     public function toggle(Role $role)
     {
-        if ($role->name === 'super-admin') {
-            return $this->error(
-                'Super admin role cannot be disabled',
-                null,
-                403
-            );
-        }
-
-        $role->update([
-            'is_active' => ! $role->is_active,
-        ]);
+        $role = $this->service->toggle($role);
 
         return $this->success(
             'Role status updated',
-            $role
+            RoleResource::make($role)
         );
     }
 
     /**
-     * 🔐 GET /api/admin/roles/{role}/permissions
-     * Role permissions (for checkbox modal)
+     * 🔐 GET /api/v1/admin/roles/{role}/permissions
      */
     public function permissions(Role $role)
     {
-        return $this->success(
-            'Role permissions fetched',
-            [
-                'role'        => $role,
-                'permissions' => Permission::select('id', 'name')
-                    ->orderBy('name')
-                    ->get(),
-                'assigned'    => $role->permissions
-                    ->pluck('name')
-                    ->values(),
-            ]
-        );
+        $data = $this->service->permissions($role);
+
+        return $this->success('Role permissions fetched', [
+            'role'        => RoleResource::make($data['role']),
+            'permissions' => PermissionResource::collection($data['permissions']),
+            'assigned'    => $data['assigned'],
+        ]);
     }
 
     /**
-     * 🔄 POST /api/admin/roles/{role}/permissions
-     * Assign permissions to role
+     * 🔄 POST /api/v1/admin/roles/{role}/permissions
      */
     public function assignPermissions(Request $request, Role $role)
     {
-        if ($role->name === 'super-admin') {
-            return $this->error(
-                'Super admin permissions cannot be modified',
-                null,
-                403
-            );
-        }
-
         $data = $request->validate([
             'permissions'   => ['array'],
             'permissions.*' => ['string', 'exists:permissions,name'],
         ]);
 
-        $role->syncPermissions($data['permissions'] ?? []);
-
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-
-        return $this->success(
-            'Permissions updated successfully'
+        $this->service->syncPermissions(
+            $role,
+            $data['permissions'] ?? []
         );
+
+        return $this->success('Permissions updated successfully');
     }
 }

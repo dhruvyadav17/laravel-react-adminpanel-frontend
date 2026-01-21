@@ -4,9 +4,10 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| API VERSIONING ENTRY
+| API V2
 |--------------------------------------------------------------------------
+| Future mobile / new frontend APIs
 */
-Route::prefix('v1')->group(
-    base_path('routes/api/v1.php')
-);
+
+// Example
+// Route::get('/profile', [NewProfileController::class, 'show']);

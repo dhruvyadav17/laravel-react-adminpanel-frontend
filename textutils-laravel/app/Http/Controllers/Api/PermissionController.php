@@ -2,83 +2,96 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-// use Spatie\Permission\Models\Role;
-// use Spatie\Permission\Models\Permission;
 use App\Models\Permission;
-use App\Traits\ApiResponse;
-use Spatie\Permission\PermissionRegistrar;
+use App\Http\Controllers\Api\BaseApiController;
+use App\Services\Permission\PermissionService;
+use App\Http\Requests\Permission\StorePermissionRequest;
+use App\Http\Requests\Permission\UpdatePermissionRequest;
+use App\Http\Resources\PermissionResource;
 
-class PermissionController extends Controller
+class PermissionController extends BaseApiController
 {
-    use ApiResponse;
+    public function __construct(
+        protected PermissionService $service
+    ) {}
 
     /**
-     * GET /api/admin/permissions
+     * 📄 GET /api/v1/admin/permissions
      */
     public function index()
     {
-
-        $permissions = Permission::all();
+        $permissions = $this->service->list();
 
         return $this->success(
-            'Permissions list fetched successfully',
-            $permissions
+            'Permissions fetched successfully',
+            PermissionResource::collection($permissions)
         );
     }
 
     /**
-     * POST /api/admin/permissions
+     * 🔍 GET /api/v1/admin/permissions/{permission}
      */
-    public function store(Request $request)
-    {
-        $permission = Permission::create([
-            'name' => $request->name,
-            'guard_name' => 'api',
-        ]);
-
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-
-        return $this->success('Permission created', $permission, 201);
-    }
-
-    public function update(Request $request, Permission $permission)
-    {
-        $permission->update(['name' => $request->name]);
-
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-
-        return $this->success('Permission updated', $permission);
-    }
-
-    public function destroy(Permission $permission)
-    {
-        $permission->delete();
-
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-
-        return $this->success('Permission deleted');
-    }
-
     public function show(Permission $permission)
     {
         return $this->success(
-            'Permission detail',
-            $permission
+            'Permission details',
+            PermissionResource::make($permission)
         );
     }
 
-    // Enable / Disable
+    /**
+     * ➕ POST /api/v1/admin/permissions
+     */
+    public function store(StorePermissionRequest $request)
+    {
+        $permission = $this->service->create($request->validated());
+
+        return $this->success(
+            'Permission created successfully',
+            PermissionResource::make($permission),
+            [],
+            201
+        );
+    }
+
+    /**
+     * ✏️ PUT /api/v1/admin/permissions/{permission}
+     */
+    public function update(
+        UpdatePermissionRequest $request,
+        Permission $permission
+    ) {
+        $permission = $this->service->update(
+            $permission,
+            $request->validated()
+        );
+
+        return $this->success(
+            'Permission updated successfully',
+            PermissionResource::make($permission)
+        );
+    }
+
+    /**
+     * ❌ DELETE /api/v1/admin/permissions/{permission}
+     */
+    public function destroy(Permission $permission)
+    {
+        $this->service->delete($permission);
+
+        return $this->success('Permission deleted successfully');
+    }
+
+    /**
+     * 🔁 PATCH /api/v1/admin/permissions/{permission}/toggle
+     */
     public function toggle(Permission $permission)
     {
-        $permission->update([
-            'is_active' => !$permission->is_active
-        ]);
+        $permission = $this->service->toggle($permission);
 
         return $this->success(
             'Permission status updated',
-            $permission
+            PermissionResource::make($permission)
         );
     }
 }

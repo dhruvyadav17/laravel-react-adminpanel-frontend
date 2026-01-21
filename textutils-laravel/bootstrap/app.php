@@ -25,7 +25,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'role'       => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
         ]);
-
+        // ✅ ADD THIS
+        // $middleware->append(
+        //     \Illuminate\Http\Middleware\HandleCors::class
+        // );
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

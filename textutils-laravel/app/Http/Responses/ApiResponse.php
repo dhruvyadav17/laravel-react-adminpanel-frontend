@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Traits;
+namespace App\Http\Responses;
 
 use Illuminate\Http\JsonResponse;
 
-trait ApiResponse
+class ApiResponse
 {
-    protected function success(
+    public static function success(
         string $message,
         mixed $data = null,
         array $meta = [],
@@ -16,12 +16,12 @@ trait ApiResponse
             'success' => true,
             'message' => $message,
             'data'    => $data,
-            'meta'    => (object) $meta,
+            'meta'    => $meta,
             'errors'  => null,
         ], $status);
     }
 
-    protected function error(
+    public static function error(
         string $message,
         mixed $errors = null,
         int $status = 400
@@ -30,7 +30,7 @@ trait ApiResponse
             'success' => false,
             'message' => $message,
             'data'    => null,
-            'meta'    => (object) [],
+            'meta'    => null,
             'errors'  => $errors,
         ], $status);
     }

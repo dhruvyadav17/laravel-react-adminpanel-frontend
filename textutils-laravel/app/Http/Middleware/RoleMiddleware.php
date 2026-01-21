@@ -17,19 +17,13 @@ class RoleMiddleware
      */
     public function handle($request, \Closure $next, ...$roles)
     {
-        //if (!auth()->check() || !auth()->user()->hasAnyRole($roles)) {
-        // return response()->json([
-        //     'status' => false,
-        //     'message' => 'Forbidden'
-        // ], 403);
-        if (!auth()->check() || !auth()->user()->hasRole($roles)) {
+        if (! $request->user()?->hasAnyRole($roles)) {
             return $this->error(
                 'Forbidden',
                 null,
                 403
             );
         }
-
 
         return $next($request);
     }

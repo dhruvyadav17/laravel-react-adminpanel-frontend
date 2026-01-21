@@ -21,6 +21,11 @@ class RegisterController extends Controller
 
         $user->assignRole('user'); // ✅ Spatie way
 
-        return $this->success('Registered successfully', $user, 201);
+        return $this->success(
+            'Registered successfully',
+            $user,
+            [],
+            201
+        );
     }
 }
