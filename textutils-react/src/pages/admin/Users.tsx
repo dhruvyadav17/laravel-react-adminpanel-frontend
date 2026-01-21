@@ -1,5 +1,3 @@
-import { useState } from "react";
-
 import { useAppModal } from "../../context/AppModalContext";
 import { useConfirmDelete } from "../../hooks/useConfirmDelete";
 
@@ -16,6 +14,9 @@ import UserFormModal from "../../components/UserFormModal";
 import UserRoleModal from "../../components/UserRoleModal";
 import UserPermissionModal from "../../components/UserPermissionModal";
 import Pagination from "../../components/common/Pagination";
+import { usePagination } from "../../hooks/usePagination";
+import Can from "../../components/common/Can";
+import { PERMISSIONS } from "../../constants/permissions";
 
 import {
   useGetUsersQuery,
@@ -25,17 +26,14 @@ import {
 
 import { execute } from "../../utils/execute";
 import type { User } from "../../types/models";
+import { useAuth } from "../../auth/hooks/useAuth";
 
 export default function Users() {
   const confirmDelete = useConfirmDelete();
   const { modalType, modalData, openModal, closeModal } =
     useAppModal<User | null>();
 
-  /* ================= STATE ================= */
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-
-  /* ================= API ================= */
+  const { page, setPage, search, setSearch } = usePagination();
   const { data, isLoading } = useGetUsersQuery({
     page,
     search,
@@ -44,34 +42,31 @@ export default function Users() {
   const users: User[] = data?.data ?? [];
   const meta = data?.meta;
 
- 
-  const [perPage, setPerPage] = useState(10);
-
   const [deleteUser] = useDeleteUserMutation();
   const [restoreUser] = useRestoreUserMutation();
-
-  /* ================= ACTIONS ================= */
+  const { can } = useAuth();
 
   const handleArchive = (user: User) =>
-    confirmDelete(
-      "Are you sure you want to archive this user?",
-      async () => {
-        await execute(
-          () => deleteUser(user.id).unwrap(),
-          "User archived successfully"
-        );
-      }
-    );
+    confirmDelete("Are you sure you want to archive this user?", async () => {
+      await execute(
+        () => deleteUser(user.id).unwrap(),
+        "User archived successfully",
+      );
+    });
 
   const handleRestore = async (user: User) => {
     await execute(
       () => restoreUser(user.id).unwrap(),
-      "User restored successfully"
+      "User restored successfully",
     );
   };
 
   const getRowActions = (user: User) => {
-    // 🔁 Archived User → ONLY RESTORE
+    // 🔒 SUPER ADMIN USER — READ ONLY
+    if (user.roles.includes("super-admin")) {
+      return [];
+    }
+
     if (user.deleted_at) {
       return [
         {
@@ -82,27 +77,25 @@ export default function Users() {
       ];
     }
 
-    // ✅ Active User Actions
     return [
       {
         label: "Assign Role",
-        variant: "secondary" as const,
+        show: can(PERMISSIONS.USER.ASSIGN_ROLE),
         onClick: () => openModal("user-role", user),
       },
       {
         label: "Assign Permissions",
-        variant: "secondary" as const,
+        show: can("user-assign-permission"),
         onClick: () => openModal("user-permission", user),
       },
       {
         label: "Archive",
         variant: "danger" as const,
+        show: can(PERMISSIONS.USER.DELETE),
         onClick: () => handleArchive(user),
       },
     ];
   };
-
-  /* ================= VIEW ================= */
 
   return (
     <section className="content pt-3">
@@ -110,24 +103,22 @@ export default function Users() {
         <PageHeader
           title="Users"
           action={
-            <Button
-              label="+ Add User"
-              onClick={() => openModal("user-form", null)}
-            />
+            <Can permission={PERMISSIONS.USER.CREATE}>
+              <Button
+                label="+ Add User"
+                onClick={() => openModal("user-form", null)}
+              />
+            </Can>
           }
         />
 
-        {/* 🔍 SEARCH */}
         <div className="mb-3">
           <input
             type="text"
             className="form-control"
             placeholder="Search by name or email..."
             value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1); // reset pagination on search
-            }}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </div>
 
@@ -143,43 +134,22 @@ export default function Users() {
                   <th>Email</th>
                   <th>Roles</th>
                   <th>Status</th>
-                  <th className="text-right" width={240}>
-                    Actions
-                  </th>
+                  <th className="text-right">Actions</th>
                 </tr>
               }
             >
               {users.map((user) => (
                 <tr key={user.id}>
-                  <td>
-                    {user.name}
-                    {/* {user.deleted_at && (
-                      <span className="badge badge-warning ml-2">
-                        Archived
-                      </span>
-                    )} */}
-                  </td>
-
+                  <td>{user.name}</td>
                   <td>{user.email}</td>
-
-                  <td>
-                    {user.roles.length
-                      ? user?.roles?.map((role) => role?.name).join(", ")
-                      : "—"}
-                  </td>
-
+                  <td>{user.roles.length ? user.roles.join(", ") : "—"}</td>
                   <td>
                     {user.deleted_at ? (
-                      <span className="badge badge-warning">
-                        Archived
-                      </span>
+                      <span className="badge badge-warning">Archived</span>
                     ) : (
-                      <span className="badge badge-success">
-                        Active
-                      </span>
+                      <span className="badge badge-success">Active</span>
                     )}
                   </td>
-
                   <td className="text-right">
                     <RowActions actions={getRowActions(user)} />
                   </td>
@@ -189,26 +159,10 @@ export default function Users() {
           </CardBody>
         </Card>
 
-        {/* 🔢 PAGINATION */}
-
-        {meta && (
-          <Pagination
-            meta={meta}
-            onPageChange={setPage}
-            onPerPageChange={(size) => {
-              setPerPage(size);
-              setPage(1); // 🔥 IMPORTANT
-            }}
-          />
-        )}
-
-        {/* ================= MODALS ================= */}
+        {meta && <Pagination meta={meta} onPageChange={setPage} />}
 
         {modalType === "user-form" && (
-          <UserFormModal
-            onClose={closeModal}
-            onSaved={closeModal}
-          />
+          <UserFormModal onClose={closeModal} onSaved={closeModal} />
         )}
 
         {modalType === "user-role" && modalData && (
@@ -216,16 +170,11 @@ export default function Users() {
             user={modalData}
             onClose={closeModal}
             onSaved={closeModal}
-            saveLabel="Assign Role"
           />
         )}
 
         {modalType === "user-permission" && modalData && (
-          <UserPermissionModal
-            user={modalData}
-            onClose={closeModal}
-            saveLabel="Assign Permission"
-          />
+          <UserPermissionModal user={modalData} onClose={closeModal} />
         )}
       </div>
     </section>

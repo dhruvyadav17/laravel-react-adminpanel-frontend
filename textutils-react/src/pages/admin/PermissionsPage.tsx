@@ -8,6 +8,7 @@ import Card from "../../ui/Card";
 import CardHeader from "../../ui/CardHeader";
 import CardBody from "../../ui/CardBody";
 import { useAppModal } from "../../context/AppModalContext";
+
 import { useBackendForm } from "../../hooks/useBackendForm";
 import { useConfirmDelete } from "../../hooks/useConfirmDelete";
 
@@ -20,6 +21,10 @@ import {
 
 import { execute } from "../../utils/execute";
 import type { Permission } from "../../types/models";
+import Can from "../../components/common/Can";
+import { PERMISSIONS } from "../../constants/permissions";
+
+import { useAuth } from "../../auth/hooks/useAuth";
 
 export default function PermissionsPage() {
   const confirmDelete = useConfirmDelete();
@@ -27,23 +32,15 @@ export default function PermissionsPage() {
   const { modalType, modalData, openModal, closeModal } =
     useAppModal<Permission>();
 
-  const { data: permissions = [], isLoading } =
-    useGetPermissionsQuery();
+  const { data: permissions = [], isLoading } = useGetPermissionsQuery();
 
   const [createPermission] = useCreatePermissionMutation();
   const [updatePermission] = useUpdatePermissionMutation();
   const [deletePermission] = useDeletePermissionMutation();
 
-  const {
-    values,
-    errors,
-    loading,
-    setLoading,
-    setField,
-    handleError,
-    reset,
-  } = useBackendForm({ name: "" });
-
+  const { values, errors, loading, setLoading, setField, handleError, reset } =
+    useBackendForm({ name: "" });
+  const { can } = useAuth();
   const save = async () => {
     try {
       setLoading(true);
@@ -55,9 +52,7 @@ export default function PermissionsPage() {
                 name: values.name,
               }).unwrap()
             : createPermission(values).unwrap(),
-        modalData?.id
-          ? "Permission updated"
-          : "Permission created"
+        modalData?.id ? "Permission updated" : "Permission created",
       );
       closeModal();
       reset();
@@ -74,15 +69,15 @@ export default function PermissionsPage() {
       async () => {
         await execute(
           () => deletePermission(permission.id).unwrap(),
-          "Permission deleted"
+          "Permission deleted",
         );
-      }
+      },
     );
 
   const getRowActions = (permission: Permission) => [
     {
       label: "Edit",
-      variant: "warning" as const,
+      show: can(PERMISSIONS.PERMISSION.MANAGE),
       onClick: () => {
         setField("name", permission.name);
         openModal("permission", permission);
@@ -91,6 +86,7 @@ export default function PermissionsPage() {
     {
       label: "Delete",
       variant: "danger" as const,
+      show: can(PERMISSIONS.PERMISSION.MANAGE),
       onClick: () => handleDelete(permission),
     },
   ];
@@ -101,13 +97,15 @@ export default function PermissionsPage() {
         <PageHeader
           title="Permissions"
           action={
-            <Button
-              label="+ Add Permission"
-              onClick={() => {
-                reset();
-                openModal("permission");
-              }}
-            />
+            <Can permission={PERMISSIONS.PERMISSION.MANAGE}>
+              <Button
+                label="+ Add Permission"
+                onClick={() => {
+                  reset();
+                  openModal("permission");
+                }}
+              />
+            </Can>
           }
         />
 
@@ -154,9 +152,7 @@ export default function PermissionsPage() {
               placeholder="Permission name"
             />
             {errors.name && (
-              <div className="invalid-feedback">
-                {errors.name[0]}
-              </div>
+              <div className="invalid-feedback">{errors.name[0]}</div>
             )}
           </Modal>
         )}

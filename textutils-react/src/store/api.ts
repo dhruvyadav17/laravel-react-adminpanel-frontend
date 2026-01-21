@@ -67,18 +67,18 @@ export const api = createApi({
 
     /* ================= USERS ================= */
 
-    getUsers: builder.query<
-      { data: User[]; meta: any },
-      { page?: number; search?: string }
-    >({
-      query: ({ page = 1, search = "" }) =>
-        `/admin/users?page=${page}&search=${search}`,
-      transformResponse: (res: any) => ({
-        data: res.data,
-        meta: res.meta,
-      }),
-      providesTags: ["Users"],
-    }),
+getUsers: builder.query<
+  { data: User[]; meta: any },
+  { page?: number; search?: string } | void
+>({
+  query: (args = {}) => {
+    const page = args.page ?? 1;
+    const search = args.search ?? "";
+
+    return `/admin/users?page=${page}&search=${search}`;
+  },
+}),
+
 
     createUser: builder.mutation<any, any>({
       query: (data) => ({

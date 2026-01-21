@@ -5,18 +5,12 @@ import {
   useAssignUserRolesMutation,
 } from "../store/api";
 import { execute } from "../utils/execute";
+import type { User } from "../types/models";
 
 type Props = {
-  user: {
-    id: number;
-    name: string;
-    roles: string[];
-  };
+  user: User;
   onClose: () => void;
   onSaved: () => void;
-
-  /* 🔥 NEW */
-  saveLabel?: string;
 };
 
 export default function UserRoleModal({
@@ -26,31 +20,13 @@ export default function UserRoleModal({
 }: Props) {
   const [selected, setSelected] = useState<string[]>([]);
 
-  const {
-    data: roles = [],
-    isLoading,
-    isError,
-  } = useGetRolesQuery(undefined, {
-    refetchOnMountOrArgChange: true,
-  });
-
-  const [assignUserRoles, { isLoading: saving }] =
+  const { data: roles = [] } = useGetRolesQuery();
+  const [assignUserRoles, { isLoading }] =
     useAssignUserRolesMutation();
 
-  /* ================= SYNC ================= */
-
-useEffect(() => {
-  // 🔥 IMPORTANT FIX
-  setSelected(
-    Array.isArray(user.roles)
-      ? user.roles.map((r: any) =>
-          typeof r === "string" ? r : r.name
-        )
-      : []
-  );
-}, [user]);
-
-  /* ================= HANDLERS ================= */
+  useEffect(() => {
+    setSelected(user.roles ?? []);
+  }, [user]);
 
   const toggle = (role: string) => {
     setSelected((prev) =>
@@ -61,11 +37,14 @@ useEffect(() => {
   };
 
   const save = async () => {
+    // 🔒 NEVER ALLOW SUPER ADMIN ROLE
+    if (selected.includes("super-admin")) return;
+
     await execute(
       () =>
         assignUserRoles({
           id: user.id,
-          roles: selected, // ✅ string[]
+          roles: selected,
         }).unwrap(),
       "Roles assigned successfully"
     );
@@ -74,56 +53,35 @@ useEffect(() => {
     onClose();
   };
 
-  /* ================= VIEW ================= */
-
   return (
     <Modal
       title={`Assign Roles – ${user.name}`}
       onClose={onClose}
       onSave={save}
-      saveDisabled={saving}
-      button_name={saving ? "Saving..." : "Assign"}
-      dialogClassName="modal-lg"
+      saveDisabled={isLoading}
+      saveText={isLoading ? "Saving..." : "Assign"}
+      size="lg"
     >
-      {isLoading && <p>Loading roles...</p>}
-
-      {isError && (
-        <p className="text-danger">
-          Failed to load roles
-        </p>
-      )}
-
-      {!isLoading && !roles.length && (
-        <p className="text-muted">
-          No roles available
-        </p>
-      )}
-
-      {!isLoading && roles.length > 0 && (
-        <div className="container-fluid px-3">
-          <div className="row g-2">
-            {roles.map((r: any) => (
-              <div
-                key={r.id}
-                className="col-12 col-sm-6 col-md-4"
-              >
-                <div className="form-check">
-                  <input
-                    className="form-check-input"
-                    type="checkbox"
-                    checked={selected.includes(r.name)}
-                    onChange={() => toggle(r.name)}
-                    disabled={saving}
-                  />
-                  <label className="form-check-label">
-                    {r.name}
-                  </label>
-                </div>
-              </div>
-            ))}
+      <div className="row">
+        {roles.map((r: any) => (
+          <div key={r.id} className="col-md-4">
+            <div className="form-check">
+              <input
+                type="checkbox"
+                className="form-check-input"
+                checked={selected.includes(r.name)}
+                onChange={() => toggle(r.name)}
+                disabled={
+                  isLoading || r.name === "super-admin"
+                }
+              />
+              <label className="form-check-label">
+                {r.name}
+              </label>
+            </div>
           </div>
-        </div>
-      )}
+        ))}
+      </div>
     </Modal>
   );
 }

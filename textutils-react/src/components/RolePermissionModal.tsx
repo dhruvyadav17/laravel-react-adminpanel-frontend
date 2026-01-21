@@ -5,37 +5,39 @@ import {
   useAssignRolePermissionsMutation,
 } from "../store/api";
 import { execute } from "../utils/execute";
+import type { Role } from "../types/models";
 
 type Props = {
-  roleId: number;
+  role: Role;
   onClose: () => void;
 };
 
 export default function RolePermissionModal({
-  roleId,
+  role,
   onClose,
 }: Props) {
+  // 🔒 SUPER ADMIN LOCK
+  if (role.name === "super-admin") {
+    return (
+      <Modal title="Assign Permissions" onClose={onClose}>
+        <p className="text-danger mb-0">
+          Super admin permissions cannot be modified.
+        </p>
+      </Modal>
+    );
+  }
+
   const [selected, setSelected] = useState<string[]>([]);
 
-  const {
-    data,
-    isLoading,
-    isError,
-  } = useGetRolePermissionsQuery(roleId, {
-    skip: !roleId,
-    refetchOnMountOrArgChange: true,
-  });
+  const { data, isLoading } =
+    useGetRolePermissionsQuery(role.id);
 
   const [assignRolePermissions, { isLoading: saving }] =
     useAssignRolePermissionsMutation();
 
-  /* ================= SYNC ================= */
-
   useEffect(() => {
     setSelected(data?.assigned ?? []);
   }, [data?.assigned]);
-
-  /* ================= HANDLERS ================= */
 
   const toggle = (permission: string) => {
     setSelected((prev) =>
@@ -49,59 +51,43 @@ export default function RolePermissionModal({
     await execute(
       () =>
         assignRolePermissions({
-          id: roleId,
+          id: role.id,
           permissions: selected,
         }).unwrap(),
       "Permissions assigned successfully"
     );
-
     onClose();
   };
 
-  /* ================= VIEW ================= */
-
   return (
     <Modal
-      title="Assign Permissions"
+      title={`Assign Permissions – ${role.name}`}
       onClose={onClose}
       onSave={save}
       saveDisabled={saving}
-      button_name={saving ? "Saving..." : "Assign"}
-      dialogClassName="modal-md"
+      saveText={saving ? "Saving..." : "Assign"}
+      size="lg"
     >
       {isLoading && <p>Loading permissions...</p>}
 
-      {isError && (
-        <p className="text-danger">Failed to load permissions</p>
-      )}
-
-      {!isLoading && data?.permissions?.length === 0 && (
-        <p className="text-muted">No permissions available</p>
-      )}
-
       {!isLoading && data?.permissions && (
-        <div className="container-fluid px-3">
-          <div className="row g-2">
-            {data.permissions.map((p: any) => (
-              <div
-                key={p.id}
-                className="col-12 col-sm-6 col-md-4"
-              >
-                <div className="form-check">
-                  <input
-                    className="form-check-input"
-                    type="checkbox"
-                    checked={selected.includes(p.name)}
-                    onChange={() => toggle(p.name)}
-                    disabled={saving}
-                  />
-                  <label className="form-check-label">
-                    {p.name}
-                  </label>
-                </div>
+        <div className="row">
+          {data.permissions.map((p: any) => (
+            <div key={p.id} className="col-md-4">
+              <div className="form-check">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  checked={selected.includes(p.name)}
+                  onChange={() => toggle(p.name)}
+                  disabled={saving}
+                />
+                <label className="form-check-label">
+                  {p.name}
+                </label>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       )}
     </Modal>
