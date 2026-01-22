@@ -3,11 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Permission;
-use App\Http\Controllers\Api\BaseApiController;
+use Illuminate\Http\Request;
 use App\Services\Permission\PermissionService;
-use App\Http\Requests\Permission\StorePermissionRequest;
-use App\Http\Requests\Permission\UpdatePermissionRequest;
-use App\Http\Resources\PermissionResource;
+use App\Http\Controllers\Api\BaseApiController;
 
 class PermissionController extends BaseApiController
 {
@@ -15,83 +13,49 @@ class PermissionController extends BaseApiController
         protected PermissionService $service
     ) {}
 
-    /**
-     * 📄 GET /api/v1/admin/permissions
-     */
     public function index()
     {
-        $permissions = $this->service->list();
-
         return $this->success(
-            'Permissions fetched successfully',
-            PermissionResource::collection($permissions)
+            'Permissions fetched',
+            $this->service->list()->map(fn ($p) => [
+                'id'   => $p->id,
+                'name' => $p->name,
+            ])
         );
     }
 
-    /**
-     * 🔍 GET /api/v1/admin/permissions/{permission}
-     */
-    public function show(Permission $permission)
+    public function store(Request $request)
     {
-        return $this->success(
-            'Permission details',
-            PermissionResource::make($permission)
-        );
+        $data = $request->validate([
+            'name' => ['required', 'string', 'unique:permissions,name'],
+        ]);
+
+        $permission = $this->service->create($data);
+
+        return $this->success('Permission created', [
+            'id'   => $permission->id,
+            'name' => $permission->name,
+        ]);
     }
 
-    /**
-     * ➕ POST /api/v1/admin/permissions
-     */
-    public function store(StorePermissionRequest $request)
+    public function update(Request $request, Permission $permission)
     {
-        $permission = $this->service->create($request->validated());
+        $data = $request->validate([
+            'name' => ['required', 'string', 'unique:permissions,name,' . $permission->id],
+        ]);
 
-        return $this->success(
-            'Permission created successfully',
-            PermissionResource::make($permission),
-            [],
-            201
-        );
+        $permission = $this->service->update($permission, $data);
+
+        return $this->success('Permission updated', [
+            'id'   => $permission->id,
+            'name' => $permission->name,
+        ]);
     }
 
-    /**
-     * ✏️ PUT /api/v1/admin/permissions/{permission}
-     */
-    public function update(
-        UpdatePermissionRequest $request,
-        Permission $permission
-    ) {
-        $permission = $this->service->update(
-            $permission,
-            $request->validated()
-        );
-
-        return $this->success(
-            'Permission updated successfully',
-            PermissionResource::make($permission)
-        );
-    }
-
-    /**
-     * ❌ DELETE /api/v1/admin/permissions/{permission}
-     */
     public function destroy(Permission $permission)
     {
         $this->service->delete($permission);
 
-        return $this->success('Permission deleted successfully');
-    }
-
-    /**
-     * 🔁 PATCH /api/v1/admin/permissions/{permission}/toggle
-     */
-    public function toggle(Permission $permission)
-    {
-        $permission = $this->service->toggle($permission);
-
-        return $this->success(
-            'Permission status updated',
-            PermissionResource::make($permission)
-        );
+        return $this->success('Permission deleted', null);
     }
 }

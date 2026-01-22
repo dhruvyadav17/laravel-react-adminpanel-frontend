@@ -4,6 +4,7 @@ namespace App\Services\User;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Spatie\Permission\PermissionRegistrar;
 
 class UserService
 {
@@ -36,15 +37,32 @@ class UserService
         return User::create($data);
     }
 
-    /* 🔥 FIXED */
     public function delete(User $user): void
     {
         $user->delete();
     }
 
-    /* 🔥 FIXED */
     public function restore(User $user): void
     {
         $user->restore();
+    }
+
+    /* ================= ROLES ================= */
+
+    public function assignRoles(User $user, array $roles): void
+    {
+        $user->syncRoles($roles);
+        $user->load('roles');
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    /* ================= PERMISSIONS ================= */
+
+    public function assignPermissions(User $user, array $permissions): void
+    {
+        $user->syncPermissions($permissions);
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }
