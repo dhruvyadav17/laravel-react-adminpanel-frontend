@@ -24,12 +24,12 @@ return [
             ],
             [
                 'label' => 'Roles',
-                'permission' => 'role-view',
+                'permission' => 'role-manage',
                 'route' => '/admin/roles',
             ],
             [
                 'label' => 'Permissions',
-                'permission' => 'permission-view',
+                'permission' => 'permission-manage',
                 'route' => '/admin/permissions',
             ],
         ],

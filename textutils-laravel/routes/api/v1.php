@@ -16,8 +16,11 @@ use App\Http\Controllers\Api\Password\{
 };
 
 /* ================= ADMIN CONTROLLERS ================= */
-use App\Http\Controllers\Api\Admin\UserController;
-use App\Http\Controllers\Api\Admin\SidebarController;
+use App\Http\Controllers\Api\Admin\{
+    UserController,
+    SidebarController,
+    DashboardController
+};
 use App\Http\Controllers\Api\{
     RoleController,
     PermissionController
@@ -47,6 +50,7 @@ Route::middleware('auth:sanctum')->group(function () {
     /* ================= SIDEBAR ================= */
     Route::prefix('admin')->group(function () {
         Route::get('/sidebar', SidebarController::class);
+        Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
     });
 
     /*
@@ -54,8 +58,44 @@ Route::middleware('auth:sanctum')->group(function () {
     | USERS (Permission Hardened)
     |--------------------------------------------------------------------------
     */
-    Route::prefix('admin/users')->group(function () {
+    
 
+    // Route::prefix('admin/users')->group(function () {
+
+    //     Route::middleware('permission:user-view')
+    //         ->get('/', [UserController::class, 'index']);
+
+    //     Route::middleware('permission:user-create')
+    //         ->post('/', [UserController::class, 'store']);
+
+    //     Route::middleware('permission:user-update')
+    //         ->put('/{user}', [UserController::class, 'update']);
+
+    //     Route::middleware('permission:user-delete')
+    //         ->delete('/{user}', [UserController::class, 'destroy']);
+
+    //     Route::middleware('permission:user-delete')
+    //         ->post('/{id}/restore', [UserController::class, 'restore']);
+
+    //     /* -------- ROLES -------- */
+    //     Route::middleware('permission:user-assign-role')
+    //         ->post('/{user}/assign-role', [UserController::class, 'assignRole']);
+
+    //     /* -------- PERMISSIONS -------- */
+    //     Route::middleware('permission:user-assign-permission')
+    //         ->post('/{id}/permissions', [UserController::class, 'assignPermissions']);
+
+    //     Route::middleware('permission:user-view')
+    //         ->get('/{id}/permissions', [UserController::class, 'permissions']);
+    // });
+
+
+    Route::prefix('admin/users')->group(function () {
+        // Route::middleware('permission:user-delete')
+        // ->post('/{id}/restore', [UserController::class, 'restore']);
+        Route::middleware('permission:user-delete')
+    ->post('/{user}/restore', [UserController::class, 'restore'])
+    ->withTrashed();
         Route::middleware('permission:user-view')
             ->get('/', [UserController::class, 'index']);
 
@@ -68,8 +108,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::middleware('permission:user-delete')
             ->delete('/{user}', [UserController::class, 'destroy']);
 
-        Route::middleware('permission:user-delete')
-            ->post('/{id}/restore', [UserController::class, 'restore']);
+        // Route::middleware('permission:user-delete')
+        //     ->post('/{user}/restore', [UserController::class, 'restore']);
 
         /* -------- ROLES -------- */
         Route::middleware('permission:user-assign-role')
@@ -77,10 +117,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
         /* -------- PERMISSIONS -------- */
         Route::middleware('permission:user-assign-permission')
-            ->post('/{id}/permissions', [UserController::class, 'assignPermissions']);
+            ->post('/{user}/permissions', [UserController::class, 'assignPermissions']);
 
         Route::middleware('permission:user-view')
-            ->get('/{id}/permissions', [UserController::class, 'permissions']);
+            ->get('/{user}/permissions', [UserController::class, 'permissions']);
     });
 
     /*

@@ -16,9 +16,13 @@ class ProfileController extends Controller
         $user = $request->user()->load('roles');
 
         return $this->success('Profile fetched', [
-            'user'        => UserResource::make($user),
-            'roles'       => $user->getRoleNames(),
-            'permissions' => $user->getAllPermissions()->pluck('name'),
+            'user' => UserResource::make($user),
+
+            // 🔑 SINGLE SOURCE OF TRUTH FOR RBAC
+            'permissions' => $user
+                ->getAllPermissions()
+                ->pluck('name')
+                ->values(), // ensure clean array
         ]);
     }
 }

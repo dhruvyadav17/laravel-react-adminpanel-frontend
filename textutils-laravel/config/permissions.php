@@ -17,4 +17,5 @@ return [
     'permission' => [
         'manage' => 'permission-manage',
     ],
+
 ];
