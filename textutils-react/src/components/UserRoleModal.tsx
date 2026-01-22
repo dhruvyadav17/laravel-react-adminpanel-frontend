@@ -24,9 +24,10 @@ export default function UserRoleModal({
   const [assignUserRoles, { isLoading }] =
     useAssignUserRolesMutation();
 
+  /* 🔁 RESET ON OPEN (CRITICAL FIX) */
   useEffect(() => {
     setSelected(user.roles ?? []);
-  }, [user]);
+  }, [user.id, user.roles]);
 
   const toggle = (role: string) => {
     setSelected((prev) =>
@@ -37,7 +38,6 @@ export default function UserRoleModal({
   };
 
   const save = async () => {
-    // 🔒 NEVER ALLOW SUPER ADMIN ROLE
     if (selected.includes("super-admin")) return;
 
     await execute(
@@ -49,7 +49,7 @@ export default function UserRoleModal({
       "Roles assigned successfully"
     );
 
-    onSaved();
+    onSaved(); // 🔥 refresh users list
     onClose();
   };
 
@@ -71,9 +71,7 @@ export default function UserRoleModal({
                 className="form-check-input"
                 checked={selected.includes(r.name)}
                 onChange={() => toggle(r.name)}
-                disabled={
-                  isLoading || r.name === "super-admin"
-                }
+                disabled={isLoading || r.name === "super-admin"}
               />
               <label className="form-check-label">
                 {r.name}

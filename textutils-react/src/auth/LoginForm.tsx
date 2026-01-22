@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 
-import { loginThunk } from "../store/authSlice";
+import { loginThunk, fetchProfileThunk } from "../store/authSlice";
 import type { RootState, AppDispatch } from "../store";
 import { handleApiError } from "../utils/toastHelper";
 
@@ -11,10 +11,7 @@ type Props = {
   redirectAdmin?: boolean;
 };
 
-export default function LoginForm({
-  title,
-  redirectAdmin,
-}: Props) {
+export default function LoginForm({ title, redirectAdmin }: Props) {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
 
@@ -32,16 +29,15 @@ export default function LoginForm({
       loginThunk({ email, password })
     );
 
-    // ❌ LOGIN FAILED → SHOW TOAST
     if (loginThunk.rejected.match(res)) {
       handleApiError(res.payload || res.error);
       return;
     }
 
-    // ✅ LOGIN SUCCESS
     if (loginThunk.fulfilled.match(res)) {
-      const roles = res.payload.user.roles || [];
+      const profileRes = await dispatch(fetchProfileThunk());
 
+      const roles = profileRes.payload?.user?.roles ?? [];
       const isAdmin =
         roles.includes("admin") ||
         roles.includes("super-admin");

@@ -1,3 +1,4 @@
+import { memo } from "react";
 import Modal from "../../components/common/Modal";
 import RolePermissionModal from "../../components/RolePermissionModal";
 import RowActions from "../../components/common/RowActions";
@@ -23,12 +24,12 @@ import { execute } from "../../utils/execute";
 import type { Role } from "../../types/models";
 import Can from "../../components/common/Can";
 import { PERMISSIONS } from "../../constants/permissions";
-
 import { useAuth } from "../../auth/hooks/useAuth";
-export default function Roles() {
-  const confirmDelete = useConfirmDelete();
 
-  const { modalType, modalData, openModal, closeModal } = useAppModal<Role>();
+function Roles() {
+  const confirmDelete = useConfirmDelete();
+  const { modalType, modalData, openModal, closeModal } =
+    useAppModal<Role>();
 
   const { data: roles = [], isLoading } = useGetRolesQuery();
 
@@ -36,9 +37,18 @@ export default function Roles() {
   const [updateRole] = useUpdateRoleMutation();
   const [deleteRole] = useDeleteRoleMutation();
 
-  const { values, errors, loading, setLoading, setField, handleError, reset } =
-    useBackendForm({ name: "" });
+  const {
+    values,
+    errors,
+    loading,
+    setLoading,
+    setField,
+    handleError,
+    reset,
+  } = useBackendForm({ name: "" });
+
   const { can } = useAuth();
+
   const save = async () => {
     try {
       setLoading(true);
@@ -50,7 +60,7 @@ export default function Roles() {
                 name: values.name,
               }).unwrap()
             : createRole(values).unwrap(),
-        modalData?.id ? "Role updated" : "Role created",
+        modalData?.id ? "Role updated" : "Role created"
       );
       closeModal();
       reset();
@@ -63,14 +73,14 @@ export default function Roles() {
 
   const handleDelete = (role: Role) =>
     confirmDelete("Are you sure you want to delete this role?", async () => {
-      await execute(() => deleteRole(role.id).unwrap(), "Role deleted");
+      await execute(
+        () => deleteRole(role.id).unwrap(),
+        "Role deleted"
+      );
     });
 
   const getRowActions = (role: Role) => {
-    // 🔒 SUPER ADMIN ROLE — NO ACTIONS
-    if (role.name === "super-admin") {
-      return [];
-    }
+    if (role.name === "super-admin") return [];
 
     return [
       {
@@ -142,7 +152,9 @@ export default function Roles() {
 
         {(modalType === "role-add" || modalType === "role-edit") && (
           <Modal
-            title={modalType === "role-edit" ? "Edit Role" : "Add Role"}
+            title={
+              modalType === "role-edit" ? "Edit Role" : "Add Role"
+            }
             onClose={closeModal}
             onSave={save}
             saveDisabled={loading}
@@ -168,3 +180,5 @@ export default function Roles() {
     </section>
   );
 }
+
+export default memo(Roles);

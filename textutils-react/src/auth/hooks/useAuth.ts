@@ -2,17 +2,27 @@ import { useSelector } from "react-redux";
 import { RootState } from "../../store";
 
 /**
- * Central Auth Hook
+ * useAuth
+ * -------------------------------------------------
  * Single source of truth for:
  * - user
  * - roles
  * - permissions
- * - auth helpers
+ * - role & permission helpers
+ *
+ * ❗ RULE:
+ * - Never access permissions array directly in UI
+ * - Always use can() / canAny()
  */
 export function useAuth() {
-  const user = useSelector((s: RootState) => s.auth.user);
+  /* ================= STORE ================= */
+
+  const user = useSelector(
+    (state: RootState) => state.auth.user
+  );
+
   const permissions = useSelector(
-    (s: RootState) => s.auth.permissions
+    (state: RootState) => state.auth.permissions
   );
 
   const roles: string[] = user?.roles ?? [];
@@ -20,32 +30,53 @@ export function useAuth() {
   /* ================= BASIC FLAGS ================= */
 
   const isAuth = Boolean(user);
+
   const isSuperAdmin = roles.includes("super-admin");
+
   const isAdmin =
     isSuperAdmin || roles.includes("admin");
 
   /* ================= ROLE HELPERS ================= */
 
-  const hasRole = (role: string) =>
+  /**
+   * Check single role
+   */
+  const hasRole = (role: string): boolean =>
     isSuperAdmin || roles.includes(role);
 
-  const hasAnyRole = (checkRoles: string[]) =>
+  /**
+   * Check multiple roles (OR condition)
+   */
+  const hasAnyRole = (
+    checkRoles: string[]
+  ): boolean =>
     isSuperAdmin ||
     checkRoles.some((r) => roles.includes(r));
 
   /* ================= PERMISSION HELPERS ================= */
 
-  const can = (permission: string) =>
-    isSuperAdmin || permissions.includes(permission);
+  /**
+   * Check single permission
+   */
+  const can = (permission: string): boolean =>
+    isSuperAdmin ||
+    permissions.includes(permission);
 
-  const canAny = (checkPermissions: string[]) =>
+  /**
+   * Check multiple permissions (OR condition)
+   */
+  const canAny = (
+    checkPermissions: string[]
+  ): boolean =>
     isSuperAdmin ||
     checkPermissions.some((p) =>
       permissions.includes(p)
     );
 
+  /* ================= RETURN API ================= */
+
   return {
-    /* state */
+    /* raw state (read-only) */
     user,
     roles,
     permissions,
@@ -55,9 +86,11 @@ export function useAuth() {
     isAdmin,
     isSuperAdmin,
 
-    /* helpers */
+    /* role helpers */
     hasRole,
     hasAnyRole,
+
+    /* permission helpers */
     can,
     canAny,
   };

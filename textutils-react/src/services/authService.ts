@@ -1,23 +1,34 @@
 import api from "../api/axios";
 
+/**
+ * LOGIN
+ * -------------------------------
+ * - ONLY authenticate user
+ * - returns token
+ * - NO role / permission logic here
+ */
 export const loginService = async (
   email: string,
   password: string
 ) => {
-  const res = await api.post("/login", { email, password });
-
-  // 🔥 normalize user.roles → string[]
-  const data = res.data.data;
-
-  data.user.roles = Array.isArray(data.user.roles)
-    ? data.user.roles.map((r: any) =>
-        typeof r === "string" ? r : r.name
-      )
-    : [];
-
-  return res;
+  return api.post("/login", { email, password });
 };
 
-export const profileService = () => api.get("/profile");
+/**
+ * PROFILE
+ * -------------------------------
+ * - single source of truth
+ * - user + roles + permissions
+ */
+export const profileService = () => {
+  return api.get("/profile");
+};
 
-export const logoutService = () => api.post("/logout");
+/**
+ * LOGOUT
+ * -------------------------------
+ * - revoke token (best effort)
+ */
+export const logoutService = () => {
+  return api.post("/logout");
+};

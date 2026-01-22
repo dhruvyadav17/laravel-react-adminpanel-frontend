@@ -1,3 +1,4 @@
+import { memo } from "react";
 import Modal from "../../components/common/Modal";
 import RowActions from "../../components/common/RowActions";
 import Button from "../../components/common/Button";
@@ -23,24 +24,32 @@ import { execute } from "../../utils/execute";
 import type { Permission } from "../../types/models";
 import Can from "../../components/common/Can";
 import { PERMISSIONS } from "../../constants/permissions";
-
 import { useAuth } from "../../auth/hooks/useAuth";
 
-export default function PermissionsPage() {
+function PermissionsPage() {
   const confirmDelete = useConfirmDelete();
-
   const { modalType, modalData, openModal, closeModal } =
     useAppModal<Permission>();
 
-  const { data: permissions = [], isLoading } = useGetPermissionsQuery();
+  const { data: permissions = [], isLoading } =
+    useGetPermissionsQuery();
 
   const [createPermission] = useCreatePermissionMutation();
   const [updatePermission] = useUpdatePermissionMutation();
   const [deletePermission] = useDeletePermissionMutation();
 
-  const { values, errors, loading, setLoading, setField, handleError, reset } =
-    useBackendForm({ name: "" });
+  const {
+    values,
+    errors,
+    loading,
+    setLoading,
+    setField,
+    handleError,
+    reset,
+  } = useBackendForm({ name: "" });
+
   const { can } = useAuth();
+
   const save = async () => {
     try {
       setLoading(true);
@@ -52,7 +61,7 @@ export default function PermissionsPage() {
                 name: values.name,
               }).unwrap()
             : createPermission(values).unwrap(),
-        modalData?.id ? "Permission updated" : "Permission created",
+        modalData?.id ? "Permission updated" : "Permission created"
       );
       closeModal();
       reset();
@@ -69,9 +78,9 @@ export default function PermissionsPage() {
       async () => {
         await execute(
           () => deletePermission(permission.id).unwrap(),
-          "Permission deleted",
+          "Permission deleted"
         );
-      },
+      }
     );
 
   const getRowActions = (permission: Permission) => [
@@ -142,7 +151,7 @@ export default function PermissionsPage() {
             onClose={closeModal}
             onSave={save}
             saveDisabled={loading}
-            button_name={modalData?.id ? "Update" : "Save"}
+            saveText={modalData?.id ? "Update" : "Save"}
           >
             <input
               className={`form-control ${errors.name ? "is-invalid" : ""}`}
@@ -160,3 +169,5 @@ export default function PermissionsPage() {
     </section>
   );
 }
+
+export default memo(PermissionsPage);

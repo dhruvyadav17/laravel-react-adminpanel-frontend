@@ -3,7 +3,11 @@ import {
   createAsyncThunk,
   PayloadAction,
 } from "@reduxjs/toolkit";
-import { loginService } from "../services/authService";
+
+import {
+  loginService,
+  profileService,
+} from "../services/authService";
 import type { User } from "../types/models";
 import { emitLogoutEvent } from "../utils/authEvents";
 
@@ -17,6 +21,7 @@ type AuthState = {
 };
 
 /* ================= INITIAL STATE ================= */
+/* Rehydration from localStorage */
 
 const initialState: AuthState = {
   user: JSON.parse(localStorage.getItem("user") || "null"),
@@ -31,8 +36,9 @@ const initialState: AuthState = {
 
 /**
  * LOGIN
- * - calls backend
- * - stores user, permissions, token
+ * -------------------------------------------------
+ * - Authenticate only
+ * - Store ONLY token
  */
 export const loginThunk = createAsyncThunk(
   "auth/login",
@@ -45,6 +51,8 @@ export const loginThunk = createAsyncThunk(
         data.email,
         data.password
       );
+
+      // expected: { token }
       return res.data.data;
     } catch (e: any) {
       return rejectWithValue(
@@ -56,9 +64,30 @@ export const loginThunk = createAsyncThunk(
 );
 
 /**
+ * PROFILE
+ * -------------------------------------------------
+ * - Single source of truth
+ * - user + permissions
+ */
+export const fetchProfileThunk = createAsyncThunk(
+  "auth/profile",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await profileService();
+
+      // expected: { user, permissions }
+      return res.data.data;
+    } catch {
+      return rejectWithValue("Failed to load profile");
+    }
+  }
+);
+
+/**
  * LOGOUT
- * - clears localStorage
- * - emits multi-tab logout event
+ * -------------------------------------------------
+ * - Clear storage
+ * - Multi-tab sync
  */
 export const logoutThunk = createAsyncThunk(
   "auth/logout",
@@ -77,7 +106,10 @@ const authSlice = createSlice({
 
   reducers: {
     /**
-     * Sync permissions from backend (profile API)
+     * OPTIONAL
+     * -------------------------------------------------
+     * Keep ONLY if you need manual override (testing/tools)
+     * Otherwise safe to remove.
      */
     setPermissions(
       state,
@@ -93,28 +125,17 @@ const authSlice = createSlice({
 
   extraReducers: (builder) => {
     builder
-      /* ===== LOGIN ===== */
+      /* ================= LOGIN ================= */
+
       .addCase(loginThunk.pending, (state) => {
         state.loading = true;
       })
 
+      /* LOGIN SUCCESS → ONLY TOKEN */
       .addCase(loginThunk.fulfilled, (state, action) => {
         state.loading = false;
-
-        state.user = action.payload.user;
-        state.permissions = action.payload.permissions;
         state.token = action.payload.token;
 
-        localStorage.setItem(
-          "user",
-          JSON.stringify(action.payload.user)
-        );
-        localStorage.setItem(
-          "permissions",
-          JSON.stringify(
-            action.payload.permissions
-          )
-        );
         localStorage.setItem(
           "token",
           action.payload.token
@@ -125,7 +146,30 @@ const authSlice = createSlice({
         state.loading = false;
       })
 
-      /* ===== LOGOUT ===== */
+      /* ================= PROFILE ================= */
+
+      .addCase(fetchProfileThunk.fulfilled, (state, action) => {
+        state.user = action.payload.user;
+        state.permissions = action.payload.permissions;
+
+        localStorage.setItem(
+          "user",
+          JSON.stringify(action.payload.user)
+        );
+
+        localStorage.setItem(
+          "permissions",
+          JSON.stringify(action.payload.permissions)
+        );
+      })
+
+      .addCase(fetchProfileThunk.rejected, (state) => {
+        state.user = null;
+        state.permissions = [];
+      })
+
+      /* ================= LOGOUT ================= */
+
       .addCase(logoutThunk.fulfilled, (state) => {
         state.user = null;
         state.permissions = [];

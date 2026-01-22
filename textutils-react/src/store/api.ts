@@ -1,14 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import type { RootState } from "./index";
-
-/**
- * RTK Query API
- * -------------------------------------------------
- * - Env based baseUrl (VITE_API_URL)
- * - Auth token auto attach
- * - Centralized caching via tags
- * - Production ready
- */
+import type { User } from "../types/models";
 
 export const api = createApi({
   reducerPath: "api",
@@ -27,58 +19,25 @@ export const api = createApi({
     },
   }),
 
-  // 🔥 TAGS (case-sensitive)
-  tagTypes: ["Permissions", "Roles", "Users"],
+  // 🔥 CENTRALIZED TAGS
+  tagTypes: ["Users", "Roles", "Permissions"],
 
   endpoints: (builder) => ({
-    /* ================= PERMISSIONS ================= */
+    /* =====================================================
+       USERS
+    ===================================================== */
 
-    getPermissions: builder.query<any[], void>({
-      query: () => "/admin/permissions",
-      transformResponse: (res: any) => res.data,
-      providesTags: ["Permissions"],
+    getUsers: builder.query<
+      { data: User[]; meta: any },
+      { page?: number; search?: string } | void
+    >({
+      query: (args = {}) => {
+        const page = args.page ?? 1;
+        const search = args.search ?? "";
+        return `/admin/users?page=${page}&search=${search}`;
+      },
+      providesTags: ["Users"],
     }),
-
-    createPermission: builder.mutation<any, { name: string }>({
-      query: (data) => ({
-        url: "/admin/permissions",
-        method: "POST",
-        body: data,
-      }),
-      invalidatesTags: ["Permissions"],
-    }),
-
-    updatePermission: builder.mutation<any, { id: number; name: string }>({
-      query: ({ id, ...data }) => ({
-        url: `/admin/permissions/${id}`,
-        method: "PUT",
-        body: data,
-      }),
-      invalidatesTags: ["Permissions"],
-    }),
-
-    deletePermission: builder.mutation<any, number>({
-      query: (id) => ({
-        url: `/admin/permissions/${id}`,
-        method: "DELETE",
-      }),
-      invalidatesTags: ["Permissions"],
-    }),
-
-    /* ================= USERS ================= */
-
-getUsers: builder.query<
-  { data: User[]; meta: any },
-  { page?: number; search?: string } | void
->({
-  query: (args = {}) => {
-    const page = args.page ?? 1;
-    const search = args.search ?? "";
-
-    return `/admin/users?page=${page}&search=${search}`;
-  },
-}),
-
 
     createUser: builder.mutation<any, any>({
       query: (data) => ({
@@ -89,34 +48,62 @@ getUsers: builder.query<
       invalidatesTags: ["Users"],
     }),
 
-    deleteUser: builder.mutation<any, number>({
+    deleteUser: builder.mutation<void, number>({
       query: (id) => ({
         url: `/admin/users/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["Users"],
+      invalidatesTags: ["Users"], // archive → reload
     }),
 
-    assignUserRoles: builder.mutation<any, { id: number; roles: string[] }>({
-      query: ({ id, roles }) => ({
-        url: `/admin/users/${id}/assign-role`,
-        method: "POST",
-        body: {
-          roles, // 🔥 ONLY STRING[] (role names)
-        },
-      }),
-      invalidatesTags: ["Users"],
-    }),
-
-    restoreUser: builder.mutation<any, number>({
+    restoreUser: builder.mutation<void, number>({
       query: (id) => ({
         url: `/admin/users/${id}/restore`,
         method: "POST",
       }),
-      invalidatesTags: ["Users"],
+      invalidatesTags: ["Users"], // restore → reload
     }),
 
-    /* ================= ROLES ================= */
+    assignUserRoles: builder.mutation<
+      void,
+      { id: number; roles: string[] }
+    >({
+      query: ({ id, roles }) => ({
+        url: `/admin/users/${id}/assign-role`,
+        method: "POST",
+        body: { roles },
+      }),
+      invalidatesTags: ["Users"], // role assign → reload
+    }),
+
+    /* =====================================================
+       USER → PERMISSIONS
+    ===================================================== */
+
+    getUserPermissions: builder.query<
+      { permissions: any[]; assigned: string[] },
+      number
+    >({
+      query: (id) => `/admin/users/${id}/permissions`,
+      transformResponse: (res: any) => res.data,
+      providesTags: ["Users"],
+    }),
+
+    assignUserPermissions: builder.mutation<
+      void,
+      { id: number; permissions: string[] }
+    >({
+      query: ({ id, permissions }) => ({
+        url: `/admin/users/${id}/permissions`,
+        method: "POST",
+        body: { permissions },
+      }),
+      invalidatesTags: ["Users"], // permission assign → reload
+    }),
+
+    /* =====================================================
+       ROLES
+    ===================================================== */
 
     getRoles: builder.query<any[], void>({
       query: () => "/admin/roles",
@@ -142,7 +129,7 @@ getUsers: builder.query<
       invalidatesTags: ["Roles"],
     }),
 
-    deleteRole: builder.mutation<any, number>({
+    deleteRole: builder.mutation<void, number>({
       query: (id) => ({
         url: `/admin/roles/${id}`,
         method: "DELETE",
@@ -150,7 +137,9 @@ getUsers: builder.query<
       invalidatesTags: ["Roles"],
     }),
 
-    /* ================= ROLE → PERMISSIONS ================= */
+    /* =====================================================
+       ROLE → PERMISSIONS
+    ===================================================== */
 
     getRolePermissions: builder.query<
       { permissions: any[]; assigned: string[] },
@@ -162,7 +151,7 @@ getUsers: builder.query<
     }),
 
     assignRolePermissions: builder.mutation<
-      any,
+      void,
       { id: number; permissions: string[] }
     >({
       query: ({ id, permissions }) => ({
@@ -173,59 +162,83 @@ getUsers: builder.query<
       invalidatesTags: ["Roles"],
     }),
 
-    /* ================= USER → PERMISSIONS ================= */
+    /* =====================================================
+       PERMISSIONS (MASTER)
+    ===================================================== */
 
-    getUserPermissions: builder.query<
-      { permissions: any[]; assigned: string[] },
-      number
-    >({
-      query: (id) => `/admin/users/${id}/permissions`,
+    getPermissions: builder.query<any[], void>({
+      query: () => "/admin/permissions",
       transformResponse: (res: any) => res.data,
-      providesTags: ["Users"],
+      providesTags: ["Permissions"],
     }),
 
-    assignUserPermissions: builder.mutation<
-      any,
-      { id: number; permissions: string[] }
-    >({
-      query: ({ id, permissions }) => ({
-        url: `/admin/users/${id}/permissions`,
+    createPermission: builder.mutation<any, { name: string }>({
+      query: (data) => ({
+        url: "/admin/permissions",
         method: "POST",
-        body: { permissions },
+        body: data,
       }),
-      invalidatesTags: ["Users"],
+      invalidatesTags: ["Permissions"],
+    }),
+
+    updatePermission: builder.mutation<any, { id: number; name: string }>({
+      query: ({ id, ...data }) => ({
+        url: `/admin/permissions/${id}`,
+        method: "PUT",
+        body: data,
+      }),
+      invalidatesTags: ["Permissions"],
+    }),
+
+    deletePermission: builder.mutation<void, number>({
+      query: (id) => ({
+        url: `/admin/permissions/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Permissions"],
+    }),
+
+    /* =====================================================
+       DASHBOARD
+    ===================================================== */
+
+    getDashboardStats: builder.query<{ total_users: number }, void>({
+      query: () => "/admin/dashboard/stats",
+      transformResponse: (res: any) => res.data,
     }),
   }),
 });
 
-/* ================= HOOK EXPORTS ================= */
+/* =====================================================
+   HOOK EXPORTS
+===================================================== */
 
 export const {
-  // permissions
-  useGetPermissionsQuery,
-  useCreatePermissionMutation,
-  useUpdatePermissionMutation,
-  useDeletePermissionMutation,
-
   // users
   useGetUsersQuery,
   useCreateUserMutation,
   useDeleteUserMutation,
+  useRestoreUserMutation,
   useAssignUserRolesMutation,
 
-  useRestoreUserMutation,
+  // user → permissions
+  useGetUserPermissionsQuery,
+  useAssignUserPermissionsMutation,
 
   // roles
   useGetRolesQuery,
   useCreateRoleMutation,
   useUpdateRoleMutation,
   useDeleteRoleMutation,
-
-  // role → permissions
   useGetRolePermissionsQuery,
   useAssignRolePermissionsMutation,
 
-  // user → permissions
-  useGetUserPermissionsQuery,
-  useAssignUserPermissionsMutation,
+  // permissions
+  useGetPermissionsQuery,
+  useCreatePermissionMutation,
+  useUpdatePermissionMutation,
+  useDeletePermissionMutation,
+
+  // dashboard
+  useGetDashboardStatsQuery,
 } = api;

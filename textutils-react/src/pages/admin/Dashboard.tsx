@@ -1,10 +1,11 @@
 import { useAuth } from "../../auth/hooks/useAuth";
-import { useGetUsersQuery } from "../../store/api";
+import { useGetDashboardStatsQuery } from "../../store/api";
 import StatCard from "../../ui/StatCard";
 
 export default function Dashboard() {
   const { user, permissions } = useAuth();
-  const { data: users = [] } = useGetUsersQuery();
+  const { data: stats, isLoading } =
+    useGetDashboardStatsQuery();
 
   return (
     <section className="content pt-3">
@@ -13,15 +14,21 @@ export default function Dashboard() {
 
         {/* ================= STAT CARDS ================= */}
         <div className="row">
+          {/* TOTAL USERS */}
           <div className="col-lg-3 col-md-6 mb-3">
             <StatCard
               title="Total Users"
-              value={users.length}
+              value={
+                isLoading
+                  ? "—"
+                  : stats?.total_users ?? 0
+              }
               icon="fas fa-users"
               color="primary"
             />
           </div>
 
+          {/* TOTAL PERMISSIONS */}
           <div className="col-lg-3 col-md-6 mb-3">
             <StatCard
               title="Total Permissions"
@@ -31,6 +38,7 @@ export default function Dashboard() {
             />
           </div>
 
+          {/* YOUR ROLES */}
           <div className="col-lg-3 col-md-6 mb-3">
             <StatCard
               title="Your Roles"
@@ -40,10 +48,11 @@ export default function Dashboard() {
             />
           </div>
 
+          {/* LOGGED IN AS */}
           <div className="col-lg-3 col-md-6 mb-3">
             <StatCard
               title="Logged In As"
-              value={user?.email || "-"}
+              value={user?.email || "—"}
               icon="fas fa-user"
               color="dark"
             />

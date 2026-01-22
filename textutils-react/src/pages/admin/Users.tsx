@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { useAppModal } from "../../context/AppModalContext";
 import { useConfirmDelete } from "../../hooks/useConfirmDelete";
 
@@ -28,16 +29,16 @@ import { execute } from "../../utils/execute";
 import type { User } from "../../types/models";
 import { useAuth } from "../../auth/hooks/useAuth";
 
-export default function Users() {
+function Users() {
   const confirmDelete = useConfirmDelete();
   const { modalType, modalData, openModal, closeModal } =
     useAppModal<User | null>();
 
   const { page, setPage, search, setSearch } = usePagination();
-  const { data, isLoading } = useGetUsersQuery({
-    page,
-    search,
-  });
+  const { data, isLoading } = useGetUsersQuery(
+    { page, search },
+    { refetchOnMountOrArgChange: true }
+  );
 
   const users: User[] = data?.data ?? [];
   const meta = data?.meta;
@@ -50,22 +51,20 @@ export default function Users() {
     confirmDelete("Are you sure you want to archive this user?", async () => {
       await execute(
         () => deleteUser(user.id).unwrap(),
-        "User archived successfully",
+        "User archived successfully"
       );
     });
 
   const handleRestore = async (user: User) => {
+    console.log("Restoring user:", user.id);
     await execute(
       () => restoreUser(user.id).unwrap(),
-      "User restored successfully",
+      "User restored successfully"
     );
   };
 
   const getRowActions = (user: User) => {
-    // 🔒 SUPER ADMIN USER — READ ONLY
-    if (user.roles.includes("super-admin")) {
-      return [];
-    }
+    if (user.roles.includes("super-admin")) return [];
 
     if (user.deleted_at) {
       return [
@@ -85,7 +84,7 @@ export default function Users() {
       },
       {
         label: "Assign Permissions",
-        show: can("user-assign-permission"),
+        show: can(PERMISSIONS.USER.ASSIGN_ROLE),
         onClick: () => openModal("user-permission", user),
       },
       {
@@ -142,7 +141,7 @@ export default function Users() {
                 <tr key={user.id}>
                   <td>{user.name}</td>
                   <td>{user.email}</td>
-                  <td>{user.roles.length ? user.roles.join(", ") : "—"}</td>
+                  <td>{user.roles.join(", ") || "—"}</td>
                   <td>
                     {user.deleted_at ? (
                       <span className="badge badge-warning">Archived</span>
@@ -174,9 +173,14 @@ export default function Users() {
         )}
 
         {modalType === "user-permission" && modalData && (
-          <UserPermissionModal user={modalData} onClose={closeModal} />
+          <UserPermissionModal
+            user={modalData}
+            onClose={closeModal}
+          />
         )}
       </div>
     </section>
   );
 }
+
+export default memo(Users);

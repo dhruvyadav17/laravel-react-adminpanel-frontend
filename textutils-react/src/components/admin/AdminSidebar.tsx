@@ -1,12 +1,13 @@
 import MenuRenderer from "../MenuRenderer";
 import { useGetSidebarQuery } from "../../features/sidebar/sidebar.api";
 import { useLogout } from "../../auth/hooks/useLogout";
+import { SidebarGroup } from "../types/sidebar";
 
 export default function AdminSidebar() {
   const logout = useLogout();
   const { data } = useGetSidebarQuery();
 
-  const groups = data ?? [];
+  const groups: SidebarGroup[] = data ?? [];
 
   const handleAction = (action: string) => {
     if (action === "logout") {
@@ -19,7 +20,7 @@ export default function AdminSidebar() {
       <div className="sidebar">
         <nav>
           <ul className="nav nav-pills nav-sidebar flex-column">
-            {groups.map((group: any) => (
+            {groups.map((group) => (
               <MenuRenderer
                 key={group.label}
                 group={group}
