@@ -1,10 +1,12 @@
+import { theme } from "../../ui/theme";
+
 type Props = {
   label?: string;
   onClick?: () => void;
-  variant?: "primary" | "secondary" | "success" | "warning" | "danger";
+  variant?: keyof typeof theme.colors;
   loading?: boolean;
   disabled?: boolean;
-  icon?: string; // fontawesome class
+  icon?: React.ReactNode;
   size?: "sm" | "md" | "lg";
   className?: string;
   type?: "button" | "submit";
@@ -22,27 +24,19 @@ export default function Button({
   type = "button",
 }: Props) {
   const sizeClass =
-    size === "sm"
-      ? "btn-sm"
-      : size === "lg"
-      ? "btn-lg"
-      : "";
+    size === "sm" ? "btn-sm" : size === "lg" ? "btn-lg" : "";
 
   return (
     <button
       type={type}
-      className={`btn btn-${variant} ${sizeClass} ${className}`}
+      className={`btn btn-${theme.colors[variant]} ${sizeClass} ${className}`}
       onClick={onClick}
       disabled={disabled || loading}
     >
       {loading && (
         <span className="spinner-border spinner-border-sm mr-2" />
       )}
-
-      {icon && !loading && (
-        <i className={`${icon} mr-1`} />
-      )}
-
+      {icon && !loading && <span className="mr-1">{icon}</span>}
       {label}
     </button>
   );

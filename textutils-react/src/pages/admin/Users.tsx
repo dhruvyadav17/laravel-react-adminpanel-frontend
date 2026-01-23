@@ -33,6 +33,7 @@ import type { User } from "../../types/models";
 
 /* 🔥 POLICY */
 import { getUserRowActions } from "../../policies/user.policy";
+import StatusBadge from "../../ui/StatusBadge";
 
 function Users() {
   const confirmDelete = useConfirmDelete();
@@ -42,7 +43,7 @@ function Users() {
   const { page, setPage, search, setSearch } = usePagination();
   const { data, isLoading } = useGetUsersQuery(
     { page, search },
-    { refetchOnMountOrArgChange: true }
+    { refetchOnMountOrArgChange: true },
   );
 
   const users: User[] = data?.data ?? [];
@@ -77,17 +78,11 @@ function Users() {
 
   const handleArchive = (user: User) =>
     confirmDelete("Archive this user?", async () => {
-      await execute(
-        () => deleteUser(user.id).unwrap(),
-        "User archived"
-      );
+      await execute(() => deleteUser(user.id).unwrap(), "User archived");
     });
 
   const handleRestore = async (user: User) => {
-    await execute(
-      () => restoreUser(user.id).unwrap(),
-      "User restored"
-    );
+    await execute(() => restoreUser(user.id).unwrap(), "User restored");
   };
 
   /* ================= VIEW ================= */
@@ -136,8 +131,7 @@ function Users() {
               {users.map((user) => {
                 const actions = getUserRowActions(user, auth, {
                   onAssignRole: () => openModal("user-role", user),
-                  onAssignPermission: () =>
-                    openModal("user-permission", user),
+                  onAssignPermission: () => openModal("user-permission", user),
                   onArchive: () => handleArchive(user),
                   onRestore: () => handleRestore(user),
                 });
@@ -149,13 +143,9 @@ function Users() {
                     <td>{user.roles.join(", ") || "—"}</td>
                     <td>
                       {user.deleted_at ? (
-                        <span className="badge badge-warning">
-                          Archived
-                        </span>
+                        <StatusBadge status="archived" />
                       ) : (
-                        <span className="badge badge-success">
-                          Active
-                        </span>
+                        <StatusBadge status="active" />
                       )}
                     </td>
                     <td className="text-right">

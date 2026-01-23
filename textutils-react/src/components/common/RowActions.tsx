@@ -1,7 +1,7 @@
 import Button from "./Button";
 
 type Action = {
-  label: string;
+  label?: string;
   onClick: () => void;
   variant?: "primary" | "secondary" | "warning" | "danger";
   show?: boolean;
@@ -11,42 +11,22 @@ type Action = {
 
 type Props = {
   actions: Action[];
-
-  /** layout control */
-  align?: "start" | "center" | "end";
-  gap?: number; // bootstrap gap-1, gap-2 etc
-  vertical?: boolean;
 };
 
-export default function RowActions({
-  actions,
-  align = "end",
-  gap = 1,
-  vertical = false,
-}: Props) {
-  const justify =
-    align === "start"
-      ? "justify-content-start"
-      : align === "center"
-      ? "justify-content-center"
-      : "justify-content-end";
-
+export default function RowActions({ actions }: Props) {
   return (
-    <div
-      className={`d-flex ${
-        vertical ? "flex-column" : ""
-      } ${justify} gap-${gap}`}
-    >
+    <div className="d-flex justify-content-end gap-1">
       {actions
         .filter((a) => a.show !== false)
         .map((a, i) => (
           <Button
             key={i}
             label={a.label}
+            icon={a.icon}
             variant={a.variant}
             onClick={a.onClick}
             disabled={a.disabled}
-            icon={a.icon}
+            size="sm"
           />
         ))}
     </div>
