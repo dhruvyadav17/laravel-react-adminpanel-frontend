@@ -42,7 +42,9 @@ export default function LoginForm({
       return;
     }
 
-    const profileRes = await dispatch(fetchProfileThunk());
+    const profileRes = await dispatch(
+      fetchProfileThunk()
+    );
 
     const redirectTo = resolveLoginRedirect(
       profileRes.payload?.user ?? null,

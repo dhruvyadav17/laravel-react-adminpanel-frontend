@@ -5,7 +5,8 @@ namespace App\Services\Auth;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
-
+use App\Models\RefreshToken;
+use Illuminate\Support\Str;
 class LoginService
 {
     public function login(array $data): array
@@ -18,16 +19,24 @@ class LoginService
             ]);
         }
 
-        return [
-            'token' => $user->createToken(
-                'api',
-                $user->getAllPermissions()->pluck('name')->toArray()
-            )->plainTextToken,
+        $abilities = $user->getAllPermissions()?->pluck('name')->toArray() ?? [];
 
-            'user'        => $user,
-            'roles'       => $user->getRoleNames(),
-            'permissions' => $user->getAllPermissions()->pluck('name'),
-            'is_admin'    => $user->isAdmin(), // 🔥 frontend hint
+        $accessToken = $user->createToken('api', $abilities)->plainTextToken;
+
+        $remember = $data['remember'] ?? false;
+
+        $refresh = RefreshToken::create([
+            'user_id' => $user->id,
+            'token' => hash('sha256', Str::random(60)),
+            'expires_at' => now()->addDays($remember ? 30 : 7),
+        ]);
+
+        return [
+            'token' => $accessToken,
+            'refresh_token' => $refresh->token,
+            'user' => $user,
+            'roles' => $user->getRoleNames(),
+            'permissions' => $abilities,
         ];
     }
 }

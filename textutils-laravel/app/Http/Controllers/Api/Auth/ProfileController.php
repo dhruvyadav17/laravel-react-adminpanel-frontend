@@ -18,11 +18,14 @@ class ProfileController extends Controller
         return $this->success('Profile fetched', [
             'user' => UserResource::make($user),
 
-            // 🔑 SINGLE SOURCE OF TRUTH FOR RBAC
             'permissions' => $user
                 ->getAllPermissions()
                 ->pluck('name')
-                ->values(), // ensure clean array
+                ->values(),
+
+            'email_verified' => ! is_null(
+                $user->email_verified_at
+            ),
         ]);
     }
 }

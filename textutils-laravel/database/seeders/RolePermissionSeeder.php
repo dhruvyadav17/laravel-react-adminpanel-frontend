@@ -17,29 +17,52 @@ class RolePermissionSeeder extends Seeder
         $manager    = Role::where('name', 'manager')->first();
         $user       = Role::where('name', 'user')->first();
 
-        /* SUPER ADMIN → ALL */
-        $superAdmin?->syncPermissions(
-            Permission::where('guard_name', $guard)->get()
-        );
+        /* =========================================================
+         | SUPER ADMIN → FULL ACCESS (NO LIMITS)
+         ========================================================= */
+        if ($superAdmin) {
+            $superAdmin->syncPermissions(
+                Permission::where('guard_name', $guard)->get()
+            );
+        }
 
-        /* ADMIN → LIMITED */
-        $admin?->syncPermissions([
-            'user-view',
-            'user-create',
-            'user-edit',
-            'user-delete',
+        /* =========================================================
+         | ADMIN → LIMITED ADMIN (SYSTEM + USER MGMT)
+         ========================================================= */
+        if ($admin) {
+            $admin->syncPermissions([
+                // Users
+                'user-view',
+                'user-create',
+                'user-update',
+                'user-delete',
+                'user-assign-role',
+                'user-assign-permission',
 
-            'role-manage',
-            'permission-manage',
-        ]);
+                // RBAC
+                'role-manage',
+                'permission-manage',
 
-        /* MANAGER → SUB ADMIN */
-        $manager?->syncPermissions([
-            'user-view',
-            'user-edit',
-        ]);
+                // 🔥 SYSTEM
+                'admin-impersonate',
+            ]);
+        }
 
-        /* USER → BASIC */
-        $user?->syncPermissions([]);
+        /* =========================================================
+         | MANAGER → SUB ADMIN (NO SYSTEM POWERS)
+         ========================================================= */
+        if ($manager) {
+            $manager->syncPermissions([
+                'user-view',
+                'user-update',
+            ]);
+        }
+
+        /* =========================================================
+         | USER → BASIC
+         ========================================================= */
+        if ($user) {
+            $user->syncPermissions([]);
+        }
     }
 }

@@ -1,11 +1,13 @@
 import { memo } from "react";
 import { useAppModal } from "../../context/AppModalContext";
 import { useConfirmDelete } from "../../hooks/useConfirmDelete";
+import { useAuth } from "../../auth/hooks/useAuth";
 
 import PageHeader from "../../components/common/PageHeader";
 import DataTable from "../../components/common/DataTable";
 import RowActions from "../../components/common/RowActions";
 import Button from "../../components/common/Button";
+import Can from "../../components/common/Can";
 
 import Card from "../../ui/Card";
 import CardHeader from "../../ui/CardHeader";
@@ -16,8 +18,9 @@ import UserRoleModal from "../../components/UserRoleModal";
 import UserPermissionModal from "../../components/UserPermissionModal";
 import Pagination from "../../components/common/Pagination";
 import { usePagination } from "../../hooks/usePagination";
-import Can from "../../components/common/Can";
+
 import { PERMISSIONS } from "../../constants/permissions";
+import { startImpersonation } from "../../utils/impersonation";
 
 import {
   useGetUsersQuery,
@@ -27,7 +30,6 @@ import {
 
 import { execute } from "../../utils/execute";
 import type { User } from "../../types/models";
-import { useAuth } from "../../auth/hooks/useAuth";
 
 function Users() {
   const confirmDelete = useConfirmDelete();
@@ -45,18 +47,46 @@ function Users() {
 
   const [deleteUser] = useDeleteUserMutation();
   const [restoreUser] = useRestoreUserMutation();
-  const { can } = useAuth();
+
+  const {
+    can,
+    isAdmin,
+    user: authUser,
+  } = useAuth();
+
+  /* ================= IMPERSONATION UI ================= */
+
+  const canImpersonate = can("admin-impersonate");
+
+  function UserActions({ user }: { user: User }) {
+    if (!isAdmin || !canImpersonate) return null;
+    if (authUser?.id === user.id) return null;
+    if (user.roles.includes("super-admin")) return null;
+
+    return (
+      <button
+        className="btn btn-sm btn-warning"
+        onClick={() => startImpersonation(user.id)}
+      >
+        Impersonate
+      </button>
+    );
+  }
+
+  /* ================= ROW ACTIONS ================= */
 
   const handleArchive = (user: User) =>
-    confirmDelete("Are you sure you want to archive this user?", async () => {
-      await execute(
-        () => deleteUser(user.id).unwrap(),
-        "User archived successfully"
-      );
-    });
+    confirmDelete(
+      "Are you sure you want to archive this user?",
+      async () => {
+        await execute(
+          () => deleteUser(user.id).unwrap(),
+          "User archived successfully"
+        );
+      }
+    );
 
   const handleRestore = async (user: User) => {
-    console.log("Restoring user:", user.id);
     await execute(
       () => restoreUser(user.id).unwrap(),
       "User restored successfully"
@@ -96,6 +126,8 @@ function Users() {
     ];
   };
 
+  /* ================= VIEW ================= */
+
   return (
     <section className="content pt-3">
       <div className="container-fluid">
@@ -113,7 +145,6 @@ function Users() {
 
         <div className="mb-3">
           <input
-            type="text"
             className="form-control"
             placeholder="Search by name or email..."
             value={search}
@@ -126,7 +157,7 @@ function Users() {
           <CardBody className="p-0">
             <DataTable
               isLoading={isLoading}
-              colSpan={5}
+              colSpan={6}
               columns={
                 <tr>
                   <th>Name</th>
@@ -134,6 +165,7 @@ function Users() {
                   <th>Roles</th>
                   <th>Status</th>
                   <th className="text-right">Actions</th>
+                  <th>Impersonation</th>
                 </tr>
               }
             >
@@ -144,13 +176,20 @@ function Users() {
                   <td>{user.roles.join(", ") || "—"}</td>
                   <td>
                     {user.deleted_at ? (
-                      <span className="badge badge-warning">Archived</span>
+                      <span className="badge badge-warning">
+                        Archived
+                      </span>
                     ) : (
-                      <span className="badge badge-success">Active</span>
+                      <span className="badge badge-success">
+                        Active
+                      </span>
                     )}
                   </td>
                   <td className="text-right">
                     <RowActions actions={getRowActions(user)} />
+                  </td>
+                  <td>
+                    <UserActions user={user} />
                   </td>
                 </tr>
               ))}
@@ -158,10 +197,15 @@ function Users() {
           </CardBody>
         </Card>
 
-        {meta && <Pagination meta={meta} onPageChange={setPage} />}
+        {meta && (
+          <Pagination meta={meta} onPageChange={setPage} />
+        )}
 
         {modalType === "user-form" && (
-          <UserFormModal onClose={closeModal} onSaved={closeModal} />
+          <UserFormModal
+            onClose={closeModal}
+            onSaved={closeModal}
+          />
         )}
 
         {modalType === "user-role" && modalData && (

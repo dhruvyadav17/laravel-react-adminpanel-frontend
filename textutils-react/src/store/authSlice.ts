@@ -18,6 +18,7 @@ type AuthState = {
   permissions: string[];
   token: string | null;
   loading: boolean;
+  impersonating: boolean;
 };
 
 /* ================= INITIAL STATE ================= */
@@ -29,6 +30,8 @@ const initialState: AuthState = {
     localStorage.getItem("permissions") || "[]"
   ),
   token: localStorage.getItem("token"),
+  impersonating:
+    localStorage.getItem("impersonating") === "1",
   loading: false,
 };
 
@@ -51,8 +54,6 @@ export const loginThunk = createAsyncThunk(
         data.email,
         data.password
       );
-
-      // expected: { token }
       return res.data.data;
     } catch (e: any) {
       return rejectWithValue(
@@ -74,8 +75,6 @@ export const fetchProfileThunk = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const res = await profileService();
-
-      // expected: { user, permissions }
       return res.data.data;
     } catch {
       return rejectWithValue("Failed to load profile");
@@ -105,12 +104,21 @@ const authSlice = createSlice({
   initialState,
 
   reducers: {
-    /**
-     * OPTIONAL
-     * -------------------------------------------------
-     * Keep ONLY if you need manual override (testing/tools)
-     * Otherwise safe to remove.
-     */
+    /* 🔁 Used by impersonation utils */
+    setImpersonating(
+      state,
+      action: PayloadAction<boolean>
+    ) {
+      state.impersonating = action.payload;
+
+      if (action.payload) {
+        localStorage.setItem("impersonating", "1");
+      } else {
+        localStorage.removeItem("impersonating");
+      }
+    },
+
+    /* OPTIONAL manual permission override */
     setPermissions(
       state,
       action: PayloadAction<string[]>
@@ -131,7 +139,6 @@ const authSlice = createSlice({
         state.loading = true;
       })
 
-      /* LOGIN SUCCESS → ONLY TOKEN */
       .addCase(loginThunk.fulfilled, (state, action) => {
         state.loading = false;
         state.token = action.payload.token;
@@ -174,6 +181,7 @@ const authSlice = createSlice({
         state.user = null;
         state.permissions = [];
         state.token = null;
+        state.impersonating = false;
         state.loading = false;
       });
   },
@@ -181,7 +189,9 @@ const authSlice = createSlice({
 
 /* ================= EXPORTS ================= */
 
-export const { setPermissions } =
-  authSlice.actions;
+export const {
+  setPermissions,
+  setImpersonating,
+} = authSlice.actions;
 
 export default authSlice.reducer;

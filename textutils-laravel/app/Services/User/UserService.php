@@ -14,9 +14,9 @@ class UserService
             ->with('roles')
             ->when(
                 $request->filled('search'),
-                fn ($q) =>
-                    $q->where('name', 'like', "%{$request->search}%")
-                      ->orWhere('email', 'like', "%{$request->search}%")
+                fn($q) =>
+                $q->where('name', 'like', "%{$request->search}%")
+                    ->orWhere('email', 'like', "%{$request->search}%")
             )
             ->latest()
             ->paginate(10);
@@ -64,5 +64,18 @@ class UserService
         $user->syncPermissions($permissions);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    public function createAdmin(array $data): User
+    {
+        $user = User::create([
+            'name'     => $data['name'],
+            'email'    => $data['email'],
+            'password' => bcrypt($data['password']),
+        ]);
+
+        $user->assignRole($data['role']);
+
+        return $user;
     }
 }

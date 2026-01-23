@@ -9,6 +9,7 @@ return [
         'user-delete',
         'user-assign-role',
         'user-assign-permission',
+        'user-update',  // 🔥 REQUIRED
     ],
 
     'role' => [

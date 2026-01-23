@@ -2,21 +2,38 @@
 
 namespace App\Models;
 
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
-    use SoftDeletes, HasApiTokens, HasFactory, Notifiable, HasRoles;
+    use HasApiTokens,
+        HasFactory,
+        Notifiable,
+        SoftDeletes,
+        HasRoles;
 
     protected $guarded = [];
+
     protected $guard_name = 'api';
 
-    /* ================= ROLE HELPERS ================= */
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+    ];
+
+    /* ==========================================================
+     | ROLE HELPERS
+     ========================================================== */
 
     public function isSuperAdmin(): bool
     {
@@ -25,7 +42,36 @@ class User extends Authenticatable
 
     public function isAdmin(): bool
     {
-        $adminRoles = config('roles.admin_roles', []);
-        return $this->hasAnyRole($adminRoles);
+        return $this->isSuperAdmin()
+            || $this->hasAnyRole(
+                config('roles.admin_roles', [])
+            );
+    }
+
+    /* ==========================================================
+     | IMPERSONATION RULES
+     ========================================================== */
+
+    /**
+     * Can start impersonation?
+     * - Only admin / super-admin
+     * - Must be verified
+     * - Must be active
+     */
+    public function canImpersonate(): bool
+    {
+        return $this->isAdmin()
+            && $this->hasVerifiedEmail()
+            && $this->is_active;
+    }
+
+    /**
+     * Can be impersonated?
+     * - Never super-admin
+     * - Never self
+     */
+    public function canBeImpersonated(): bool
+    {
+        return ! $this->hasRole('super-admin');
     }
 }

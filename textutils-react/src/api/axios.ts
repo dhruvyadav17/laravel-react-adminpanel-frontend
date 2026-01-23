@@ -1,6 +1,10 @@
 import axios, { AxiosError } from "axios";
 import { getStore } from "../store/storeAccessor";
 import { logoutThunk } from "../store/authSlice";
+import { refreshTokenService } from "../services/authService";
+
+let isRefreshing = false;
+let failedQueue: any[] = [];
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
@@ -25,18 +29,71 @@ api.interceptors.request.use((config) => {
 /* ================= RESPONSE ================= */
 api.interceptors.response.use(
   (res) => res,
-  (error: AxiosError<any>) => {
+  async (error: AxiosError<any>) => {
     const status = error.response?.status;
+    const originalRequest: any = error.config;
 
-    if (status === 401) {
-      const store = getStore();
-      store.dispatch(logoutThunk());
+    const isImpersonating =
+      localStorage.getItem("impersonating") === "1";
 
-      if (!window.location.pathname.includes("/login")) {
-        window.location.replace("/login");
+    /* 🚫 IMPERSONATION → NO REFRESH */
+    if (status === 401 && isImpersonating) {
+      forceLogout();
+      return Promise.reject(error);
+    }
+
+    /* 🔁 TOKEN EXPIRED → TRY REFRESH */
+    if (
+      status === 401 &&
+      !originalRequest._retry &&
+      !isImpersonating
+    ) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then((token: string) => {
+          originalRequest.headers.Authorization =
+            `Bearer ${token}`;
+          return api(originalRequest);
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      const refreshToken =
+        localStorage.getItem("refresh_token");
+
+      if (!refreshToken) {
+        forceLogout();
+        return Promise.reject(error);
+      }
+
+      try {
+        const res = await refreshTokenService(
+          refreshToken
+        );
+
+        const newToken = res.data.data.token;
+
+        localStorage.setItem("token", newToken);
+
+        processQueue(null, newToken);
+
+        originalRequest.headers.Authorization =
+          `Bearer ${newToken}`;
+
+        return api(originalRequest);
+      } catch (err) {
+        processQueue(err, null);
+        forceLogout();
+        return Promise.reject(err);
+      } finally {
+        isRefreshing = false;
       }
     }
 
+    /* 🚫 FORBIDDEN */
     if (status === 403) {
       if (
         !window.location.pathname.includes(
@@ -50,5 +107,32 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+/* ================= HELPERS ================= */
+
+function processQueue(
+  error: any,
+  token: string | null
+) {
+  failedQueue.forEach((p) => {
+    if (error) {
+      p.reject(error);
+    } else {
+      p.resolve(token);
+    }
+  });
+  failedQueue = [];
+}
+
+function forceLogout() {
+  const store = getStore();
+  store.dispatch(logoutThunk());
+
+  localStorage.removeItem("token");
+  localStorage.removeItem("refresh_token");
+  localStorage.removeItem("impersonating");
+
+  window.location.replace("/login");
+}
 
 export default api;

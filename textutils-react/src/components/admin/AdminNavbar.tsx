@@ -1,9 +1,12 @@
 import { NavLink } from "react-router-dom";
 
 import { useLogout } from "../../auth/hooks/useLogout";
+import { useAuth } from "../../auth/hooks/useAuth";
+import { stopImpersonation } from "../../utils/impersonation";
 
 export default function AdminNavbar() {
   const logout = useLogout();
+  const { isImpersonating } = useAuth();
 
   const toggleSidebar = () => {
     document.body.classList.toggle("sidebar-collapse");
@@ -11,7 +14,7 @@ export default function AdminNavbar() {
 
   return (
     <nav className="main-header navbar navbar-expand navbar-white navbar-light">
-      {/* LEFT */}
+      {/* ================= LEFT ================= */}
       <ul className="navbar-nav">
         <li className="nav-item">
           <button
@@ -24,10 +27,22 @@ export default function AdminNavbar() {
         </li>
       </ul>
 
-      {/* RIGHT */}
-      <ul className="navbar-nav ml-auto">
+      {/* ================= RIGHT ================= */}
+      <ul className="navbar-nav ml-auto align-items-center">
+        {/* 🔥 IMPERSONATION EXIT */}
+        {isImpersonating && (
+          <li className="nav-item mr-3">
+            <button
+              className="btn btn-danger btn-sm"
+              onClick={stopImpersonation}
+            >
+              Exit Impersonation
+            </button>
+          </li>
+        )}
+
+        {/* 👤 USER MENU */}
         <li className="nav-item dropdown">
-          {/* 🔥 IMPORTANT: button instead of <a href="#"> */}
           <button
             className="nav-link btn btn-link"
             data-toggle="dropdown"
@@ -37,7 +52,6 @@ export default function AdminNavbar() {
           </button>
 
           <div className="dropdown-menu dropdown-menu-right">
-            {/* ✅ PROFILE WORKS */}
             <NavLink
               to="/admin/profile"
               className="dropdown-item"
@@ -48,7 +62,6 @@ export default function AdminNavbar() {
 
             <div className="dropdown-divider" />
 
-            {/* ✅ LOGOUT WORKS */}
             <button
               className="dropdown-item text-danger"
               onClick={() => logout()}

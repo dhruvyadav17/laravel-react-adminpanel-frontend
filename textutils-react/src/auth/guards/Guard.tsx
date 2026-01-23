@@ -6,22 +6,44 @@ type Props = {
   permission?: string;
 };
 
-export default function Guard({ admin, permission }: Props) {
-  const { isAuth, isAdmin, can } = useAuth();
+export default function Guard({
+  admin = false,
+  permission,
+}: Props) {
+  const { isAuth, isAdmin, can, user } = useAuth();
 
-  /* 🔒 AUTH */
+  /* 🔒 NOT LOGGED IN */
   if (!isAuth) {
-    return <Navigate to={admin ? "/admin/login" : "/login"} replace />;
+    return (
+      <Navigate
+        to={admin ? "/admin/login" : "/login"}
+        replace
+      />
+    );
   }
 
-  /* 🛡 ADMIN */
+  /* 📧 EMAIL NOT VERIFIED (USER ONLY) */
+  // if (
+  //   !admin &&                       // admin routes skip
+  //   user &&
+  //   !user.email_verified_at         // not verified
+  // ) {
+  //   return <Navigate to="/verify-email" replace />;
+  // }
+
+  /* 🛡 ADMIN ACCESS */
   if (admin && !isAdmin) {
     return <Navigate to="/profile" replace />;
   }
 
-  /* 🔐 PERMISSION */
+  /* 🔐 PERMISSION CHECK */
   if (permission && !can(permission)) {
-    return <Navigate to="/admin/unauthorized" replace />;
+    return (
+      <Navigate
+        to="/admin/unauthorized"
+        replace
+      />
+    );
   }
 
   return <Outlet />;
