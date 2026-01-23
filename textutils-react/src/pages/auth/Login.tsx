@@ -3,21 +3,22 @@ import LoginForm from "../../auth/LoginForm";
 import { useAuth } from "../../auth/hooks/useAuth";
 
 type Props = {
-  admin?: boolean; // 🔥 admin or user login
+  admin?: boolean;
 };
 
 export default function Login({ admin = false }: Props) {
   const { isAuth, isAdmin } = useAuth();
 
-  /* ================= REDIRECT LOGIC ================= */
+  /* 🔁 Already logged in */
   if (isAuth) {
-    if (isAdmin) {
-      return <Navigate to="/admin/dashboard" replace />;
-    }
-    return <Navigate to="/profile" replace />;
+    return (
+      <Navigate
+        to={isAdmin ? "/admin/dashboard" : "/profile"}
+        replace
+      />
+    );
   }
 
-  /* ================= VIEW ================= */
   return (
     <LoginForm
       title={admin ? "Admin Login" : "User Login"}

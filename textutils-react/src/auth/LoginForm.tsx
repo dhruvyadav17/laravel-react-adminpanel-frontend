@@ -2,16 +2,24 @@ import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 
-import { loginThunk, fetchProfileThunk } from "../store/authSlice";
+import {
+  loginThunk,
+  fetchProfileThunk,
+} from "../store/authSlice";
+
 import type { RootState, AppDispatch } from "../store";
 import { handleApiError } from "../utils/toastHelper";
+import { resolveLoginRedirect } from "../utils/authRedirect";
 
 type Props = {
   title: string;
   redirectAdmin?: boolean;
 };
 
-export default function LoginForm({ title, redirectAdmin }: Props) {
+export default function LoginForm({
+  title,
+  redirectAdmin = false,
+}: Props) {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
 
@@ -25,30 +33,23 @@ export default function LoginForm({ title, redirectAdmin }: Props) {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const res = await dispatch(
+    const loginRes = await dispatch(
       loginThunk({ email, password })
     );
 
-    if (loginThunk.rejected.match(res)) {
-      handleApiError(res.payload || res.error);
+    if (loginThunk.rejected.match(loginRes)) {
+      handleApiError(loginRes.payload || loginRes.error);
       return;
     }
 
-    if (loginThunk.fulfilled.match(res)) {
-      const profileRes = await dispatch(fetchProfileThunk());
+    const profileRes = await dispatch(fetchProfileThunk());
 
-      const roles = profileRes.payload?.user?.roles ?? [];
-      const isAdmin =
-        roles.includes("admin") ||
-        roles.includes("super-admin");
+    const redirectTo = resolveLoginRedirect(
+      profileRes.payload?.user ?? null,
+      redirectAdmin
+    );
 
-      navigate(
-        redirectAdmin || isAdmin
-          ? "/admin/dashboard"
-          : "/profile",
-        { replace: true }
-      );
-    }
+    navigate(redirectTo, { replace: true });
   };
 
   return (
