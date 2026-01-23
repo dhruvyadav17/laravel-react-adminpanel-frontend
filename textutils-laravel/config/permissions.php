@@ -3,19 +3,23 @@
 return [
 
     'user' => [
-        'view'        => 'user-view',
-        'create'      => 'user-create',
-        'update'      => 'user-update',
-        'delete'      => 'user-delete',
-        'assign_role' => 'user-assign-role',
+        'user-view',
+        'user-create',
+        'user-edit',     // 🔥 REQUIRED
+        'user-delete',
+        'user-assign-role',
+        'user-assign-permission',
     ],
 
     'role' => [
-        'manage' => 'role-manage',
+        'role-view',
+        'role-create',
+        'role-edit',
+        'role-manage',
     ],
 
     'permission' => [
-        'manage' => 'permission-manage',
+        'permission-manage',
     ],
 
 ];

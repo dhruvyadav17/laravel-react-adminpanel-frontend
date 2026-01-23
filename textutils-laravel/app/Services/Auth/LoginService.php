@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services\Auth;
 
 use App\Models\User;
@@ -11,22 +12,22 @@ class LoginService
     {
         $user = User::where('email', $data['email'])->first();
 
-        if (!$user || !Hash::check($data['password'], $user->password)) {
+        if (! $user || ! Hash::check($data['password'], $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['Invalid credentials']
             ]);
         }
-
-        //$user->tokens()->delete();
 
         return [
             'token' => $user->createToken(
                 'api',
                 $user->getAllPermissions()->pluck('name')->toArray()
             )->plainTextToken,
-            'user' => $user,
-            'roles' => $user->getRoleNames(),
+
+            'user'        => $user,
+            'roles'       => $user->getRoleNames(),
             'permissions' => $user->getAllPermissions()->pluck('name'),
+            'is_admin'    => $user->isAdmin(), // 🔥 frontend hint
         ];
     }
 }

@@ -1,96 +1,43 @@
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
+import { ADMIN_ROLES } from "../../constants/roles";
 
-/**
- * useAuth
- * -------------------------------------------------
- * Single source of truth for:
- * - user
- * - roles
- * - permissions
- * - role & permission helpers
- *
- * ❗ RULE:
- * - Never access permissions array directly in UI
- * - Always use can() / canAny()
- */
 export function useAuth() {
-  /* ================= STORE ================= */
-
-  const user = useSelector(
-    (state: RootState) => state.auth.user
-  );
-
-  const permissions = useSelector(
-    (state: RootState) => state.auth.permissions
-  );
+  const user = useSelector((s: RootState) => s.auth.user);
+  const permissions = useSelector((s: RootState) => s.auth.permissions);
 
   const roles: string[] = user?.roles ?? [];
 
-  /* ================= BASIC FLAGS ================= */
-
   const isAuth = Boolean(user);
-
   const isSuperAdmin = roles.includes("super-admin");
 
   const isAdmin =
-    isSuperAdmin || roles.includes("admin");
+    isSuperAdmin ||
+    roles.some((r) => ADMIN_ROLES.includes(r as any));
 
-  /* ================= ROLE HELPERS ================= */
-
-  /**
-   * Check single role
-   */
-  const hasRole = (role: string): boolean =>
+  const hasRole = (role: string) =>
     isSuperAdmin || roles.includes(role);
 
-  /**
-   * Check multiple roles (OR condition)
-   */
-  const hasAnyRole = (
-    checkRoles: string[]
-  ): boolean =>
-    isSuperAdmin ||
-    checkRoles.some((r) => roles.includes(r));
+  const hasAnyRole = (checkRoles: string[]) =>
+    isSuperAdmin || checkRoles.some((r) => roles.includes(r));
 
-  /* ================= PERMISSION HELPERS ================= */
+  const can = (permission: string) =>
+    isSuperAdmin || permissions.includes(permission);
 
-  /**
-   * Check single permission
-   */
-  const can = (permission: string): boolean =>
-    isSuperAdmin ||
-    permissions.includes(permission);
-
-  /**
-   * Check multiple permissions (OR condition)
-   */
-  const canAny = (
-    checkPermissions: string[]
-  ): boolean =>
-    isSuperAdmin ||
-    checkPermissions.some((p) =>
-      permissions.includes(p)
-    );
-
-  /* ================= RETURN API ================= */
+  const canAny = (perms: string[]) =>
+    isSuperAdmin || perms.some((p) => permissions.includes(p));
 
   return {
-    /* raw state (read-only) */
     user,
     roles,
     permissions,
 
-    /* auth flags */
     isAuth,
     isAdmin,
     isSuperAdmin,
 
-    /* role helpers */
     hasRole,
     hasAnyRole,
-
-    /* permission helpers */
     can,
     canAny,
   };

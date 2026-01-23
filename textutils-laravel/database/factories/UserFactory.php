@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 class UserFactory extends Factory
 {
@@ -13,18 +14,19 @@ class UserFactory extends Factory
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
-            'password' => Hash::make('password'), // default
-            // 'role' => 'user',
+            'password' => Hash::make('password'),
             'remember_token' => str()->random(10),
+            'is_active' => true,
         ];
     }
 
-    // 👑 Admin state
+    /**
+     * 🔥 ADMIN USER
+     */
     public function admin(): static
     {
-        return $this->state(fn () => [
-            // 'role' => 'admin',
-            'email' => 'admin@test.com',
-        ]);
+        return $this->afterCreating(function ($user) {
+            $user->assignRole('admin');
+        });
     }
 }

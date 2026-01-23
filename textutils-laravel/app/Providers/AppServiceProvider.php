@@ -10,17 +10,6 @@ use Illuminate\Support\Facades\RateLimiter;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
-    public function register(): void
-    {
-        //
-    }
-
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
         RateLimiter::for('api', function (Request $request) {
@@ -29,8 +18,9 @@ class AppServiceProvider extends ServiceProvider
             );
         });
 
-        Gate::before(function ($user, $ability) {
-            return $user->hasRole('super-admin') ? true : null;
+        /* 🔥 SUPER ADMIN = GOD MODE */
+        Gate::before(function ($user) {
+            return $user->isSuperAdmin() ? true : null;
         });
     }
 }

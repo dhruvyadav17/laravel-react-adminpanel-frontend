@@ -13,40 +13,33 @@ class RolePermissionSeeder extends Seeder
         $guard = 'api';
 
         $superAdmin = Role::where('name', 'super-admin')->first();
-        $admin = Role::where('name', 'admin')->first();
-        $user = Role::where('name', 'user')->first();
+        $admin      = Role::where('name', 'admin')->first();
+        $manager    = Role::where('name', 'manager')->first();
+        $user       = Role::where('name', 'user')->first();
 
-        /*
-        |--------------------------------------------------------------------------
-        | SUPER ADMIN → ALL PERMISSIONS
-        |--------------------------------------------------------------------------
-        */
-        $superAdmin->syncPermissions(
+        /* SUPER ADMIN → ALL */
+        $superAdmin?->syncPermissions(
             Permission::where('guard_name', $guard)->get()
         );
 
-        /*
-        |--------------------------------------------------------------------------
-        | ADMIN → LIMITED PERMISSIONS
-        |--------------------------------------------------------------------------
-        */
-        $admin->syncPermissions([
+        /* ADMIN → LIMITED */
+        $admin?->syncPermissions([
             'user-view',
             'user-create',
             'user-edit',
             'user-delete',
 
-            'role-view',
-            'role-create',
-            'role-edit',
             'role-manage',
+            'permission-manage',
         ]);
 
-        /*
-        |--------------------------------------------------------------------------
-        | USER → BASIC (OPTIONAL)
-        |--------------------------------------------------------------------------
-        */
-        $user->syncPermissions([]);
+        /* MANAGER → SUB ADMIN */
+        $manager?->syncPermissions([
+            'user-view',
+            'user-edit',
+        ]);
+
+        /* USER → BASIC */
+        $user?->syncPermissions([]);
     }
 }
