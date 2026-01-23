@@ -5,22 +5,22 @@ return [
     'user' => [
         'user-view',
         'user-create',
-        'user-edit',     // 🔥 REQUIRED
+        'user-update',
         'user-delete',
         'user-assign-role',
         'user-assign-permission',
-        'user-update',  // 🔥 REQUIRED
     ],
 
     'role' => [
-        'role-view',
-        'role-create',
-        'role-edit',
         'role-manage',
     ],
 
     'permission' => [
         'permission-manage',
+    ],
+
+    'system' => [
+        'admin-impersonate',
     ],
 
 ];

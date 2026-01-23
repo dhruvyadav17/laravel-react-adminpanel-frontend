@@ -26,6 +26,9 @@ import Can from "../../components/common/Can";
 import { PERMISSIONS } from "../../constants/permissions";
 import { useAuth } from "../../auth/hooks/useAuth";
 
+/* 🔥 POLICY */
+import { getRoleRowActions } from "../../policies/role.policy";
+
 function Roles() {
   const confirmDelete = useConfirmDelete();
   const { modalType, modalData, openModal, closeModal } =
@@ -47,7 +50,7 @@ function Roles() {
     reset,
   } = useBackendForm({ name: "" });
 
-  const { can } = useAuth();
+  const auth = useAuth();
 
   const save = async () => {
     try {
@@ -72,38 +75,12 @@ function Roles() {
   };
 
   const handleDelete = (role: Role) =>
-    confirmDelete("Are you sure you want to delete this role?", async () => {
+    confirmDelete("Delete this role?", async () => {
       await execute(
         () => deleteRole(role.id).unwrap(),
         "Role deleted"
       );
     });
-
-  const getRowActions = (role: Role) => {
-    if (role.name === "super-admin") return [];
-
-    return [
-      {
-        label: "Assign Permissions",
-        show: can(PERMISSIONS.ROLE.MANAGE),
-        onClick: () => openModal("permission", role),
-      },
-      {
-        label: "Edit",
-        show: can(PERMISSIONS.ROLE.MANAGE),
-        onClick: () => {
-          setField("name", role.name);
-          openModal("role-edit", role);
-        },
-      },
-      {
-        label: "Delete",
-        variant: "danger" as const,
-        show: can(PERMISSIONS.ROLE.MANAGE),
-        onClick: () => handleDelete(role),
-      },
-    ];
-  };
 
   return (
     <section className="content pt-3">
@@ -138,14 +115,26 @@ function Roles() {
                 </tr>
               }
             >
-              {roles.map((role) => (
-                <tr key={role.id}>
-                  <td>{role.name}</td>
-                  <td className="text-right">
-                    <RowActions actions={getRowActions(role)} />
-                  </td>
-                </tr>
-              ))}
+              {roles.map((role) => {
+                const actions = getRoleRowActions(role, auth, {
+                  onEdit: () => {
+                    setField("name", role.name);
+                    openModal("role-edit", role);
+                  },
+                  onDelete: () => handleDelete(role),
+                  onAssignPermission: () =>
+                    openModal("permission", role),
+                });
+
+                return (
+                  <tr key={role.id}>
+                    <td>{role.name}</td>
+                    <td className="text-right">
+                      <RowActions actions={actions} />
+                    </td>
+                  </tr>
+                );
+              })}
             </DataTable>
           </CardBody>
         </Card>
@@ -161,20 +150,27 @@ function Roles() {
             saveText={modalType === "role-edit" ? "Update" : "Save"}
           >
             <input
-              className={`form-control ${errors.name ? "is-invalid" : ""}`}
+              className={`form-control ${
+                errors.name ? "is-invalid" : ""
+              }`}
               value={values.name}
               onChange={(e) => setField("name", e.target.value)}
               disabled={loading}
               placeholder="Role name"
             />
             {errors.name && (
-              <div className="invalid-feedback">{errors.name[0]}</div>
+              <div className="invalid-feedback">
+                {errors.name[0]}
+              </div>
             )}
           </Modal>
         )}
 
         {modalType === "permission" && modalData && (
-          <RolePermissionModal role={modalData} onClose={closeModal} />
+          <RolePermissionModal
+            role={modalData}
+            onClose={closeModal}
+          />
         )}
       </div>
     </section>
