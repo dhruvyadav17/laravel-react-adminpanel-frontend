@@ -31,10 +31,6 @@ import {
 import { execute } from "../../utils/execute";
 import type { User } from "../../types/models";
 
-/* 🔥 POLICY */
-import { getUserRowActions } from "../../policies/user.policy";
-import StatusBadge from "../../ui/StatusBadge";
-
 function Users() {
   const confirmDelete = useConfirmDelete();
   const { modalType, modalData, openModal, closeModal } =
@@ -43,7 +39,7 @@ function Users() {
   const { page, setPage, search, setSearch } = usePagination();
   const { data, isLoading } = useGetUsersQuery(
     { page, search },
-    { refetchOnMountOrArgChange: true },
+    { refetchOnMountOrArgChange: true }
   );
 
   const users: User[] = data?.data ?? [];
@@ -52,10 +48,13 @@ function Users() {
   const [deleteUser] = useDeleteUserMutation();
   const [restoreUser] = useRestoreUserMutation();
 
-  const auth = useAuth();
-  const { can, isAdmin, user: authUser } = auth;
+  const {
+    can,
+    isAdmin,
+    user: authUser,
+  } = useAuth();
 
-  /* ================= IMPERSONATION ================= */
+  /* ================= IMPERSONATION UI ================= */
 
   const canImpersonate = can("admin-impersonate");
 
@@ -74,15 +73,57 @@ function Users() {
     );
   }
 
-  /* ================= HANDLERS ================= */
+  /* ================= ROW ACTIONS ================= */
 
   const handleArchive = (user: User) =>
-    confirmDelete("Archive this user?", async () => {
-      await execute(() => deleteUser(user.id).unwrap(), "User archived");
-    });
+    confirmDelete(
+      "Are you sure you want to archive this user?",
+      async () => {
+        await execute(
+          () => deleteUser(user.id).unwrap(),
+          "User archived successfully"
+        );
+      }
+    );
 
   const handleRestore = async (user: User) => {
-    await execute(() => restoreUser(user.id).unwrap(), "User restored");
+    await execute(
+      () => restoreUser(user.id).unwrap(),
+      "User restored successfully"
+    );
+  };
+
+  const getRowActions = (user: User) => {
+    if (user.roles.includes("super-admin")) return [];
+
+    if (user.deleted_at) {
+      return [
+        {
+          label: "Restore",
+          variant: "success" as const,
+          onClick: () => handleRestore(user),
+        },
+      ];
+    }
+
+    return [
+      {
+        label: "Assign Role",
+        show: can(PERMISSIONS.USER.ASSIGN_ROLE),
+        onClick: () => openModal("user-role", user),
+      },
+      {
+        label: "Assign Permissions",
+        show: can(PERMISSIONS.USER.ASSIGN_ROLE),
+        onClick: () => openModal("user-permission", user),
+      },
+      {
+        label: "Archive",
+        variant: "danger" as const,
+        show: can(PERMISSIONS.USER.DELETE),
+        onClick: () => handleArchive(user),
+      },
+    ];
   };
 
   /* ================= VIEW ================= */
@@ -128,43 +169,43 @@ function Users() {
                 </tr>
               }
             >
-              {users.map((user) => {
-                const actions = getUserRowActions(user, auth, {
-                  onAssignRole: () => openModal("user-role", user),
-                  onAssignPermission: () => openModal("user-permission", user),
-                  onArchive: () => handleArchive(user),
-                  onRestore: () => handleRestore(user),
-                });
-
-                return (
-                  <tr key={user.id}>
-                    <td>{user.name}</td>
-                    <td>{user.email}</td>
-                    <td>{user.roles.join(", ") || "—"}</td>
-                    <td>
-                      {user.deleted_at ? (
-                        <StatusBadge status="archived" />
-                      ) : (
-                        <StatusBadge status="active" />
-                      )}
-                    </td>
-                    <td className="text-right">
-                      <RowActions actions={actions} />
-                    </td>
-                    <td>
-                      <UserActions user={user} />
-                    </td>
-                  </tr>
-                );
-              })}
+              {users.map((user) => (
+                <tr key={user.id}>
+                  <td>{user.name}</td>
+                  <td>{user.email}</td>
+                  <td>{user.roles.join(", ") || "—"}</td>
+                  <td>
+                    {user.deleted_at ? (
+                      <span className="badge badge-warning">
+                        Archived
+                      </span>
+                    ) : (
+                      <span className="badge badge-success">
+                        Active
+                      </span>
+                    )}
+                  </td>
+                  <td className="text-right">
+                    <RowActions actions={getRowActions(user)} />
+                  </td>
+                  <td>
+                    <UserActions user={user} />
+                  </td>
+                </tr>
+              ))}
             </DataTable>
           </CardBody>
         </Card>
 
-        {meta && <Pagination meta={meta} onPageChange={setPage} />}
+        {meta && (
+          <Pagination meta={meta} onPageChange={setPage} />
+        )}
 
         {modalType === "user-form" && (
-          <UserFormModal onClose={closeModal} onSaved={closeModal} />
+          <UserFormModal
+            onClose={closeModal}
+            onSaved={closeModal}
+          />
         )}
 
         {modalType === "user-role" && modalData && (
@@ -176,7 +217,10 @@ function Users() {
         )}
 
         {modalType === "user-permission" && modalData && (
-          <UserPermissionModal user={modalData} onClose={closeModal} />
+          <UserPermissionModal
+            user={modalData}
+            onClose={closeModal}
+          />
         )}
       </div>
     </section>

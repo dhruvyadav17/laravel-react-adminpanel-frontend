@@ -1,11 +1,14 @@
 import React from "react";
 
-export default function Card({
-  children,
-  className = "",
-}: {
+type Props = {
   children: React.ReactNode;
   className?: string;
-}) {
-  return <div className={`card shadow-sm ${className}`}>{children}</div>;
+};
+
+export default function Card({ children, className = "" }: Props) {
+  return (
+    <div className={`card card-outline card-primary ${className}`}>
+      {children}
+    </div>
+  );
 }

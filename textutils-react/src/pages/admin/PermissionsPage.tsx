@@ -26,9 +26,6 @@ import Can from "../../components/common/Can";
 import { PERMISSIONS } from "../../constants/permissions";
 import { useAuth } from "../../auth/hooks/useAuth";
 
-/* 🔥 POLICY */
-import { getPermissionRowActions } from "../../policies/permission.policy";
-
 function PermissionsPage() {
   const confirmDelete = useConfirmDelete();
   const { modalType, modalData, openModal, closeModal } =
@@ -51,7 +48,7 @@ function PermissionsPage() {
     reset,
   } = useBackendForm({ name: "" });
 
-  const auth = useAuth();
+  const { can } = useAuth();
 
   const save = async () => {
     try {
@@ -64,9 +61,7 @@ function PermissionsPage() {
                 name: values.name,
               }).unwrap()
             : createPermission(values).unwrap(),
-        modalData?.id
-          ? "Permission updated"
-          : "Permission created"
+        modalData?.id ? "Permission updated" : "Permission created"
       );
       closeModal();
       reset();
@@ -78,12 +73,32 @@ function PermissionsPage() {
   };
 
   const handleDelete = (permission: Permission) =>
-    confirmDelete("Delete this permission?", async () => {
-      await execute(
-        () => deletePermission(permission.id).unwrap(),
-        "Permission deleted"
-      );
-    });
+    confirmDelete(
+      "Are you sure you want to delete this permission?",
+      async () => {
+        await execute(
+          () => deletePermission(permission.id).unwrap(),
+          "Permission deleted"
+        );
+      }
+    );
+
+  const getRowActions = (permission: Permission) => [
+    {
+      label: "Edit",
+      show: can(PERMISSIONS.PERMISSION.MANAGE),
+      onClick: () => {
+        setField("name", permission.name);
+        openModal("permission", permission);
+      },
+    },
+    {
+      label: "Delete",
+      variant: "danger" as const,
+      show: can(PERMISSIONS.PERMISSION.MANAGE),
+      onClick: () => handleDelete(permission),
+    },
+  ];
 
   return (
     <section className="content pt-3">
@@ -118,28 +133,14 @@ function PermissionsPage() {
                 </tr>
               }
             >
-              {permissions.map((permission) => {
-                const actions = getPermissionRowActions(
-                  permission,
-                  auth,
-                  {
-                    onEdit: () => {
-                      setField("name", permission.name);
-                      openModal("permission", permission);
-                    },
-                    onDelete: () => handleDelete(permission),
-                  }
-                );
-
-                return (
-                  <tr key={permission.id}>
-                    <td>{permission.name}</td>
-                    <td className="text-right">
-                      <RowActions actions={actions} />
-                    </td>
-                  </tr>
-                );
-              })}
+              {permissions.map((permission) => (
+                <tr key={permission.id}>
+                  <td>{permission.name}</td>
+                  <td className="text-right">
+                    <RowActions actions={getRowActions(permission)} />
+                  </td>
+                </tr>
+              ))}
             </DataTable>
           </CardBody>
         </Card>
@@ -153,18 +154,14 @@ function PermissionsPage() {
             saveText={modalData?.id ? "Update" : "Save"}
           >
             <input
-              className={`form-control ${
-                errors.name ? "is-invalid" : ""
-              }`}
+              className={`form-control ${errors.name ? "is-invalid" : ""}`}
               value={values.name}
               onChange={(e) => setField("name", e.target.value)}
               disabled={loading}
               placeholder="Permission name"
             />
             {errors.name && (
-              <div className="invalid-feedback">
-                {errors.name[0]}
-              </div>
+              <div className="invalid-feedback">{errors.name[0]}</div>
             )}
           </Modal>
         )}

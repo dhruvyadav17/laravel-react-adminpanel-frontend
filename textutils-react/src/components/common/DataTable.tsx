@@ -1,4 +1,3 @@
-import { theme } from "../../ui/theme";
 import TableSkeleton from "./TableSkeleton";
 
 type Props = {
@@ -16,22 +15,19 @@ export default function DataTable({
   emptyMessage = "No records found",
   colSpan,
 }: Props) {
-  const hasRows =
-    Array.isArray(children) && children.length > 0;
-
   return (
-    <table className={theme.table.base}>
-      <thead className={theme.table.head}>{columns}</thead>
+    <table className="table table-bordered table-hover table-striped">
+      <thead className="table-dark">{columns}</thead>
 
       {isLoading ? (
         <TableSkeleton rows={5} cols={colSpan} />
       ) : (
         <tbody>
-          {hasRows ? (
-            children
-          ) : (
+          {children}
+
+          {!children && (
             <tr>
-              <td colSpan={colSpan} className="text-center text-muted">
+              <td colSpan={colSpan} className="text-center">
                 {emptyMessage}
               </td>
             </tr>
