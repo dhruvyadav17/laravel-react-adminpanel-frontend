@@ -4,7 +4,7 @@ type Props = {
   variant?: "primary" | "secondary" | "success" | "warning" | "danger";
   loading?: boolean;
   disabled?: boolean;
-  icon?: string; // fontawesome class
+  icon?: string;
   size?: "sm" | "md" | "lg";
   className?: string;
   type?: "button" | "submit";
@@ -22,11 +22,7 @@ export default function Button({
   type = "button",
 }: Props) {
   const sizeClass =
-    size === "sm"
-      ? "btn-sm"
-      : size === "lg"
-      ? "btn-lg"
-      : "";
+    size === "sm" ? "btn-sm" : size === "lg" ? "btn-lg" : "";
 
   return (
     <button
@@ -38,11 +34,7 @@ export default function Button({
       {loading && (
         <span className="spinner-border spinner-border-sm mr-2" />
       )}
-
-      {icon && !loading && (
-        <i className={`${icon} mr-1`} />
-      )}
-
+      {icon && !loading && <i className={`${icon} mr-1`} />}
       {label}
     </button>
   );

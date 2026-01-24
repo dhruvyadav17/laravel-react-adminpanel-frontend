@@ -1,15 +1,14 @@
 import { useEffect } from "react";
 import Button from "./Button";
+import { ICONS } from "../../constants/icons";
 
 type Props = {
   title: string;
   children: React.ReactNode;
   onClose: () => void;
   onSave?: () => void;
-
   saveText?: string;
   cancelText?: string;
-
   saveVariant?: "primary" | "success" | "danger";
   loading?: boolean;
   disableClose?: boolean;
@@ -34,20 +33,14 @@ export default function Modal({
   }, []);
 
   const sizeClass =
-    size === "sm"
-      ? "modal-sm"
-      : size === "lg"
-      ? "modal-lg"
-      : "";
+    size === "sm" ? "modal-sm" : size === "lg" ? "modal-lg" : "";
 
   return (
     <>
       <div className="modal-backdrop fade show" />
-
       <div className="modal fade show d-block">
         <div className={`modal-dialog modal-dialog-centered ${sizeClass}`}>
           <div className="modal-content">
-            {/* HEADER */}
             <div className="modal-header">
               <h5 className="modal-title">{title}</h5>
               {!disableClose && (
@@ -57,11 +50,9 @@ export default function Modal({
               )}
             </div>
 
-            {/* BODY */}
             <div className="modal-body">{children}</div>
 
-            {/* FOOTER */}
-            <div className="modal-footer">
+            <div className="modal-footer justify-content-between">
               <Button
                 label={cancelText}
                 variant="secondary"
@@ -72,9 +63,10 @@ export default function Modal({
               {onSave && (
                 <Button
                   label={saveText}
+                  icon={ICONS.SAVE}
                   variant={saveVariant}
-                  onClick={onSave}
                   loading={loading}
+                  onClick={onSave}
                 />
               )}
             </div>

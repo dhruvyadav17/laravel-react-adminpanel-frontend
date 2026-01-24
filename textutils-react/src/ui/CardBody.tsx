@@ -1,10 +1,9 @@
-import React from "react";
-
-type Props = {
+export default function CardBody({
+  children,
+  className = "",
+}: {
   children: React.ReactNode;
   className?: string;
-};
-
-export default function CardBody({ children, className = "" }: Props) {
+}) {
   return <div className={`card-body ${className}`}>{children}</div>;
 }

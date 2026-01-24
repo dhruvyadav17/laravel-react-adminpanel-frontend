@@ -42,6 +42,11 @@ Route::post('/forgot-password', ForgotPasswordController::class);
 Route::post('/reset-password', ResetPasswordController::class);
 Route::post('/refresh-token', RefreshTokenController::class);
 
+Route::post(
+    '/admin/impersonate-exit',
+    [ImpersonationController::class, 'exit']
+)->middleware('auth:sanctum');
+
 /*
 |--------------------------------------------------------------------------
 | AUTHENTICATED ROUTES

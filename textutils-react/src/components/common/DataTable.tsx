@@ -16,15 +16,14 @@ export default function DataTable({
   colSpan,
 }: Props) {
   return (
-    <table className="table table-bordered table-hover table-striped">
-      <thead className="table-dark">{columns}</thead>
+    <table className="table table-hover table-bordered text-nowrap">
+      <thead className="thead-dark">{columns}</thead>
 
       {isLoading ? (
         <TableSkeleton rows={5} cols={colSpan} />
       ) : (
         <tbody>
           {children}
-
           {!children && (
             <tr>
               <td colSpan={colSpan} className="text-center">

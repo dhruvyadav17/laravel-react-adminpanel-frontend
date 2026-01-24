@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Hash;
 use App\Http\Controllers\Controller;
 use App\Traits\ApiResponse;
 use App\Http\Requests\Admin\CreateAdminRequest;
+use App\Services\User\UserService;
 
 class AdminUserController extends Controller
 {
@@ -40,3 +41,4 @@ class AdminUserController extends Controller
         );
     }
 }
+UserService

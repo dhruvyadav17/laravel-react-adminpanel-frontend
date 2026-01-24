@@ -20,6 +20,7 @@ import Pagination from "../../components/common/Pagination";
 import { usePagination } from "../../hooks/usePagination";
 
 import { PERMISSIONS } from "../../constants/permissions";
+import { ICONS } from "../../constants/icons";
 import { startImpersonation } from "../../utils/impersonation";
 
 import {
@@ -37,6 +38,7 @@ function Users() {
     useAppModal<User | null>();
 
   const { page, setPage, search, setSearch } = usePagination();
+
   const { data, isLoading } = useGetUsersQuery(
     { page, search },
     { refetchOnMountOrArgChange: true }
@@ -54,26 +56,27 @@ function Users() {
     user: authUser,
   } = useAuth();
 
-  /* ================= IMPERSONATION UI ================= */
+  /* ================= IMPERSONATION ================= */
 
   const canImpersonate = can("admin-impersonate");
 
-  function UserActions({ user }: { user: User }) {
+  function ImpersonateButton({ user }: { user: User }) {
     if (!isAdmin || !canImpersonate) return null;
     if (authUser?.id === user.id) return null;
     if (user.roles.includes("super-admin")) return null;
 
     return (
-      <button
-        className="btn btn-sm btn-warning"
+      <Button
+        label="Impersonate"
+        icon={ICONS.IMPERSONATE}
+        variant="warning"
+        size="sm"
         onClick={() => startImpersonation(user.id)}
-      >
-        Impersonate
-      </button>
+      />
     );
   }
 
-  /* ================= ROW ACTIONS ================= */
+  /* ================= ACTION HANDLERS ================= */
 
   const handleArchive = (user: User) =>
     confirmDelete(
@@ -93,6 +96,8 @@ function Users() {
     );
   };
 
+  /* ================= ROW ACTIONS ================= */
+
   const getRowActions = (user: User) => {
     if (user.roles.includes("super-admin")) return [];
 
@@ -100,6 +105,7 @@ function Users() {
       return [
         {
           label: "Restore",
+          icon: ICONS.RESTORE,
           variant: "success" as const,
           onClick: () => handleRestore(user),
         },
@@ -108,17 +114,20 @@ function Users() {
 
     return [
       {
-        label: "Assign Role",
+        label: "Roles",
+        icon: ICONS.ROLE,
         show: can(PERMISSIONS.USER.ASSIGN_ROLE),
         onClick: () => openModal("user-role", user),
       },
       {
-        label: "Assign Permissions",
+        label: "Permissions",
+        icon: ICONS.PERMISSION,
         show: can(PERMISSIONS.USER.ASSIGN_ROLE),
         onClick: () => openModal("user-permission", user),
       },
       {
         label: "Archive",
+        icon: ICONS.DELETE,
         variant: "danger" as const,
         show: can(PERMISSIONS.USER.DELETE),
         onClick: () => handleArchive(user),
@@ -136,20 +145,29 @@ function Users() {
           action={
             <Can permission={PERMISSIONS.USER.CREATE}>
               <Button
-                label="+ Add User"
+                label="Add User"
+                icon={ICONS.ADD}
                 onClick={() => openModal("user-form", null)}
               />
             </Can>
           }
         />
 
+        {/* SEARCH */}
         <div className="mb-3">
-          <input
-            className="form-control"
-            placeholder="Search by name or email..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+          <div className="input-group">
+            <input
+              className="form-control"
+              placeholder="Search by name or email..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <div className="input-group-append">
+              <span className="input-group-text">
+                <i className="fas fa-search" />
+              </span>
+            </div>
+          </div>
         </div>
 
         <Card>
@@ -189,7 +207,7 @@ function Users() {
                     <RowActions actions={getRowActions(user)} />
                   </td>
                   <td>
-                    <UserActions user={user} />
+                    <ImpersonateButton user={user} />
                   </td>
                 </tr>
               ))}
@@ -198,9 +216,13 @@ function Users() {
         </Card>
 
         {meta && (
-          <Pagination meta={meta} onPageChange={setPage} />
+          <Pagination
+            meta={meta}
+            onPageChange={setPage}
+          />
         )}
 
+        {/* MODALS */}
         {modalType === "user-form" && (
           <UserFormModal
             onClose={closeModal}

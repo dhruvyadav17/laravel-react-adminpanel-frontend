@@ -3,40 +3,15 @@ import Button from "./Button";
 type Action = {
   label: string;
   onClick: () => void;
-  variant?: "primary" | "secondary" | "warning" | "danger";
+  variant?: "primary" | "secondary" | "warning" | "danger" | "success";
   show?: boolean;
   disabled?: boolean;
-  icon?: React.ReactNode;
+  icon?: string;
 };
 
-type Props = {
-  actions: Action[];
-
-  /** layout control */
-  align?: "start" | "center" | "end";
-  gap?: number; // bootstrap gap-1, gap-2 etc
-  vertical?: boolean;
-};
-
-export default function RowActions({
-  actions,
-  align = "end",
-  gap = 1,
-  vertical = false,
-}: Props) {
-  const justify =
-    align === "start"
-      ? "justify-content-start"
-      : align === "center"
-      ? "justify-content-center"
-      : "justify-content-end";
-
+export default function RowActions({ actions }: { actions: Action[] }) {
   return (
-    <div
-      className={`d-flex ${
-        vertical ? "flex-column" : ""
-      } ${justify} gap-${gap}`}
-    >
+    <div className="btn-group btn-group-sm">
       {actions
         .filter((a) => a.show !== false)
         .map((a, i) => (
@@ -47,6 +22,7 @@ export default function RowActions({
             onClick={a.onClick}
             disabled={a.disabled}
             icon={a.icon}
+            size="sm"
           />
         ))}
     </div>

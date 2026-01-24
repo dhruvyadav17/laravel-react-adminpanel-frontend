@@ -1,60 +1,42 @@
 import { useAuth } from "../../auth/hooks/useAuth";
 import { useGetDashboardStatsQuery } from "../../store/api";
-import StatCard from "../../ui/StatCard";
+import InfoBox from "../../ui/InfoBox";
+import { ICONS } from "../../constants/icons";
 
 export default function Dashboard() {
   const { user, permissions } = useAuth();
-  const { data: stats, isLoading } =
-    useGetDashboardStatsQuery();
+  const { data: stats } = useGetDashboardStatsQuery();
 
   return (
     <section className="content pt-3">
       <div className="container-fluid">
         <h3 className="mb-3">Admin Dashboard</h3>
 
-        {/* ================= STAT CARDS ================= */}
         <div className="row">
-          {/* TOTAL USERS */}
-          <div className="col-lg-3 col-md-6 mb-3">
-            <StatCard
+          <div className="col-md-3 col-sm-6">
+            <InfoBox
               title="Total Users"
-              value={
-                isLoading
-                  ? "—"
-                  : stats?.total_users ?? 0
-              }
-              icon="fas fa-users"
+              value={stats?.total_users ?? 0}
+              icon={ICONS.USER}
               color="primary"
             />
           </div>
 
-          {/* TOTAL PERMISSIONS */}
-          <div className="col-lg-3 col-md-6 mb-3">
-            <StatCard
-              title="Total Permissions"
+          <div className="col-md-3 col-sm-6">
+            <InfoBox
+              title="Permissions"
               value={permissions.length}
-              icon="fas fa-key"
+              icon={ICONS.PERMISSION}
               color="success"
             />
           </div>
 
-          {/* YOUR ROLES */}
-          <div className="col-lg-3 col-md-6 mb-3">
-            <StatCard
-              title="Your Roles"
-              value={user?.roles?.length || 0}
-              icon="fas fa-user-shield"
+          <div className="col-md-3 col-sm-6">
+            <InfoBox
+              title="Roles"
+              value={user?.roles.length || 0}
+              icon={ICONS.ROLE}
               color="warning"
-            />
-          </div>
-
-          {/* LOGGED IN AS */}
-          <div className="col-lg-3 col-md-6 mb-3">
-            <StatCard
-              title="Logged In As"
-              value={user?.email || "—"}
-              icon="fas fa-user"
-              color="dark"
             />
           </div>
         </div>
