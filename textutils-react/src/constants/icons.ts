@@ -6,6 +6,5 @@ export const ICONS = {
   ROLE: "fas fa-user-shield",
   PERMISSION: "fas fa-key",
   USER: "fas fa-users",
-  IMPERSONATE: "fas fa-user-secret",
   RESTORE: "fas fa-undo",
 };

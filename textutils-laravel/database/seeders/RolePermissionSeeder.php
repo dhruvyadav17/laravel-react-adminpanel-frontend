@@ -42,9 +42,6 @@ class RolePermissionSeeder extends Seeder
                 // RBAC
                 'role-manage',
                 'permission-manage',
-
-                // 🔥 SYSTEM
-                'admin-impersonate',
             ]);
         }
 

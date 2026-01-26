@@ -22,8 +22,7 @@ use App\Http\Controllers\Api\Admin\{
     UserController,
     SidebarController,
     DashboardController,
-    AdminUserController,
-    ImpersonationController
+    AdminUserController
 };
 
 use App\Http\Controllers\Api\{
@@ -42,10 +41,7 @@ Route::post('/forgot-password', ForgotPasswordController::class);
 Route::post('/reset-password', ResetPasswordController::class);
 Route::post('/refresh-token', RefreshTokenController::class);
 
-Route::post(
-    '/admin/impersonate-exit',
-    [ImpersonationController::class, 'exit']
-)->middleware('auth:sanctum');
+
 
 /*
 |--------------------------------------------------------------------------
@@ -80,16 +76,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/sidebar', SidebarController::class);
         Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
 
-        /* ================= IMPERSONATION ================= */
-        Route::post(
-            '/impersonate/{user}',
-            [ImpersonationController::class, 'impersonate']
-        )->middleware('permission:admin-impersonate');
-
-        Route::post(
-            '/impersonate/exit',
-            [ImpersonationController::class, 'exit']
-        );
 
         /* ================= CREATE ADMIN ================= */
         Route::post(

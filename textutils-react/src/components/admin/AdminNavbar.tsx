@@ -1,12 +1,8 @@
 import { NavLink } from "react-router-dom";
-
 import { useLogout } from "../../auth/hooks/useLogout";
-import { useAuth } from "../../auth/hooks/useAuth";
-import { stopImpersonation } from "../../utils/impersonation";
 
 export default function AdminNavbar() {
   const logout = useLogout();
-  const { isImpersonating } = useAuth();
 
   const toggleSidebar = () => {
     document.body.classList.toggle("sidebar-collapse");
@@ -29,18 +25,6 @@ export default function AdminNavbar() {
 
       {/* ================= RIGHT ================= */}
       <ul className="navbar-nav ml-auto align-items-center">
-        {/* 🔥 IMPERSONATION EXIT */}
-        {isImpersonating && (
-          <li className="nav-item mr-3">
-            <button
-              className="btn btn-danger btn-sm"
-              onClick={stopImpersonation}
-            >
-              Exit Impersonation
-            </button>
-          </li>
-        )}
-
         {/* 👤 USER MENU */}
         <li className="nav-item dropdown">
           <button

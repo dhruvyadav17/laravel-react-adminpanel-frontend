@@ -48,30 +48,4 @@ class User extends Authenticatable implements MustVerifyEmail
             );
     }
 
-    /* ==========================================================
-     | IMPERSONATION RULES
-     ========================================================== */
-
-    /**
-     * Can start impersonation?
-     * - Only admin / super-admin
-     * - Must be verified
-     * - Must be active
-     */
-    public function canImpersonate(): bool
-    {
-        return $this->isAdmin()
-            && $this->hasVerifiedEmail()
-            && $this->is_active;
-    }
-
-    /**
-     * Can be impersonated?
-     * - Never super-admin
-     * - Never self
-     */
-    public function canBeImpersonated(): bool
-    {
-        return ! $this->hasRole('super-admin');
-    }
 }

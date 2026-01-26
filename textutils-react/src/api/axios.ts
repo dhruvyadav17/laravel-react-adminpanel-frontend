@@ -4,7 +4,10 @@ import { logoutThunk } from "../store/authSlice";
 import { refreshTokenService } from "../services/authService";
 
 let isRefreshing = false;
-let failedQueue: any[] = [];
+let failedQueue: {
+  resolve: (token: string) => void;
+  reject: (err: any) => void;
+}[] = [];
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
@@ -33,21 +36,8 @@ api.interceptors.response.use(
     const status = error.response?.status;
     const originalRequest: any = error.config;
 
-    const isImpersonating =
-      localStorage.getItem("impersonating") === "1";
-
-    /* 🚫 IMPERSONATION → NO REFRESH */
-    if (status === 401 && isImpersonating) {
-      forceLogout();
-      return Promise.reject(error);
-    }
-
-    /* 🔁 TOKEN EXPIRED → TRY REFRESH */
-    if (
-      status === 401 &&
-      !originalRequest._retry &&
-      !isImpersonating
-    ) {
+    /* ================= 401 → TOKEN EXPIRED ================= */
+    if (status === 401 && !originalRequest?._retry) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -93,7 +83,7 @@ api.interceptors.response.use(
       }
     }
 
-    /* 🚫 FORBIDDEN */
+    /* ================= 403 → UNAUTHORIZED ================= */
     if (status === 403) {
       if (
         !window.location.pathname.includes(
@@ -117,7 +107,7 @@ function processQueue(
   failedQueue.forEach((p) => {
     if (error) {
       p.reject(error);
-    } else {
+    } else if (token) {
       p.resolve(token);
     }
   });
@@ -130,7 +120,6 @@ function forceLogout() {
 
   localStorage.removeItem("token");
   localStorage.removeItem("refresh_token");
-  localStorage.removeItem("impersonating");
 
   window.location.replace("/login");
 }

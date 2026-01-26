@@ -21,16 +21,8 @@ class PermissionSeeder extends Seeder
             }
         }
 
-        /* ================= SYSTEM / ADMIN PERMISSIONS ================= */
-        $systemPermissions = [
-            'admin-impersonate',   // 🔥 REQUIRED for impersonation
-        ];
+     
 
-        foreach ($systemPermissions as $permission) {
-            Permission::firstOrCreate([
-                'name'       => $permission,
-                'guard_name' => $guard,
-            ]);
-        }
+      
     }
 }

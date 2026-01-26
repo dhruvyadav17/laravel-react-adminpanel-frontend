@@ -13,10 +13,6 @@ export function useAuth() {
     (s: RootState) => s.auth.permissions
   );
 
-  const isImpersonating = useSelector(
-    (s: RootState) => s.auth.impersonating
-  );
-
   const roles: string[] = user?.roles ?? [];
 
   /* ================= FLAGS ================= */
@@ -67,7 +63,6 @@ export function useAuth() {
     isAuth,
     isAdmin,
     isSuperAdmin,
-    isImpersonating,
 
     hasRole,
     hasAnyRole,

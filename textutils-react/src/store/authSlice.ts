@@ -18,7 +18,6 @@ type AuthState = {
   permissions: string[];
   token: string | null;
   loading: boolean;
-  impersonating: boolean;
 };
 
 /* ================= INITIAL STATE ================= */
@@ -30,8 +29,6 @@ const initialState: AuthState = {
     localStorage.getItem("permissions") || "[]"
   ),
   token: localStorage.getItem("token"),
-  impersonating:
-    localStorage.getItem("impersonating") === "1",
   loading: false,
 };
 
@@ -104,21 +101,10 @@ const authSlice = createSlice({
   initialState,
 
   reducers: {
-    /* 🔁 Used by impersonation utils */
-    setImpersonating(
-      state,
-      action: PayloadAction<boolean>
-    ) {
-      state.impersonating = action.payload;
-
-      if (action.payload) {
-        localStorage.setItem("impersonating", "1");
-      } else {
-        localStorage.removeItem("impersonating");
-      }
-    },
-
-    /* OPTIONAL manual permission override */
+    /**
+     * OPTIONAL manual permission override
+     * (rare cases only)
+     */
     setPermissions(
       state,
       action: PayloadAction<string[]>
@@ -181,7 +167,6 @@ const authSlice = createSlice({
         state.user = null;
         state.permissions = [];
         state.token = null;
-        state.impersonating = false;
         state.loading = false;
       });
   },
@@ -189,9 +174,6 @@ const authSlice = createSlice({
 
 /* ================= EXPORTS ================= */
 
-export const {
-  setPermissions,
-  setImpersonating,
-} = authSlice.actions;
+export const { setPermissions } = authSlice.actions;
 
 export default authSlice.reducer;

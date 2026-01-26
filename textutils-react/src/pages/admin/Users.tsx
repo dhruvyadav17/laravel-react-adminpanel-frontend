@@ -21,7 +21,6 @@ import { usePagination } from "../../hooks/usePagination";
 
 import { PERMISSIONS } from "../../constants/permissions";
 import { ICONS } from "../../constants/icons";
-import { startImpersonation } from "../../utils/impersonation";
 
 import {
   useGetUsersQuery,
@@ -50,31 +49,7 @@ function Users() {
   const [deleteUser] = useDeleteUserMutation();
   const [restoreUser] = useRestoreUserMutation();
 
-  const {
-    can,
-    isAdmin,
-    user: authUser,
-  } = useAuth();
-
-  /* ================= IMPERSONATION ================= */
-
-  const canImpersonate = can("admin-impersonate");
-
-  function ImpersonateButton({ user }: { user: User }) {
-    if (!isAdmin || !canImpersonate) return null;
-    if (authUser?.id === user.id) return null;
-    if (user.roles.includes("super-admin")) return null;
-
-    return (
-      <Button
-        label="Impersonate"
-        icon={ICONS.IMPERSONATE}
-        variant="warning"
-        size="sm"
-        onClick={() => startImpersonation(user.id)}
-      />
-    );
-  }
+  const { can } = useAuth();
 
   /* ================= ACTION HANDLERS ================= */
 
@@ -122,7 +97,7 @@ function Users() {
       {
         label: "Permissions",
         icon: ICONS.PERMISSION,
-        show: can(PERMISSIONS.USER.ASSIGN_ROLE),
+        show: can(PERMISSIONS.USER.ASSIGN_PERMISSION),
         onClick: () => openModal("user-permission", user),
       },
       {
@@ -175,7 +150,7 @@ function Users() {
           <CardBody className="p-0">
             <DataTable
               isLoading={isLoading}
-              colSpan={6}
+              colSpan={5}
               columns={
                 <tr>
                   <th>Name</th>
@@ -183,7 +158,6 @@ function Users() {
                   <th>Roles</th>
                   <th>Status</th>
                   <th className="text-right">Actions</th>
-                  <th>Impersonation</th>
                 </tr>
               }
             >
@@ -205,9 +179,6 @@ function Users() {
                   </td>
                   <td className="text-right">
                     <RowActions actions={getRowActions(user)} />
-                  </td>
-                  <td>
-                    <ImpersonateButton user={user} />
                   </td>
                 </tr>
               ))}
