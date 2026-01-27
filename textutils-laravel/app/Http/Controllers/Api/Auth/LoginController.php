@@ -13,6 +13,10 @@ class LoginController extends Controller
 
     public function __invoke(LoginRequest $request, LoginService $service)
     {
+        if (! config('features.login_rate_limit')) {
+            return $this->error('Login temporarily disabled', null, 403);
+        }
+
         return $this->success(
             'Login successful',
             $service->login($request->validated())

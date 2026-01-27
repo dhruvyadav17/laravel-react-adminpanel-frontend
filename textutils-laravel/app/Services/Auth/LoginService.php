@@ -5,8 +5,7 @@ namespace App\Services\Auth;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
-use App\Models\RefreshToken;
-use Illuminate\Support\Str;
+
 class LoginService
 {
     public function login(array $data): array
@@ -15,28 +14,42 @@ class LoginService
 
         if (! $user || ! Hash::check($data['password'], $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['Invalid credentials']
+                'email' => ['Invalid credentials'],
             ]);
         }
 
-        $abilities = $user->getAllPermissions()?->pluck('name')->toArray() ?? [];
+        // 🔒 inactive user
+        if (! $user->is_active) {
+            throw ValidationException::withMessages([
+                'email' => ['Account is disabled'],
+            ]);
+        }
 
-        $accessToken = $user->createToken('api', $abilities)->plainTextToken;
+        // 🔐 email verification
+        if (
+            config('features.email_verification') &&
+            ! $user->hasVerifiedEmail()
+        ) {
+            throw ValidationException::withMessages([
+                'email' => ['Email not verified'],
+            ]);
+        }
 
-        $remember = $data['remember'] ?? false;
+        // 🔑 token
+        $abilities = $user->getAllPermissions()
+            ->pluck('name')
+            ->toArray();
 
-        $refresh = RefreshToken::create([
-            'user_id' => $user->id,
-            'token' => hash('sha256', Str::random(60)),
-            'expires_at' => now()->addDays($remember ? 30 : 7),
+        $token = $user->createToken('api', $abilities)->plainTextToken;
+
+        // 🕒 login meta
+        $user->update([
+            'last_login_at' => now(),
+            'last_login_ip' => request()->ip(),
         ]);
 
         return [
-            'token' => $accessToken,
-            'refresh_token' => $refresh->token,
-            'user' => $user,
-            'roles' => $user->getRoleNames(),
-            'permissions' => $abilities,
+            'token' => $token,
         ];
     }
 }

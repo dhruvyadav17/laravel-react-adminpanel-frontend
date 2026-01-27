@@ -58,18 +58,19 @@ class EmailVerificationController extends Controller
 
     public function resend(Request $request)
     {
+        if (! config('features.email_verification')) {
+            return $this->success('Email verification disabled');
+        }
+
         $user = $request->user();
 
         if ($user->hasVerifiedEmail()) {
-            return $this->success(
-                'Email already verified'
-            );
+            return $this->success('Email already verified');
         }
 
         $user->sendEmailVerificationNotification();
 
-        return $this->success(
-            'Verification email sent'
-        );
+        return $this->success('Verification email sent');
     }
+
 }

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\Auth;
 
 use App\Models\RefreshToken;
-use App\Models\User;
 use Illuminate\Http\Request;
 use App\Traits\ApiResponse;
 use App\Http\Controllers\Controller;
@@ -14,26 +13,43 @@ class RefreshTokenController extends Controller
 
     public function __invoke(Request $request)
     {
-        $token = $request->input('refresh_token');
+        if (! config('features.refresh_token')) {
+            return $this->error(
+                'Refresh token feature disabled',
+                null,
+                403
+            );
+        }
 
-        $record = RefreshToken::where('token', $token)
-            ->where('expires_at', '>', now())
+        $request->validate([
+            'refresh_token' => ['required', 'string'],
+        ]);
+
+        $record = RefreshToken::active()
+            ->where('token', $request->refresh_token)
             ->first();
 
         if (! $record) {
-            return $this->error('Invalid refresh token', null, 401);
+            return $this->error('Invalid or expired refresh token', null, 401);
         }
 
-        $user = User::find($record->user_id);
+        $user = $record->user;
+
+        // 🔒 Rotate token (single-use)
+        $record->update([
+            'revoked_at' => now(),
+        ]);
 
         $abilities = $user
-            ->getAllPermissions()?->pluck('name')->toArray() ?? [];
+            ->getAllPermissions()
+            ->pluck('name')
+            ->toArray();
 
         $accessToken = $user
             ->createToken('api', $abilities)
             ->plainTextToken;
 
-        return $this->success('Token refreshed', [
+        return $this->success('Token refreshed successfully', [
             'token' => $accessToken,
         ]);
     }
