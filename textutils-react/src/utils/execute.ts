@@ -1,10 +1,20 @@
-import { handleApiError, handleApiSuccess } from "./toastHelper";
+// src/utils/execute.ts
 
-/**
- * Central API executor
- * - shows backend message if present
- * - otherwise fallback
- */
+import {
+  handleApiError,
+  handleApiSuccess,
+} from "./toastHelper";
+
+/* =====================================================
+   EXECUTE
+   -----------------------------------------------------
+   Central async executor
+   RULES:
+   - Success toast ONLY once
+   - Backend message preferred
+   - Errors never swallowed
+===================================================== */
+
 export async function execute<T>(
   fn: () => Promise<T>,
   successFallback?: string
@@ -12,14 +22,24 @@ export async function execute<T>(
   try {
     const res: any = await fn();
 
-    handleApiSuccess(
-      res,
-      successFallback
-    );
+    /**
+     * 🔔 Success handling
+     * - If backend sends message → use it
+     * - Else use fallback (if provided)
+     * - If neither → no toast (silent success)
+     */
+    if (successFallback || res?.data?.message) {
+      handleApiSuccess(res, successFallback);
+    }
 
     return res;
-  } catch (e) {
-    handleApiError(e);
-    throw e; // 🔥 do not swallow
+  } catch (error) {
+    /**
+     * ❌ Error handling
+     * - Centralized toast
+     * - Let caller decide next step
+     */
+    handleApiError(error);
+    throw error; // 🔥 NEVER swallow
   }
 }

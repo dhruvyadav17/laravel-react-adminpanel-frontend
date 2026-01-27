@@ -83,22 +83,25 @@ function PermissionsPage() {
       }
     );
 
-  const getRowActions = (permission: Permission) => [
-    {
-      label: "Edit",
-      show: can(PERMISSIONS.PERMISSION.MANAGE),
-      onClick: () => {
-        setField("name", permission.name);
-        openModal("permission", permission);
-      },
+const getRowActions = (permission: Permission) => [
+  {
+    key: "edit",
+    label: "Edit",
+    show: can(PERMISSIONS.PERMISSION.MANAGE),
+    onClick: () => {
+      setField("name", permission.name);
+      openModal("permission", permission);
     },
-    {
-      label: "Delete",
-      variant: "danger" as const,
-      show: can(PERMISSIONS.PERMISSION.MANAGE),
-      onClick: () => handleDelete(permission),
-    },
-  ];
+  },
+  {
+    key: "delete",
+    label: "Delete",
+    variant: "danger" as const,
+    show: can(PERMISSIONS.PERMISSION.MANAGE),
+    onClick: () => handleDelete(permission),
+  },
+];
+
 
   return (
     <section className="content pt-3">
@@ -124,14 +127,15 @@ function PermissionsPage() {
             <DataTable
               isLoading={isLoading}
               colSpan={2}
-              columns={
+              hasData={permissions.length > 0}
+              columns={(
                 <tr>
                   <th>Name</th>
                   <th className="text-right" style={{ width: 180 }}>
                     Actions
                   </th>
                 </tr>
-              }
+              )}
             >
               {permissions.map((permission) => (
                 <tr key={permission.id}>

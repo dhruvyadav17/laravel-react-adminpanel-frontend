@@ -1,51 +1,89 @@
+// src/utils/toastHelper.ts
+
 import { toast } from "react-toastify";
 
-function extractMessage(input: any, fallback: string): string {
+/* =====================================================
+   MESSAGE EXTRACTION
+   -----------------------------------------------------
+   Priority:
+   1. Backend message
+   2. First validation error
+   3. Fallback
+===================================================== */
+
+function extractMessage(
+  input: any,
+  fallback: string
+): string {
   if (!input) return fallback;
 
-  // axios / rtk response
-  const data = input?.data ?? input?.response?.data;
+  const data =
+    input?.data ??
+    input?.response?.data ??
+    input;
 
-  if (data?.message) return data.message;
+  /* ===== backend message ===== */
+  if (typeof data?.message === "string") {
+    return data.message;
+  }
 
-  // validation
-  if (data?.errors) {
+  /* ===== validation errors ===== */
+  if (
+    data?.errors &&
+    typeof data.errors === "object"
+  ) {
     const firstKey = Object.keys(data.errors)[0];
-    if (firstKey && data.errors[firstKey]?.length) {
-      return data.errors[firstKey][0];
+    const firstError =
+      firstKey && data.errors[firstKey]?.[0];
+
+    if (firstError) {
+      return firstError;
     }
   }
 
   return fallback;
 }
 
-/* ================= SUCCESS ================= */
+/* =====================================================
+   SUCCESS TOAST
+===================================================== */
+
 export const handleApiSuccess = (
   res?: any,
   fallback = "Action completed successfully"
 ) => {
   const message = extractMessage(res, fallback);
+
+  if (!message) return; // silent success allowed
+
   toast.success(message);
 };
 
-/* ================= ERROR ================= */
+/* =====================================================
+   ERROR TOAST
+===================================================== */
+
 export const handleApiError = (
   error: any,
   fallback = "Something went wrong"
 ) => {
   const status =
-    error?.status ?? error?.response?.status;
+    error?.status ??
+    error?.response?.status;
 
   let defaultMessage = fallback;
 
+  /* ===== auth related ===== */
   if (status === 401) {
     defaultMessage = "Please login to continue";
-  }
-
-  if (status === 403) {
+  } else if (status === 403) {
     defaultMessage = "You are not authorized";
   }
 
-  const message = extractMessage(error, defaultMessage);
+  const message = extractMessage(
+    error,
+    defaultMessage
+  );
+
   toast.error(message);
 };

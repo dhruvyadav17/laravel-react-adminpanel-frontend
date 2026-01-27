@@ -1,18 +1,59 @@
+// src/services/authService.ts
+
 import api from "../api/axios";
 
-/* LOGIN */
-export const loginService = (email: string, password: string) =>
-  api.post("/login", { email, password });
+/* =====================================================
+   AUTH SERVICES
+   -----------------------------------------------------
+   - ONLY auth-related endpoints
+   - No refresh logic here
+   - No token mutation here
+===================================================== */
 
-/* PROFILE */
-export const profileService = () =>
-  api.get("/profile");
+/* ================= LOGIN ================= */
+/**
+ * Returns:
+ * {
+ *   token: string
+ *   refresh_token: string
+ * }
+ */
+export const loginService = (
+  email: string,
+  password: string
+) => {
+  return api.post("/login", {
+    email,
+    password,
+  });
+};
 
-/* LOGOUT */
-export const logoutService = () =>
-  api.post("/logout");
+/* ================= PROFILE ================= */
+/**
+ * SINGLE SOURCE OF TRUTH
+ * {
+ *   user: User
+ *   permissions: string[]
+ * }
+ */
+export const profileService = () => {
+  return api.get("/profile");
+};
 
-/* 🆕 REGISTER (USER ONLY) */
+/* ================= LOGOUT ================= */
+/**
+ * Best-effort backend logout
+ * (frontend state already cleared)
+ */
+export const logoutService = () => {
+  return api.post("/logout");
+};
+
+/* ================= REGISTER ================= */
+/**
+ * USER ONLY
+ * Admin creation handled elsewhere
+ */
 export const registerService = (data: {
   name: string;
   email: string;
@@ -20,10 +61,4 @@ export const registerService = (data: {
   password_confirmation: string;
 }) => {
   return api.post("/register", data);
-};
-
-export const refreshTokenService = (refreshToken: string) => {
-  return api.post("/refresh-token", {
-    refresh_token: refreshToken,
-  });
 };

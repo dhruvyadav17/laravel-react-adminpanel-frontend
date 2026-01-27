@@ -1,25 +1,19 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import type { RootState } from "./index";
-import type { User } from "../types/models";
+// src/store/api.ts
+
+import { createApi } from "@reduxjs/toolkit/query/react";
+import type { User, Role, Permission } from "../types/models";
+import type { PaginationMeta } from "../types/pagination";
+import { baseQueryWithReauth } from "./baseQueryWithReauth";
+import { buildQueryParams } from "./apiHelpers";
+
+/* =====================================================
+   API SLICE – SINGLE SOURCE OF TRUTH
+===================================================== */
 
 export const api = createApi({
   reducerPath: "api",
+  baseQuery: baseQueryWithReauth,
 
-  baseQuery: fetchBaseQuery({
-    baseUrl: import.meta.env.VITE_API_URL,
-    prepareHeaders: (headers, { getState }) => {
-      const token = (getState() as RootState).auth.token;
-
-      if (token) {
-        headers.set("Authorization", `Bearer ${token}`);
-      }
-
-      headers.set("Accept", "application/json");
-      return headers;
-    },
-  }),
-
-  // 🔥 CENTRALIZED TAGS
   tagTypes: ["Users", "Roles", "Permissions"],
 
   endpoints: (builder) => ({
@@ -28,24 +22,37 @@ export const api = createApi({
     ===================================================== */
 
     getUsers: builder.query<
-      { data: User[]; meta: any },
+      { data: User[]; meta: PaginationMeta },
       { page?: number; search?: string } | void
     >({
-      query: (args = {}) => {
-        const page = args.page ?? 1;
-        const search = args.search ?? "";
-        return `/admin/users?page=${page}&search=${search}`;
-      },
-      providesTags: ["Users"],
+      query: (params) =>
+        `/admin/users${buildQueryParams(params)}`,
+
+      // 🔥 BACKEND → FRONTEND CONTRACT
+      transformResponse: (res: any) => ({
+        data: res.data ?? [],
+        meta: res.meta,
+      }),
+
+      providesTags: (res) =>
+        res?.data
+          ? [
+              ...res.data.map((u: User) => ({
+                type: "Users" as const,
+                id: u.id,
+              })),
+              { type: "Users", id: "LIST" },
+            ]
+          : [{ type: "Users", id: "LIST" }],
     }),
 
-    createUser: builder.mutation<any, any>({
-      query: (data) => ({
+    createUser: builder.mutation<any, Partial<User>>({
+      query: (body) => ({
         url: "/admin/users",
         method: "POST",
-        body: data,
+        body,
       }),
-      invalidatesTags: ["Users"],
+      invalidatesTags: [{ type: "Users", id: "LIST" }],
     }),
 
     deleteUser: builder.mutation<void, number>({
@@ -53,7 +60,10 @@ export const api = createApi({
         url: `/admin/users/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["Users"], // archive → reload
+      invalidatesTags: (_r, _e, id) => [
+        { type: "Users", id },
+        { type: "Users", id: "LIST" },
+      ],
     }),
 
     restoreUser: builder.mutation<void, number>({
@@ -61,7 +71,7 @@ export const api = createApi({
         url: `/admin/users/${id}/restore`,
         method: "POST",
       }),
-      invalidatesTags: ["Users"], // restore → reload
+      invalidatesTags: [{ type: "Users", id: "LIST" }],
     }),
 
     assignUserRoles: builder.mutation<
@@ -73,7 +83,7 @@ export const api = createApi({
         method: "POST",
         body: { roles },
       }),
-      invalidatesTags: ["Users"], // role assign → reload
+      invalidatesTags: [{ type: "Users", id: "LIST" }],
     }),
 
     /* =====================================================
@@ -81,12 +91,12 @@ export const api = createApi({
     ===================================================== */
 
     getUserPermissions: builder.query<
-      { permissions: any[]; assigned: string[] },
+      { permissions: Permission[]; assigned: string[] },
       number
     >({
       query: (id) => `/admin/users/${id}/permissions`,
       transformResponse: (res: any) => res.data,
-      providesTags: ["Users"],
+      providesTags: (_r, _e, id) => [{ type: "Users", id }],
     }),
 
     assignUserPermissions: builder.mutation<
@@ -98,35 +108,47 @@ export const api = createApi({
         method: "POST",
         body: { permissions },
       }),
-      invalidatesTags: ["Users"], // permission assign → reload
+      invalidatesTags: (_r, _e, { id }) => [{ type: "Users", id }],
     }),
 
     /* =====================================================
        ROLES
     ===================================================== */
 
-    getRoles: builder.query<any[], void>({
+    getRoles: builder.query<Role[], void>({
       query: () => "/admin/roles",
-      transformResponse: (res: any) => res.data,
-      providesTags: ["Roles"],
+      transformResponse: (res: any) => res.data ?? [],
+      providesTags: (res) =>
+        res
+          ? [
+              ...res.map((r: Role) => ({
+                type: "Roles" as const,
+                id: r.id,
+              })),
+              { type: "Roles", id: "LIST" },
+            ]
+          : [{ type: "Roles", id: "LIST" }],
     }),
 
     createRole: builder.mutation<any, { name: string }>({
-      query: (data) => ({
+      query: (body) => ({
         url: "/admin/roles",
         method: "POST",
-        body: data,
+        body,
       }),
-      invalidatesTags: ["Roles"],
+      invalidatesTags: [{ type: "Roles", id: "LIST" }],
     }),
 
     updateRole: builder.mutation<any, { id: number; name: string }>({
-      query: ({ id, ...data }) => ({
+      query: ({ id, ...body }) => ({
         url: `/admin/roles/${id}`,
         method: "PUT",
-        body: data,
+        body,
       }),
-      invalidatesTags: ["Roles"],
+      invalidatesTags: (_r, _e, { id }) => [
+        { type: "Roles", id },
+        { type: "Roles", id: "LIST" },
+      ],
     }),
 
     deleteRole: builder.mutation<void, number>({
@@ -134,7 +156,7 @@ export const api = createApi({
         url: `/admin/roles/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["Roles"],
+      invalidatesTags: [{ type: "Roles", id: "LIST" }],
     }),
 
     /* =====================================================
@@ -142,12 +164,12 @@ export const api = createApi({
     ===================================================== */
 
     getRolePermissions: builder.query<
-      { permissions: any[]; assigned: string[] },
+      { permissions: Permission[]; assigned: string[] },
       number
     >({
       query: (id) => `/admin/roles/${id}/permissions`,
       transformResponse: (res: any) => res.data,
-      providesTags: ["Roles"],
+      providesTags: (_r, _e, id) => [{ type: "Roles", id }],
     }),
 
     assignRolePermissions: builder.mutation<
@@ -159,35 +181,44 @@ export const api = createApi({
         method: "POST",
         body: { permissions },
       }),
-      invalidatesTags: ["Roles"],
+      invalidatesTags: (_r, _e, { id }) => [{ type: "Roles", id }],
     }),
 
     /* =====================================================
        PERMISSIONS (MASTER)
     ===================================================== */
 
-    getPermissions: builder.query<any[], void>({
+    getPermissions: builder.query<Permission[], void>({
       query: () => "/admin/permissions",
-      transformResponse: (res: any) => res.data,
-      providesTags: ["Permissions"],
+      transformResponse: (res: any) => res.data ?? [],
+      providesTags: (res) =>
+        res
+          ? [
+              ...res.map((p: Permission) => ({
+                type: "Permissions" as const,
+                id: p.id,
+              })),
+              { type: "Permissions", id: "LIST" },
+            ]
+          : [{ type: "Permissions", id: "LIST" }],
     }),
 
     createPermission: builder.mutation<any, { name: string }>({
-      query: (data) => ({
+      query: (body) => ({
         url: "/admin/permissions",
         method: "POST",
-        body: data,
+        body,
       }),
-      invalidatesTags: ["Permissions"],
+      invalidatesTags: [{ type: "Permissions", id: "LIST" }],
     }),
 
     updatePermission: builder.mutation<any, { id: number; name: string }>({
-      query: ({ id, ...data }) => ({
+      query: ({ id, ...body }) => ({
         url: `/admin/permissions/${id}`,
         method: "PUT",
-        body: data,
+        body,
       }),
-      invalidatesTags: ["Permissions"],
+      invalidatesTags: [{ type: "Permissions", id: "LIST" }],
     }),
 
     deletePermission: builder.mutation<void, number>({
@@ -195,7 +226,7 @@ export const api = createApi({
         url: `/admin/permissions/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["Permissions"],
+      invalidatesTags: [{ type: "Permissions", id: "LIST" }],
     }),
 
     /* =====================================================
@@ -210,35 +241,37 @@ export const api = createApi({
 });
 
 /* =====================================================
-   HOOK EXPORTS
+   AUTO-GENERATED HOOK EXPORTS (🔥 COMPLETE)
 ===================================================== */
 
 export const {
-  // users
+  // USERS
   useGetUsersQuery,
   useCreateUserMutation,
   useDeleteUserMutation,
   useRestoreUserMutation,
   useAssignUserRolesMutation,
 
-  // user → permissions
+  // USER → PERMISSIONS
   useGetUserPermissionsQuery,
   useAssignUserPermissionsMutation,
 
-  // roles
+  // ROLES
   useGetRolesQuery,
   useCreateRoleMutation,
   useUpdateRoleMutation,
   useDeleteRoleMutation,
+
+  // ROLE → PERMISSIONS (🔥 CRASH FIXED)
   useGetRolePermissionsQuery,
   useAssignRolePermissionsMutation,
 
-  // permissions
+  // PERMISSIONS
   useGetPermissionsQuery,
   useCreatePermissionMutation,
   useUpdatePermissionMutation,
   useDeletePermissionMutation,
 
-  // dashboard
+  // DASHBOARD
   useGetDashboardStatsQuery,
 } = api;

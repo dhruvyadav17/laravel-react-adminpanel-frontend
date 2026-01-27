@@ -79,31 +79,35 @@ function Roles() {
       );
     });
 
-  const getRowActions = (role: Role) => {
-    if (role.name === "super-admin") return [];
+const getRowActions = (role: Role) => {
+  if (role.name === "super-admin") return [];
 
-    return [
-      {
-        label: "Assign Permissions",
-        show: can(PERMISSIONS.ROLE.MANAGE),
-        onClick: () => openModal("permission", role),
+  return [
+    {
+      key: "permissions",
+      label: "Assign Permissions",
+      show: can(PERMISSIONS.ROLE.MANAGE),
+      onClick: () => openModal("permission", role),
+    },
+    {
+      key: "edit",
+      label: "Edit",
+      show: can(PERMISSIONS.ROLE.MANAGE),
+      onClick: () => {
+        setField("name", role.name);
+        openModal("role-edit", role);
       },
-      {
-        label: "Edit",
-        show: can(PERMISSIONS.ROLE.MANAGE),
-        onClick: () => {
-          setField("name", role.name);
-          openModal("role-edit", role);
-        },
-      },
-      {
-        label: "Delete",
-        variant: "danger" as const,
-        show: can(PERMISSIONS.ROLE.MANAGE),
-        onClick: () => handleDelete(role),
-      },
-    ];
-  };
+    },
+    {
+      key: "delete",
+      label: "Delete",
+      variant: "danger" as const,
+      show: can(PERMISSIONS.ROLE.MANAGE),
+      onClick: () => handleDelete(role),
+    },
+  ];
+};
+
 
   return (
     <section className="content pt-3">
@@ -129,14 +133,15 @@ function Roles() {
             <DataTable
               isLoading={isLoading}
               colSpan={2}
-              columns={
+              hasData={roles.length > 0}
+              columns={(
                 <tr>
                   <th>Name</th>
                   <th className="text-right" style={{ width: 260 }}>
                     Actions
                   </th>
                 </tr>
-              }
+              )}
             >
               {roles.map((role) => (
                 <tr key={role.id}>
@@ -152,9 +157,7 @@ function Roles() {
 
         {(modalType === "role-add" || modalType === "role-edit") && (
           <Modal
-            title={
-              modalType === "role-edit" ? "Edit Role" : "Add Role"
-            }
+            title={modalType === "role-edit" ? "Edit Role" : "Add Role"}
             onClose={closeModal}
             onSave={save}
             saveDisabled={loading}

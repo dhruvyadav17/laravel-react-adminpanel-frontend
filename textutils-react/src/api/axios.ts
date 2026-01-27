@@ -1,13 +1,19 @@
+// src/api/axios.ts
+
 import axios, { AxiosError } from "axios";
 import { getStore } from "../store/storeAccessor";
 import { logoutThunk } from "../store/authSlice";
-import { refreshTokenService } from "../services/authService";
 
-let isRefreshing = false;
-let failedQueue: {
-  resolve: (token: string) => void;
-  reject: (err: any) => void;
-}[] = [];
+/* =====================================================
+   AXIOS INSTANCE
+   -----------------------------------------------------
+   - Used ONLY for:
+     • login
+     • register
+     • forgot / reset password
+     • email verification
+   - Refresh token is NOT handled here
+===================================================== */
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
@@ -17,70 +23,47 @@ const api = axios.create({
   },
 });
 
-/* ================= REQUEST ================= */
-api.interceptors.request.use((config) => {
-  const store = getStore();
-  const token = store.getState().auth.token;
+/* =====================================================
+   REQUEST INTERCEPTOR
+   -----------------------------------------------------
+   - Attach token if available
+===================================================== */
 
-  if (token && config.headers) {
-    config.headers.Authorization = `Bearer ${token}`;
+api.interceptors.request.use((config) => {
+  try {
+    const store = getStore();
+    const token = store.getState().auth.token;
+
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  } catch {
+    // store not ready (early boot / edge case)
   }
 
   return config;
 });
 
-/* ================= RESPONSE ================= */
+/* =====================================================
+   RESPONSE INTERCEPTOR
+===================================================== */
+
 api.interceptors.response.use(
   (res) => res,
-  async (error: AxiosError<any>) => {
+
+  (error: AxiosError<any>) => {
     const status = error.response?.status;
-    const originalRequest: any = error.config;
 
-    /* ================= 401 → TOKEN EXPIRED ================= */
-    if (status === 401 && !originalRequest?._retry) {
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        }).then((token: string) => {
-          originalRequest.headers.Authorization =
-            `Bearer ${token}`;
-          return api(originalRequest);
-        });
-      }
-
-      originalRequest._retry = true;
-      isRefreshing = true;
-
-      const refreshToken =
-        localStorage.getItem("refresh_token");
-
-      if (!refreshToken) {
-        forceLogout();
-        return Promise.reject(error);
-      }
-
-      try {
-        const res = await refreshTokenService(
-          refreshToken
-        );
-
-        const newToken = res.data.data.token;
-
-        localStorage.setItem("token", newToken);
-
-        processQueue(null, newToken);
-
-        originalRequest.headers.Authorization =
-          `Bearer ${newToken}`;
-
-        return api(originalRequest);
-      } catch (err) {
-        processQueue(err, null);
-        forceLogout();
-        return Promise.reject(err);
-      } finally {
-        isRefreshing = false;
-      }
+    /* ================= 401 → FORCE LOGOUT ================= */
+    if (status === 401) {
+      /**
+       * 🔒 RULE:
+       * - axios NEVER refreshes token
+       * - refresh handled only in RTK Query
+       *
+       * If axios gets 401 → session is invalid
+       */
+      forceLogout();
     }
 
     /* ================= 403 → UNAUTHORIZED ================= */
@@ -98,29 +81,25 @@ api.interceptors.response.use(
   }
 );
 
-/* ================= HELPERS ================= */
-
-function processQueue(
-  error: any,
-  token: string | null
-) {
-  failedQueue.forEach((p) => {
-    if (error) {
-      p.reject(error);
-    } else if (token) {
-      p.resolve(token);
-    }
-  });
-  failedQueue = [];
-}
+/* =====================================================
+   HELPERS
+===================================================== */
 
 function forceLogout() {
-  const store = getStore();
-  store.dispatch(logoutThunk());
+  try {
+    const store = getStore();
+    store.dispatch(logoutThunk());
+  } catch {
+    // store may not be ready
+  }
 
+  /* 🔥 Clear ONLY auth-related storage */
   localStorage.removeItem("token");
   localStorage.removeItem("refresh_token");
+  localStorage.removeItem("user");
+  localStorage.removeItem("permissions");
 
+  /* 🔁 Hard redirect (safe reset) */
   window.location.replace("/login");
 }
 

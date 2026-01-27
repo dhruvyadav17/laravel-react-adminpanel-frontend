@@ -43,26 +43,24 @@ function Users() {
     { refetchOnMountOrArgChange: true }
   );
 
-  const users: User[] = data?.data ?? [];
+  const users = data?.data ?? [];
   const meta = data?.meta;
 
   const [deleteUser] = useDeleteUserMutation();
   const [restoreUser] = useRestoreUserMutation();
 
+  // ✅ MUST COME BEFORE getRowActions
   const { can } = useAuth();
 
   /* ================= ACTION HANDLERS ================= */
 
   const handleArchive = (user: User) =>
-    confirmDelete(
-      "Are you sure you want to archive this user?",
-      async () => {
-        await execute(
-          () => deleteUser(user.id).unwrap(),
-          "User archived successfully"
-        );
-      }
-    );
+    confirmDelete("Are you sure you want to archive this user?", async () => {
+      await execute(
+        () => deleteUser(user.id).unwrap(),
+        "User archived successfully"
+      );
+    });
 
   const handleRestore = async (user: User) => {
     await execute(
@@ -79,6 +77,7 @@ function Users() {
     if (user.deleted_at) {
       return [
         {
+          key: "restore",
           label: "Restore",
           icon: ICONS.RESTORE,
           variant: "success" as const,
@@ -89,18 +88,21 @@ function Users() {
 
     return [
       {
+        key: "roles",
         label: "Roles",
         icon: ICONS.ROLE,
         show: can(PERMISSIONS.USER.ASSIGN_ROLE),
         onClick: () => openModal("user-role", user),
       },
       {
+        key: "permissions",
         label: "Permissions",
         icon: ICONS.PERMISSION,
         show: can(PERMISSIONS.USER.ASSIGN_PERMISSION),
         onClick: () => openModal("user-permission", user),
       },
       {
+        key: "archive",
         label: "Archive",
         icon: ICONS.DELETE,
         variant: "danger" as const,
@@ -130,19 +132,12 @@ function Users() {
 
         {/* SEARCH */}
         <div className="mb-3">
-          <div className="input-group">
-            <input
-              className="form-control"
-              placeholder="Search by name or email..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <div className="input-group-append">
-              <span className="input-group-text">
-                <i className="fas fa-search" />
-              </span>
-            </div>
-          </div>
+          <input
+            className="form-control"
+            placeholder="Search by name or email..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
 
         <Card>
@@ -151,7 +146,8 @@ function Users() {
             <DataTable
               isLoading={isLoading}
               colSpan={5}
-              columns={
+              hasData={users.length > 0}
+              columns={(
                 <tr>
                   <th>Name</th>
                   <th>Email</th>
@@ -159,7 +155,7 @@ function Users() {
                   <th>Status</th>
                   <th className="text-right">Actions</th>
                 </tr>
-              }
+              )}
             >
               {users.map((user) => (
                 <tr key={user.id}>
@@ -168,13 +164,9 @@ function Users() {
                   <td>{user.roles.join(", ") || "—"}</td>
                   <td>
                     {user.deleted_at ? (
-                      <span className="badge badge-warning">
-                        Archived
-                      </span>
+                      <span className="badge badge-warning">Archived</span>
                     ) : (
-                      <span className="badge badge-success">
-                        Active
-                      </span>
+                      <span className="badge badge-success">Active</span>
                     )}
                   </td>
                   <td className="text-right">
@@ -186,19 +178,11 @@ function Users() {
           </CardBody>
         </Card>
 
-        {meta && (
-          <Pagination
-            meta={meta}
-            onPageChange={setPage}
-          />
-        )}
+        {meta && <Pagination meta={meta} onPageChange={setPage} />}
 
         {/* MODALS */}
         {modalType === "user-form" && (
-          <UserFormModal
-            onClose={closeModal}
-            onSaved={closeModal}
-          />
+          <UserFormModal onClose={closeModal} onSaved={closeModal} />
         )}
 
         {modalType === "user-role" && modalData && (
@@ -210,10 +194,7 @@ function Users() {
         )}
 
         {modalType === "user-permission" && modalData && (
-          <UserPermissionModal
-            user={modalData}
-            onClose={closeModal}
-          />
+          <UserPermissionModal user={modalData} onClose={closeModal} />
         )}
       </div>
     </section>

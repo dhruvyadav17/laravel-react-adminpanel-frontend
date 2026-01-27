@@ -1,3 +1,5 @@
+// src/store/authSlice.ts
+
 import {
   createSlice,
   createAsyncThunk,
@@ -8,80 +10,97 @@ import {
   loginService,
   profileService,
 } from "../services/authService";
+
 import type { User } from "../types/models";
 import { emitLogoutEvent } from "../utils/authEvents";
 
-/* ================= TYPES ================= */
+/* =====================================================
+   TYPES
+===================================================== */
 
-type AuthState = {
+export type AuthState = {
   user: User | null;
   permissions: string[];
   token: string | null;
   loading: boolean;
 };
 
-/* ================= INITIAL STATE ================= */
-/* Rehydration from localStorage */
+/* =====================================================
+   INITIAL STATE
+   - Safe rehydration
+   - No business logic here
+===================================================== */
 
 const initialState: AuthState = {
-  user: JSON.parse(localStorage.getItem("user") || "null"),
-  permissions: JSON.parse(
-    localStorage.getItem("permissions") || "[]"
-  ),
+  user: (() => {
+    try {
+      return JSON.parse(localStorage.getItem("user") || "null");
+    } catch {
+      return null;
+    }
+  })(),
+
+  permissions: (() => {
+    try {
+      return JSON.parse(localStorage.getItem("permissions") || "[]");
+    } catch {
+      return [];
+    }
+  })(),
+
   token: localStorage.getItem("token"),
   loading: false,
 };
 
-/* ================= THUNKS ================= */
+/* =====================================================
+   THUNKS
+===================================================== */
 
 /**
  * LOGIN
  * -------------------------------------------------
- * - Authenticate only
- * - Store ONLY token
+ * - Auth only
+ * - Tokens handled here
+ * - Profile fetched separately
  */
-export const loginThunk = createAsyncThunk(
-  "auth/login",
-  async (
-    data: { email: string; password: string },
-    { rejectWithValue }
-  ) => {
-    try {
-      const res = await loginService(
-        data.email,
-        data.password
-      );
-      return res.data.data;
-    } catch (e: any) {
-      return rejectWithValue(
-        e.response?.data?.message ||
-          "Invalid credentials"
-      );
-    }
+export const loginThunk = createAsyncThunk<
+  { token: string; refresh_token?: string },
+  { email: string; password: string },
+  { rejectValue: string }
+>("auth/login", async (data, { rejectWithValue }) => {
+  try {
+    const res = await loginService(data.email, data.password);
+    return res.data.data;
+  } catch (e: any) {
+    return rejectWithValue(
+      e.response?.data?.message || "Invalid credentials"
+    );
   }
-);
+});
 
 /**
  * PROFILE
  * -------------------------------------------------
- * - Single source of truth
- * - user + permissions
+ * - SINGLE SOURCE OF TRUTH
+ * - user + permissions only
  */
-export const fetchProfileThunk = createAsyncThunk(
-  "auth/profile",
-  async (_, { rejectWithValue }) => {
-    try {
-      const res = await profileService();
-      return res.data.data;
-    } catch {
-      return rejectWithValue("Failed to load profile");
-    }
+export const fetchProfileThunk = createAsyncThunk<
+  { user: User; permissions: string[] },
+  void,
+  { rejectValue: string }
+>("auth/profile", async (_, { rejectWithValue }) => {
+  try {
+    const res = await profileService();
+    return res.data.data;
+  } catch {
+    return rejectWithValue("Failed to load profile");
   }
-);
+});
 
 /**
  * LOGOUT
  * -------------------------------------------------
+ * - Clear state
  * - Clear storage
  * - Multi-tab sync
  */
@@ -94,7 +113,9 @@ export const logoutThunk = createAsyncThunk(
   }
 );
 
-/* ================= SLICE ================= */
+/* =====================================================
+   SLICE
+===================================================== */
 
 const authSlice = createSlice({
   name: "auth",
@@ -102,8 +123,8 @@ const authSlice = createSlice({
 
   reducers: {
     /**
-     * OPTIONAL manual permission override
-     * (rare cases only)
+     * OPTIONAL
+     * Manual permission override (rare / admin only)
      */
     setPermissions(
       state,
@@ -129,10 +150,14 @@ const authSlice = createSlice({
         state.loading = false;
         state.token = action.payload.token;
 
-        localStorage.setItem(
-          "token",
-          action.payload.token
-        );
+        localStorage.setItem("token", action.payload.token);
+
+        if (action.payload.refresh_token) {
+          localStorage.setItem(
+            "refresh_token",
+            action.payload.refresh_token
+          );
+        }
       })
 
       .addCase(loginThunk.rejected, (state) => {
@@ -172,8 +197,9 @@ const authSlice = createSlice({
   },
 });
 
-/* ================= EXPORTS ================= */
+/* =====================================================
+   EXPORTS
+===================================================== */
 
 export const { setPermissions } = authSlice.actions;
-
 export default authSlice.reducer;

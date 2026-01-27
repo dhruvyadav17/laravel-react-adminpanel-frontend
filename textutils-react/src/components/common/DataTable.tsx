@@ -1,19 +1,25 @@
+import React from "react";
 import TableSkeleton from "./TableSkeleton";
+import TableEmptyRow from "./TableEmptyRow";
 
 type Props = {
   isLoading: boolean;
   columns: React.ReactNode;
   children: React.ReactNode;
-  emptyMessage?: string;
   colSpan: number;
+
+  /** explicit & predictable */
+  hasData: boolean;
+  emptyMessage?: string;
 };
 
 export default function DataTable({
   isLoading,
   columns,
   children,
-  emptyMessage = "No records found",
   colSpan,
+  hasData,
+  emptyMessage,
 }: Props) {
   return (
     <table className="table table-hover table-bordered text-nowrap">
@@ -23,13 +29,13 @@ export default function DataTable({
         <TableSkeleton rows={5} cols={colSpan} />
       ) : (
         <tbody>
-          {children}
-          {!children && (
-            <tr>
-              <td colSpan={colSpan} className="text-center">
-                {emptyMessage}
-              </td>
-            </tr>
+          {hasData ? (
+            children
+          ) : (
+            <TableEmptyRow
+              colSpan={colSpan}
+              message={emptyMessage}
+            />
           )}
         </tbody>
       )}

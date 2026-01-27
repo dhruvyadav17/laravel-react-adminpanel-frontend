@@ -7,7 +7,7 @@ type Props = {
   icon?: string;
   size?: "sm" | "md" | "lg";
   className?: string;
-  type?: "button" | "submit";
+  type?: "button" | "submit" | "reset";
 };
 
 export default function Button({

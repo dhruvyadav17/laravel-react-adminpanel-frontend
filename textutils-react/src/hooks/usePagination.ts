@@ -1,3 +1,5 @@
+// src/hooks/usePagination.ts
+
 import { useState } from "react";
 
 type Options = {
@@ -13,6 +15,7 @@ export function usePagination(options: Options = {}) {
     options.initialSearch ?? ""
   );
 
+  /* ================= SEARCH ================= */
   const onSearchChange = (value: string) => {
     setSearch(value);
     setPage(1); // 🔥 reset page on search
@@ -21,6 +24,7 @@ export function usePagination(options: Options = {}) {
   return {
     page,
     setPage,
+
     search,
     setSearch: onSearchChange,
   };

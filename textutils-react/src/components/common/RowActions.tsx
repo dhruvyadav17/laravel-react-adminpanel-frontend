@@ -1,6 +1,7 @@
 import Button from "./Button";
 
-type Action = {
+export type RowAction = {
+  key: string; // 🔒 REQUIRED & UNIQUE
   label: string;
   onClick: () => void;
   variant?: "primary" | "secondary" | "warning" | "danger" | "success";
@@ -9,22 +10,30 @@ type Action = {
   icon?: string;
 };
 
-export default function RowActions({ actions }: { actions: Action[] }) {
+type Props = {
+  actions: RowAction[];
+};
+
+export default function RowActions({ actions }: Props) {
+  const visibleActions = actions.filter(
+    (a) => a.show !== false
+  );
+
+  if (visibleActions.length === 0) return null;
+
   return (
     <div className="btn-group btn-group-sm">
-      {actions
-        .filter((a) => a.show !== false)
-        .map((a, i) => (
-          <Button
-            key={i}
-            label={a.label}
-            variant={a.variant}
-            onClick={a.onClick}
-            disabled={a.disabled}
-            icon={a.icon}
-            size="sm"
-          />
-        ))}
+      {visibleActions.map((action) => (
+        <Button
+          key={action.key}
+          label={action.label}
+          variant={action.variant}
+          onClick={action.onClick}
+          disabled={action.disabled}
+          icon={action.icon}
+          size="sm"
+        />
+      ))}
     </div>
   );
 }

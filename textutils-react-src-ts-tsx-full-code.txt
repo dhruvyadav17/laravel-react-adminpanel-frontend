@@ -1,0 +1,4318 @@
+﻿
+
+=============================
+FILE: textutils-react/src/App.tsx
+=============================
+import AppRoutes from "./routes/AppRoutes";
+
+export default function App() {
+  return <AppRoutes />;
+}
+
+
+
+=============================
+FILE: textutils-react/src/api/axios.ts
+=============================
+import axios, { AxiosError } from "axios";
+import { getStore } from "../store/storeAccessor";
+import { logoutThunk } from "../store/authSlice";
+import { refreshTokenService } from "../services/authService";
+
+let isRefreshing = false;
+let failedQueue: {
+  resolve: (token: string) => void;
+  reject: (err: any) => void;
+}[] = [];
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
+  timeout: 15000,
+  headers: {
+    Accept: "application/json",
+  },
+});
+
+/* ================= REQUEST ================= */
+api.interceptors.request.use((config) => {
+  const store = getStore();
+  const token = store.getState().auth.token;
+
+  if (token && config.headers) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
+});
+
+/* ================= RESPONSE ================= */
+api.interceptors.response.use(
+  (res) => res,
+  async (error: AxiosError<any>) => {
+    const status = error.response?.status;
+    const originalRequest: any = error.config;
+
+    /* ================= 401 â†’ TOKEN EXPIRED ================= */
+    if (status === 401 && !originalRequest?._retry) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then((token: string) => {
+          originalRequest.headers.Authorization =
+            `Bearer ${token}`;
+          return api(originalRequest);
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      const refreshToken =
+        localStorage.getItem("refresh_token");
+
+      if (!refreshToken) {
+        forceLogout();
+        return Promise.reject(error);
+      }
+
+      try {
+        const res = await refreshTokenService(
+          refreshToken
+        );
+
+        const newToken = res.data.data.token;
+
+        localStorage.setItem("token", newToken);
+
+        processQueue(null, newToken);
+
+        originalRequest.headers.Authorization =
+          `Bearer ${newToken}`;
+
+        return api(originalRequest);
+      } catch (err) {
+        processQueue(err, null);
+        forceLogout();
+        return Promise.reject(err);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
+    /* ================= 403 â†’ UNAUTHORIZED ================= */
+    if (status === 403) {
+      if (
+        !window.location.pathname.includes(
+          "/admin/unauthorized"
+        )
+      ) {
+        window.location.replace("/admin/unauthorized");
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+/* ================= HELPERS ================= */
+
+function processQueue(
+  error: any,
+  token: string | null
+) {
+  failedQueue.forEach((p) => {
+    if (error) {
+      p.reject(error);
+    } else if (token) {
+      p.resolve(token);
+    }
+  });
+  failedQueue = [];
+}
+
+function forceLogout() {
+  const store = getStore();
+  store.dispatch(logoutThunk());
+
+  localStorage.removeItem("token");
+  localStorage.removeItem("refresh_token");
+
+  window.location.replace("/login");
+}
+
+export default api;
+
+
+
+=============================
+FILE: textutils-react/src/auth/LoginForm.tsx
+=============================
+import { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { Link, useNavigate } from "react-router-dom";
+
+import {
+  loginThunk,
+  fetchProfileThunk,
+} from "../store/authSlice";
+
+import type { RootState, AppDispatch } from "../store";
+import { handleApiError } from "../utils/toastHelper";
+import { resolveLoginRedirect } from "../utils/authRedirect";
+
+type Props = {
+  title: string;
+  redirectAdmin?: boolean;
+};
+
+export default function LoginForm({
+  title,
+  redirectAdmin = false,
+}: Props) {
+  const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
+
+  const loading = useSelector(
+    (s: RootState) => s.auth.loading
+  );
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const loginRes = await dispatch(
+      loginThunk({ email, password })
+    );
+
+    if (loginThunk.rejected.match(loginRes)) {
+      handleApiError(loginRes.payload || loginRes.error);
+      return;
+    }
+
+    const profileRes = await dispatch(
+      fetchProfileThunk()
+    );
+
+    const redirectTo = resolveLoginRedirect(
+      profileRes.payload?.user ?? null,
+      redirectAdmin
+    );
+
+    navigate(redirectTo, { replace: true });
+  };
+
+  return (
+    <div className="container mt-5" style={{ maxWidth: 420 }}>
+      <h4 className="mb-3 text-center">{title}</h4>
+
+      <form onSubmit={submit}>
+        <input
+          className="form-control mb-3"
+          type="email"
+          placeholder="Email"
+          value={email}
+          required
+          onChange={(e) => setEmail(e.target.value)}
+        />
+
+        <input
+          className="form-control mb-3"
+          type="password"
+          placeholder="Password"
+          value={password}
+          required
+          onChange={(e) => setPassword(e.target.value)}
+        />
+
+        <button
+          className="btn btn-primary w-100"
+          disabled={loading}
+        >
+          {loading ? "Logging in..." : "Login"}
+        </button>
+
+        <Link to="/forgot-password" className="d-block mt-2">
+          Forgot password?
+        </Link>
+      </form>
+    </div>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/auth/RegisterForm.tsx
+=============================
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { registerService } from "../services/authService";
+import { handleApiError } from "../utils/toastHelper";
+
+export default function RegisterForm() {
+  const navigate = useNavigate();
+
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    password_confirmation: "",
+  });
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      await registerService(form);
+      navigate("/verify-email", { replace: true });
+    } catch (e: any) {
+      handleApiError(e);
+    }
+  };
+
+  return (
+    <form onSubmit={submit}>
+      <input
+        className="form-control mb-2"
+        placeholder="Name"
+        required
+        onChange={(e) =>
+          setForm({ ...form, name: e.target.value })
+        }
+      />
+
+      <input
+        className="form-control mb-2"
+        type="email"
+        placeholder="Email"
+        required
+        onChange={(e) =>
+          setForm({ ...form, email: e.target.value })
+        }
+      />
+
+      <input
+        className="form-control mb-2"
+        type="password"
+        placeholder="Password"
+        required
+        onChange={(e) =>
+          setForm({ ...form, password: e.target.value })
+        }
+      />
+
+      <input
+        className="form-control mb-3"
+        type="password"
+        placeholder="Confirm Password"
+        required
+        onChange={(e) =>
+          setForm({
+            ...form,
+            password_confirmation: e.target.value,
+          })
+        }
+      />
+
+      <button className="btn btn-primary w-100">
+        Sign Up
+      </button>
+    </form>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/auth/guards/Guard.tsx
+=============================
+import { Navigate, Outlet } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
+
+type Props = {
+  admin?: boolean;
+  permission?: string;
+};
+
+export default function Guard({
+  admin = false,
+  permission,
+}: Props) {
+  const { isAuth, isAdmin, can, user } = useAuth();
+
+  /* ðŸ”’ NOT LOGGED IN */
+  if (!isAuth) {
+    return (
+      <Navigate
+        to={admin ? "/admin/login" : "/login"}
+        replace
+      />
+    );
+  }
+
+  /* ðŸ“§ EMAIL NOT VERIFIED (USER ONLY) */
+  // if (
+  //   !admin &&                       // admin routes skip
+  //   user &&
+  //   !user.email_verified_at         // not verified
+  // ) {
+  //   return <Navigate to="/verify-email" replace />;
+  // }
+
+  /* ðŸ›¡ ADMIN ACCESS */
+  if (admin && !isAdmin) {
+    return <Navigate to="/profile" replace />;
+  }
+
+  /* ðŸ” PERMISSION CHECK */
+  if (permission && !can(permission)) {
+    return (
+      <Navigate
+        to="/admin/unauthorized"
+        replace
+      />
+    );
+  }
+
+  return <Outlet />;
+}
+
+
+
+=============================
+FILE: textutils-react/src/auth/hooks/useAuth.ts
+=============================
+import { useSelector } from "react-redux";
+import { RootState } from "../../store";
+import { ADMIN_ROLES } from "../../constants/roles";
+
+export function useAuth() {
+  /* ================= STORE ================= */
+
+  const user = useSelector(
+    (s: RootState) => s.auth.user
+  );
+
+  const permissions = useSelector(
+    (s: RootState) => s.auth.permissions
+  );
+
+  const roles: string[] = user?.roles ?? [];
+
+  /* ================= FLAGS ================= */
+
+  const isAuth = Boolean(user);
+
+  const isSuperAdmin =
+    roles.includes("super-admin");
+
+  const isAdmin =
+    isSuperAdmin ||
+    roles.some((r) =>
+      ADMIN_ROLES.includes(r as any)
+    );
+
+  /* ================= ROLE HELPERS ================= */
+
+  const hasRole = (role: string): boolean =>
+    isSuperAdmin || roles.includes(role);
+
+  const hasAnyRole = (
+    checkRoles: string[]
+  ): boolean =>
+    isSuperAdmin ||
+    checkRoles.some((r) => roles.includes(r));
+
+  /* ================= PERMISSION HELPERS ================= */
+
+  const can = (permission: string): boolean =>
+    isSuperAdmin ||
+    permissions.includes(permission);
+
+  const canAny = (
+    perms: string[]
+  ): boolean =>
+    isSuperAdmin ||
+    perms.some((p) =>
+      permissions.includes(p)
+    );
+
+  /* ================= API ================= */
+
+  return {
+    user,
+    roles,
+    permissions,
+
+    isAuth,
+    isAdmin,
+    isSuperAdmin,
+
+    hasRole,
+    hasAnyRole,
+    can,
+    canAny,
+  };
+}
+
+
+
+=============================
+FILE: textutils-react/src/auth/hooks/useLogout.ts
+=============================
+import { useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
+
+import { logoutThunk } from "../../store/authSlice";
+import { logoutService } from "../../services/authService";
+
+export function useLogout() {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  return async (redirectTo: string = "/admin/login") => {
+    // 1ï¸âƒ£ clear frontend auth
+    dispatch(logoutThunk());
+
+    // 2ï¸âƒ£ redirect immediately
+    navigate(redirectTo, { replace: true });
+
+    // 3ï¸âƒ£ backend logout (best effort)
+    try {
+      await logoutService();
+    } catch {
+      // ignore
+    }
+  };
+}
+
+
+
+=============================
+FILE: textutils-react/src/auth/hooks/usePermission.ts
+=============================
+import { useAuth } from "./useAuth";
+
+/**
+ * Thin permission wrapper
+ * ------------------------------------------------
+ * This hook exists ONLY for backward compatibility.
+ * Actual permission logic lives in `useAuth`.
+ *
+ * Recommended new usage:
+ *   const { can } = useAuth();
+ */
+export function usePermission() {
+  const { can } = useAuth();
+
+  return can;
+}
+
+
+
+=============================
+FILE: textutils-react/src/components/MenuRenderer.tsx
+=============================
+import { NavLink, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { SidebarGroup } from "../types/sidebar";
+
+type Props = {
+  group: SidebarGroup;
+  onAction?: (action: string) => void;
+};
+
+export default function MenuRenderer({
+  group,
+  onAction,
+}: Props) {
+  const location = useLocation();
+  const [open, setOpen] = useState(false);
+
+  const items = group.children ?? [];
+
+  /* ================= AUTO OPEN ACTIVE GROUP ================= */
+
+  useEffect(() => {
+    const shouldOpen = items.some(
+      (item) =>
+        item.path &&
+        location.pathname.startsWith(item.path)
+    );
+
+    if (shouldOpen) setOpen(true);
+  }, [location.pathname, items]);
+
+  if (!items.length) return null;
+
+  /* ================= RENDER ================= */
+
+  return (
+    <li className={`nav-item ${open ? "menu-open" : ""}`}>
+      <a
+        href="#"
+        className={`nav-link ${open ? "active" : ""}`}
+        onClick={(e) => {
+          e.preventDefault();
+          setOpen((v) => !v);
+        }}
+      >
+        <i className={`nav-icon ${group.icon}`} />
+        <p>
+          {group.label}
+          <i className="right fas fa-angle-left" />
+        </p>
+      </a>
+
+      <ul
+        className="nav nav-treeview"
+        style={{ display: open ? "block" : "none" }}
+      >
+        {items.map((item) => (
+          <li key={item.label} className="nav-item">
+            {item.action ? (
+              <a
+                href="#"
+                className="nav-link text-danger"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onAction?.(item.action);
+                }}
+              >
+                <i className="fas fa-sign-out-alt nav-icon" />
+                <p>{item.label}</p>
+              </a>
+            ) : (
+              <NavLink
+                to={item.path!}
+                className="nav-link"
+              >
+                <i className="far fa-circle nav-icon" />
+                <p>{item.label}</p>
+              </NavLink>
+            )}
+          </li>
+        ))}
+      </ul>
+    </li>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/components/RolePermissionModal.tsx
+=============================
+import { useEffect, useState } from "react";
+import Modal from "./common/Modal";
+import {
+  useGetRolePermissionsQuery,
+  useAssignRolePermissionsMutation,
+} from "../store/api";
+import { execute } from "../utils/execute";
+import type { Role } from "../types/models";
+
+type Props = {
+  role: Role;
+  onClose: () => void;
+};
+
+export default function RolePermissionModal({
+  role,
+  onClose,
+}: Props) {
+  // ðŸ”’ SUPER ADMIN LOCK
+  if (role.name === "super-admin") {
+    return (
+      <Modal title="Assign Permissions" onClose={onClose}>
+        <p className="text-danger mb-0">
+          Super admin permissions cannot be modified.
+        </p>
+      </Modal>
+    );
+  }
+
+  const [selected, setSelected] = useState<string[]>([]);
+
+  const { data, isLoading } =
+    useGetRolePermissionsQuery(role.id);
+
+  const [assignRolePermissions, { isLoading: saving }] =
+    useAssignRolePermissionsMutation();
+
+  useEffect(() => {
+    setSelected(data?.assigned ?? []);
+  }, [data?.assigned]);
+
+  const toggle = (permission: string) => {
+    setSelected((prev) =>
+      prev.includes(permission)
+        ? prev.filter((p) => p !== permission)
+        : [...prev, permission]
+    );
+  };
+
+  const save = async () => {
+    await execute(
+      () =>
+        assignRolePermissions({
+          id: role.id,
+          permissions: selected,
+        }).unwrap(),
+      "Permissions assigned successfully"
+    );
+    onClose();
+  };
+
+  return (
+    <Modal
+      title={`Assign Permissions â€“ ${role.name}`}
+      onClose={onClose}
+      onSave={save}
+      saveDisabled={saving}
+      saveText={saving ? "Saving..." : "Assign"}
+      size="lg"
+    >
+      {isLoading && <p>Loading permissions...</p>}
+
+      {!isLoading && data?.permissions && (
+        <div className="row">
+          {data.permissions.map((p: any) => (
+            <div key={p.id} className="col-md-4">
+              <div className="form-check">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  checked={selected.includes(p.name)}
+                  onChange={() => toggle(p.name)}
+                  disabled={saving}
+                />
+                <label className="form-check-label">
+                  {p.name}
+                </label>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/components/UserFormModal.tsx
+=============================
+import Modal from "./common/Modal";
+import { useBackendForm } from "../hooks/useBackendForm";
+import { useCreateUserMutation } from "../store/api";
+import { execute } from "../utils/execute";
+
+type Props = {
+  onClose: () => void;
+  onSaved: () => void;
+};
+
+export default function UserFormModal({
+  onClose,
+  onSaved,
+}: Props) {
+  const {
+    values,
+    errors,
+    loading,
+    setField,
+    handleError,
+    reset,
+  } = useBackendForm({
+    name: "",
+    email: "",
+    password: "",
+    password_confirmation: "",
+  });
+
+  const [createUser] = useCreateUserMutation();
+
+  /* ================= SAVE ================= */
+
+  const save = async () => {
+    try {
+      await execute(
+        () => createUser(values).unwrap(),
+        "User created successfully"
+      );
+
+      reset();
+      onSaved();
+    } catch (e) {
+      handleError(e); // backend validation only
+    }
+  };
+
+  /* ================= VIEW ================= */
+
+  return (
+    <Modal
+      title="Add User"
+      onClose={onClose}
+      onSave={save}
+      saveDisabled={loading}
+      button_name={loading ? "Saving..." : "Save"}
+    >
+      <input
+        className={`form-control mb-2 ${
+          errors.name ? "is-invalid" : ""
+        }`}
+        placeholder="Name"
+        value={values.name}
+        onChange={(e) => setField("name", e.target.value)}
+        disabled={loading}
+      />
+      {errors.name && (
+        <div className="invalid-feedback">
+          {errors.name[0]}
+        </div>
+      )}
+
+      <input
+        className={`form-control mb-2 ${
+          errors.email ? "is-invalid" : ""
+        }`}
+        placeholder="Email"
+        value={values.email}
+        onChange={(e) =>
+          setField("email", e.target.value)
+        }
+        disabled={loading}
+      />
+      {errors.email && (
+        <div className="invalid-feedback">
+          {errors.email[0]}
+        </div>
+      )}
+
+      <input
+        className={`form-control mb-2 ${
+          errors.password ? "is-invalid" : ""
+        }`}
+        type="password"
+        placeholder="Password (min 8 chars)"
+        value={values.password}
+        onChange={(e) =>
+          setField("password", e.target.value)
+        }
+        disabled={loading}
+      />
+      {errors.password && (
+        <div className="invalid-feedback">
+          {errors.password[0]}
+        </div>
+      )}
+
+      <input
+        className={`form-control mb-2 ${
+          errors.password_confirmation
+            ? "is-invalid"
+            : ""
+        }`}
+        type="password"
+        placeholder="Confirm Password"
+        value={values.password_confirmation}
+        onChange={(e) =>
+          setField(
+            "password_confirmation",
+            e.target.value
+          )
+        }
+        disabled={loading}
+      />
+      {errors.password_confirmation && (
+        <div className="invalid-feedback">
+          {errors.password_confirmation[0]}
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/components/UserPermissionModal.tsx
+=============================
+import { useEffect, useState } from "react";
+import Modal from "./common/Modal";
+import {
+  useGetUserPermissionsQuery,
+  useAssignUserPermissionsMutation,
+} from "../store/api";
+import { execute } from "../utils/execute";
+
+type Props = {
+  user: {
+    id: number;
+    name: string;
+  };
+  onClose: () => void;
+};
+
+export default function UserPermissionModal({
+  user,
+  onClose,
+}: Props) {
+  const [selected, setSelected] = useState<string[]>([]);
+
+  const { data, isLoading, isError } =
+    useGetUserPermissionsQuery(user.id, {
+      skip: !user.id,
+      refetchOnMountOrArgChange: true,
+    });
+
+  const [assignPermissions, { isLoading: saving }] =
+    useAssignUserPermissionsMutation();
+
+  /* ðŸ” RESET ON OPEN */
+  useEffect(() => {
+    setSelected(data?.assigned ?? []);
+  }, [user.id, data?.assigned]);
+
+  const toggle = (permission: string) => {
+    setSelected((prev) =>
+      prev.includes(permission)
+        ? prev.filter((p) => p !== permission)
+        : [...prev, permission]
+    );
+  };
+
+  const save = async () => {
+    await execute(
+      () =>
+        assignPermissions({
+          id: user.id,
+          permissions: selected,
+        }).unwrap(),
+      "Permissions updated"
+    );
+    onClose();
+  };
+
+  return (
+    <Modal
+      title={`Assign Permissions â€“ ${user.name}`}
+      onClose={onClose}
+      onSave={save}
+      saveDisabled={saving}
+      saveText={saving ? "Saving..." : "Save"}
+      size="lg"
+    >
+      {isLoading && <p>Loading permissions...</p>}
+      {isError && (
+        <p className="text-danger">
+          Failed to load permissions
+        </p>
+      )}
+
+      {!isLoading && data?.permissions && (
+        <div className="row">
+          {data.permissions.map((p: any) => (
+            <div key={p.id} className="col-md-4">
+              <div className="form-check">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  checked={selected.includes(p.name)}
+                  onChange={() => toggle(p.name)}
+                  disabled={saving}
+                />
+                <label className="form-check-label">
+                  {p.name}
+                </label>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/components/UserRoleModal.tsx
+=============================
+import { useEffect, useState } from "react";
+import Modal from "./common/Modal";
+import {
+  useGetRolesQuery,
+  useAssignUserRolesMutation,
+} from "../store/api";
+import { execute } from "../utils/execute";
+import type { User } from "../types/models";
+
+type Props = {
+  user: User;
+  onClose: () => void;
+  onSaved: () => void;
+};
+
+export default function UserRoleModal({
+  user,
+  onClose,
+  onSaved,
+}: Props) {
+  const [selected, setSelected] = useState<string[]>([]);
+
+  const { data: roles = [] } = useGetRolesQuery();
+  const [assignUserRoles, { isLoading }] =
+    useAssignUserRolesMutation();
+
+  /* ðŸ” RESET ON OPEN (CRITICAL FIX) */
+  useEffect(() => {
+    setSelected(user.roles ?? []);
+  }, [user.id, user.roles]);
+
+  const toggle = (role: string) => {
+    setSelected((prev) =>
+      prev.includes(role)
+        ? prev.filter((r) => r !== role)
+        : [...prev, role]
+    );
+  };
+
+  const save = async () => {
+    if (selected.includes("super-admin")) return;
+
+    await execute(
+      () =>
+        assignUserRoles({
+          id: user.id,
+          roles: selected,
+        }).unwrap(),
+      "Roles assigned successfully"
+    );
+
+    onSaved(); // ðŸ”¥ refresh users list
+    onClose();
+  };
+
+  return (
+    <Modal
+      title={`Assign Roles â€“ ${user.name}`}
+      onClose={onClose}
+      onSave={save}
+      saveDisabled={isLoading}
+      saveText={isLoading ? "Saving..." : "Assign"}
+      size="lg"
+    >
+      <div className="row">
+        {roles.map((r: any) => (
+          <div key={r.id} className="col-md-4">
+            <div className="form-check">
+              <input
+                type="checkbox"
+                className="form-check-input"
+                checked={selected.includes(r.name)}
+                onChange={() => toggle(r.name)}
+                disabled={isLoading || r.name === "super-admin"}
+              />
+              <label className="form-check-label">
+                {r.name}
+              </label>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Modal>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/components/admin/AdminNavbar.tsx
+=============================
+import { NavLink } from "react-router-dom";
+import { useLogout } from "../../auth/hooks/useLogout";
+
+export default function AdminNavbar() {
+  const logout = useLogout();
+
+  const toggleSidebar = () => {
+    document.body.classList.toggle("sidebar-collapse");
+  };
+
+  return (
+    <nav className="main-header navbar navbar-expand navbar-white navbar-light">
+      {/* ================= LEFT ================= */}
+      <ul className="navbar-nav">
+        <li className="nav-item">
+          <button
+            className="nav-link btn btn-link"
+            onClick={toggleSidebar}
+            type="button"
+          >
+            <i className="fas fa-bars" />
+          </button>
+        </li>
+      </ul>
+
+      {/* ================= RIGHT ================= */}
+      <ul className="navbar-nav ml-auto align-items-center">
+        {/* ðŸ‘¤ USER MENU */}
+        <li className="nav-item dropdown">
+          <button
+            className="nav-link btn btn-link"
+            data-toggle="dropdown"
+            type="button"
+          >
+            <i className="fas fa-user-circle" />
+          </button>
+
+          <div className="dropdown-menu dropdown-menu-right">
+            <NavLink
+              to="/admin/profile"
+              className="dropdown-item"
+            >
+              <i className="fas fa-user mr-2" />
+              Profile
+            </NavLink>
+
+            <div className="dropdown-divider" />
+
+            <button
+              className="dropdown-item text-danger"
+              onClick={() => logout()}
+            >
+              <i className="fas fa-sign-out-alt mr-2" />
+              Logout
+            </button>
+          </div>
+        </li>
+      </ul>
+    </nav>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/components/admin/AdminSidebar.tsx
+=============================
+import MenuRenderer from "../MenuRenderer";
+import { useGetSidebarQuery } from "../../features/sidebar/sidebar.api";
+import { useLogout } from "../../auth/hooks/useLogout";
+import { SidebarGroup } from "../types/sidebar";
+
+export default function AdminSidebar() {
+  const logout = useLogout();
+  const { data } = useGetSidebarQuery();
+
+  const groups: SidebarGroup[] = data ?? [];
+
+  const handleAction = (action: string) => {
+    if (action === "logout") {
+      logout("/admin/login");
+    }
+  };
+
+  return (
+    <aside className="main-sidebar sidebar-dark-primary elevation-4">
+      <div className="sidebar">
+        <nav>
+          <ul className="nav nav-pills nav-sidebar flex-column">
+            {groups.map((group) => (
+              <MenuRenderer
+                key={group.label}
+                group={group}
+                onAction={handleAction}
+              />
+            ))}
+          </ul>
+        </nav>
+      </div>
+    </aside>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/components/admin/CreateAdminModal.tsx
+=============================
+import { useState } from "react";
+import { createAdminService } from "../../services/userService";
+
+export default function CreateAdminModal({
+  onClose,
+}: {
+  onClose: () => void;
+}) {
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    role: "admin",
+  });
+
+  const submit = async () => {
+    const res = await createAdminService(form);
+    alert(
+      `Admin created!\nEmail: ${res.data.data.email}\nPassword: ${res.data.data.password}`
+    );
+    onClose();
+  };
+
+  return (
+    <div className="modal">
+      <h5>Create Admin</h5>
+
+      <input
+        placeholder="Name"
+        onChange={(e) =>
+          setForm({ ...form, name: e.target.value })
+        }
+      />
+      <input
+        placeholder="Email"
+        onChange={(e) =>
+          setForm({ ...form, email: e.target.value })
+        }
+      />
+
+      <select
+        onChange={(e) =>
+          setForm({ ...form, role: e.target.value })
+        }
+      >
+        <option value="admin">Admin</option>
+        <option value="manager">Manager</option>
+      </select>
+
+      <button onClick={submit}>Create</button>
+    </div>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/components/common/Button.tsx
+=============================
+type Props = {
+  label?: string;
+  onClick?: () => void;
+  variant?: "primary" | "secondary" | "success" | "warning" | "danger";
+  loading?: boolean;
+  disabled?: boolean;
+  icon?: string;
+  size?: "sm" | "md" | "lg";
+  className?: string;
+  type?: "button" | "submit";
+};
+
+export default function Button({
+  label,
+  onClick,
+  variant = "primary",
+  loading = false,
+  disabled = false,
+  icon,
+  size = "md",
+  className = "",
+  type = "button",
+}: Props) {
+  const sizeClass =
+    size === "sm" ? "btn-sm" : size === "lg" ? "btn-lg" : "";
+
+  return (
+    <button
+      type={type}
+      className={`btn btn-${variant} ${sizeClass} ${className}`}
+      onClick={onClick}
+      disabled={disabled || loading}
+    >
+      {loading && (
+        <span className="spinner-border spinner-border-sm mr-2" />
+      )}
+      {icon && !loading && <i className={`${icon} mr-1`} />}
+      {label}
+    </button>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/components/common/Can.tsx
+=============================
+import { useAuth } from "../../auth/hooks/useAuth";
+
+export default function Can({
+  permission,
+  children,
+}: {
+  permission: string;
+  children: JSX.Element;
+}) {
+  const { can } = useAuth();
+  return can(permission) ? children : null;
+}
+
+
+
+=============================
+FILE: textutils-react/src/components/common/ConfirmDeleteModal.tsx
+=============================
+import { useState } from "react";
+import Modal from "./Modal";
+
+type Props = {
+  message: string;                 // ðŸ”¥ one-line message only
+  onConfirm: () => Promise<void>;  // async safe
+  onClose: () => void;
+  confirmLabel?: string;
+};
+
+export default function ConfirmDeleteModal({
+  message,
+  onConfirm,
+  onClose,
+  confirmLabel = "Delete", // default
+}: Props) {
+  const [loading, setLoading] = useState(false);
+
+  const handleConfirm = async () => {
+    try {
+      setLoading(true);
+      await onConfirm();
+      onClose();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal
+      title="Confirm Action"
+      onClose={onClose}
+      onSave={handleConfirm}
+      saveDisabled={loading}
+      saveText="Delete"
+      button_name={loading ? "Deleting..." : "Yes, Delete"}
+      saveVariant="danger" 
+      dialogClassName="modal-sm"
+      disableClose={loading}
+    >
+      {/* ðŸ”¥ RULE: ONE SENTENCE, CLEAR CONSEQUENCE */}
+      <p className="text-danger mb-0">
+        {message}
+      </p>
+    </Modal>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/components/common/DataTable.tsx
+=============================
+import TableSkeleton from "./TableSkeleton";
+
+type Props = {
+  isLoading: boolean;
+  columns: React.ReactNode;
+  children: React.ReactNode;
+  emptyMessage?: string;
+  colSpan: number;
+};
+
+export default function DataTable({
+  isLoading,
+  columns,
+  children,
+  emptyMessage = "No records found",
+  colSpan,
+}: Props) {
+  return (
+    <table className="table table-hover table-bordered text-nowrap">
+      <thead className="thead-dark">{columns}</thead>
+
+      {isLoading ? (
+        <TableSkeleton rows={5} cols={colSpan} />
+      ) : (
+        <tbody>
+          {children}
+          {!children && (
+            <tr>
+              <td colSpan={colSpan} className="text-center">
+                {emptyMessage}
+              </td>
+            </tr>
+          )}
+        </tbody>
+      )}
+    </table>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/components/common/ErrorBoundary.tsx
+=============================
+import React from "react";
+
+type Props = {
+  children: React.ReactNode;
+};
+
+type State = {
+  hasError: boolean;
+  error?: Error;
+};
+
+export default class ErrorBoundary extends React.Component<Props, State> {
+  state: State = {
+    hasError: false,
+  };
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    // ðŸ”¥ future: send to Sentry / LogRocket
+    console.error("App crashed:", error, info);
+  }
+
+  reload = () => {
+    window.location.reload();
+  };
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="container mt-5 text-center">
+          <h2 className="text-danger mb-3">
+            Something went wrong ðŸ˜¢
+          </h2>
+
+          <p className="text-muted">
+            The application crashed unexpectedly.
+            <br />
+            Please reload the page.
+          </p>
+
+          <button
+            className="btn btn-primary mt-3"
+            onClick={this.reload}
+          >
+            Reload App
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+
+
+=============================
+FILE: textutils-react/src/components/common/Modal.tsx
+=============================
+import { useEffect } from "react";
+import Button from "./Button";
+import { ICONS } from "../../constants/icons";
+
+type Props = {
+  title: string;
+  children: React.ReactNode;
+  onClose: () => void;
+  onSave?: () => void;
+  saveText?: string;
+  cancelText?: string;
+  saveVariant?: "primary" | "success" | "danger";
+  loading?: boolean;
+  disableClose?: boolean;
+  size?: "sm" | "md" | "lg";
+};
+
+export default function Modal({
+  title,
+  children,
+  onClose,
+  onSave,
+  saveText = "Save",
+  cancelText = "Cancel",
+  saveVariant = "primary",
+  loading = false,
+  disableClose = false,
+  size = "md",
+}: Props) {
+  useEffect(() => {
+    document.body.classList.add("modal-open");
+    return () => document.body.classList.remove("modal-open");
+  }, []);
+
+  const sizeClass =
+    size === "sm" ? "modal-sm" : size === "lg" ? "modal-lg" : "";
+
+  return (
+    <>
+      <div className="modal-backdrop fade show" />
+      <div className="modal fade show d-block">
+        <div className={`modal-dialog modal-dialog-centered ${sizeClass}`}>
+          <div className="modal-content">
+            <div className="modal-header">
+              <h5 className="modal-title">{title}</h5>
+              {!disableClose && (
+                <button className="close" onClick={onClose}>
+                  Ã—
+                </button>
+              )}
+            </div>
+
+            <div className="modal-body">{children}</div>
+
+            <div className="modal-footer justify-content-between">
+              <Button
+                label={cancelText}
+                variant="secondary"
+                onClick={onClose}
+                disabled={disableClose}
+              />
+
+              {onSave && (
+                <Button
+                  label={saveText}
+                  icon={ICONS.SAVE}
+                  variant={saveVariant}
+                  loading={loading}
+                  onClick={onSave}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/components/common/ModalHost.tsx
+=============================
+import { useAppModal } from "../../context/AppModalContext";
+import ConfirmDeleteModal from "./ConfirmDeleteModal";
+
+export default function ModalHost() {
+  const { modalType, modalData, closeModal } =
+    useAppModal();
+
+  if (modalType !== "confirm-delete") return null;
+
+  return (
+    <ConfirmDeleteModal
+      message={modalData!.message}
+      onConfirm={modalData!.onConfirm}
+      onClose={closeModal}
+      confirmLabel={modalData!.confirmLabel}
+    />
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/components/common/PageHeader.tsx
+=============================
+type Props = {
+  title: string;
+  action?: React.ReactNode;
+};
+
+export default function PageHeader({ title, action }: Props) {
+  return (
+    <div className="card mb-3">
+      <div className="card-header d-flex justify-content-between align-items-center">
+        <h3 className="card-title mb-0">{title}</h3>
+        {action}
+      </div>
+    </div>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/components/common/Pagination.tsx
+=============================
+type Meta = {
+  current_page: number;
+  last_page: number;
+  total: number;
+  per_page: number;
+};
+
+type Props = {
+  meta: Meta;
+  onPageChange: (page: number) => void;
+  onPerPageChange?: (size: number) => void;
+  pageSizeOptions?: number[];
+};
+
+export default function Pagination({
+  meta,
+  onPageChange,
+  onPerPageChange,
+  pageSizeOptions = [10, 25, 50],
+}: Props) {
+  const { current_page, last_page, total, per_page } = meta;
+
+  if (last_page <= 1) return null;
+
+  /* ================= PAGE NUMBERS ================= */
+  const getPages = () => {
+    const pages: number[] = [];
+    const start = Math.max(1, current_page - 2);
+    const end = Math.min(last_page, current_page + 2);
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
+  };
+
+  return (
+    <div className="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+      {/* LEFT INFO */}
+      <div className="text-muted small">
+        Page {current_page} of {last_page} â€¢ Total {total}
+      </div>
+
+      {/* RIGHT CONTROLS */}
+      <div className="d-flex align-items-center gap-2">
+        {/* PAGE SIZE */}
+        {onPerPageChange && (
+          <select
+            className="form-select form-select-sm"
+            style={{ width: 80 }}
+            value={per_page}
+            onChange={(e) =>
+              onPerPageChange(Number(e.target.value))
+            }
+          >
+            {pageSizeOptions.map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {/* PREV */}
+        <button
+          className="btn btn-outline-secondary btn-sm"
+          disabled={current_page === 1}
+          onClick={() => onPageChange(current_page - 1)}
+        >
+          Prev
+        </button>
+
+        {/* PAGE NUMBERS */}
+        {getPages().map((page) => (
+          <button
+            key={page}
+            className={`btn btn-sm ${
+              page === current_page
+                ? "btn-primary"
+                : "btn-outline-secondary"
+            }`}
+            onClick={() => onPageChange(page)}
+          >
+            {page}
+          </button>
+        ))}
+
+        {/* NEXT */}
+        <button
+          className="btn btn-outline-secondary btn-sm"
+          disabled={current_page === last_page}
+          onClick={() => onPageChange(current_page + 1)}
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/components/common/RowActions.tsx
+=============================
+import Button from "./Button";
+
+type Action = {
+  label: string;
+  onClick: () => void;
+  variant?: "primary" | "secondary" | "warning" | "danger" | "success";
+  show?: boolean;
+  disabled?: boolean;
+  icon?: string;
+};
+
+export default function RowActions({ actions }: { actions: Action[] }) {
+  return (
+    <div className="btn-group btn-group-sm">
+      {actions
+        .filter((a) => a.show !== false)
+        .map((a, i) => (
+          <Button
+            key={i}
+            label={a.label}
+            variant={a.variant}
+            onClick={a.onClick}
+            disabled={a.disabled}
+            icon={a.icon}
+            size="sm"
+          />
+        ))}
+    </div>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/components/common/TableSkeleton.tsx
+=============================
+type Props = {
+  rows?: number;
+  cols?: number;
+};
+
+export default function TableSkeleton({
+  rows = 5,
+  cols = 4,
+}: Props) {
+  return (
+    <tbody>
+      {Array.from({ length: rows }).map((_, i) => (
+        <tr key={i}>
+          <td colSpan={cols}>
+            <div className="placeholder-glow">
+              <span
+                className="placeholder col-12 bg-secondary"
+                style={{ height: 20 }}
+              />
+            </div>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/config/appRoutes.tsx
+=============================
+// src/config/appRoutes.tsx
+
+import { lazy } from "react";
+import Profile from "../pages/user/Profile";
+import UserRoles from "../pages/user/UserRoles";
+import { PERMISSIONS } from "../constants/permissions";
+
+// ðŸ”¹ Lazy loaded admin pages
+const Dashboard = lazy(() => import("../pages/admin/Dashboard"));
+const Users = lazy(() => import("../pages/admin/Users"));
+const Roles = lazy(() => import("../pages/admin/Roles"));
+const PermissionsPage = lazy(
+  () => import("../pages/admin/PermissionsPage")
+);
+
+export type AppRoute = {
+  path: string;
+  element: JSX.Element;
+  permission?: string;
+  admin?: boolean;
+};
+
+/* ================= ADMIN ROUTES ================= */
+export const adminAppRoutes: AppRoute[] = [
+  {
+    path: "dashboard",
+    element: <Dashboard />,
+    admin: true,
+  },
+  {
+    path: "profile",
+    element: <Profile />,
+    admin: true,
+  },
+  {
+    path: "users",
+    element: <Users />,
+    admin: true,
+    permission: PERMISSIONS.USER.VIEW,
+  },
+  {
+    path: "roles",
+    element: <Roles />,
+    admin: true,
+    permission: PERMISSIONS.ROLE.MANAGE,
+  },
+  {
+    path: "permissions",
+    element: <PermissionsPage />,
+    admin: true,
+    permission: PERMISSIONS.PERMISSION.MANAGE,
+  },
+];
+
+/* ================= USER ROUTES ================= */
+export const userAppRoutes: AppRoute[] = [
+  {
+    path: "profile",
+    element: <Profile />,
+  },
+  {
+    path: "roles",
+    element: <UserRoles />,
+  },
+];
+
+
+
+=============================
+FILE: textutils-react/src/config/sidebarGroups.tsx
+=============================
+// src/config/sidebarGroups.tsx
+
+import { SidebarGroup } from "../types/sidebar";
+import { adminAppRoutes } from "./appRoutes";
+import { ROUTE_GROUPS } from "../constants/routeGroups";
+
+/**
+ * Sidebar Groups
+ * -------------------------------------------------
+ * - Derived from adminAppRoutes (single source)
+ * - Grouped via ROUTE_GROUPS
+ * - Permission-aware (handled in MenuRenderer)
+ * - AdminLTE 3 friendly
+ */
+
+export const sidebarGroups: SidebarGroup[] = [
+  /* ================= USER MANAGEMENT ================= */
+  {
+    label: "User Management",
+    icon: "fas fa-users",
+    showInMenu: true,
+    children: adminAppRoutes
+      .filter(
+        (r) =>
+          r.showInMenu &&
+          r.group === ROUTE_GROUPS.USER_MANAGEMENT
+      )
+      .map((r) => ({
+        label: r.label!,            // safe because showInMenu
+        path: `/admin/${r.path}`,   // Admin base path
+        permission: r.permission,
+      })),
+  },
+
+  /* ================= SETTINGS ================= */
+  {
+    label: "Settings",
+    icon: "fas fa-cogs",
+    showInMenu: true,
+    children: [
+      ...adminAppRoutes
+        .filter(
+          (r) =>
+            r.showInMenu &&
+            r.group === ROUTE_GROUPS.SETTINGS
+        )
+        .map((r) => ({
+          label: r.label!,
+          path: `/admin/${r.path}`,
+          permission: r.permission,
+        })),
+
+      // ----- ACTION ITEM (no route) -----
+      {
+        label: "Logout",
+        action: "logout",
+      },
+    ],
+  },
+];
+
+
+
+=============================
+FILE: textutils-react/src/constants/icons.ts
+=============================
+export const ICONS = {
+  ADD: "fas fa-plus",
+  EDIT: "fas fa-edit",
+  DELETE: "fas fa-trash",
+  SAVE: "fas fa-save",
+  ROLE: "fas fa-user-shield",
+  PERMISSION: "fas fa-key",
+  USER: "fas fa-users",
+  RESTORE: "fas fa-undo",
+};
+
+
+
+=============================
+FILE: textutils-react/src/constants/permissions.ts
+=============================
+export const PERMISSIONS = {
+  USER: {
+    VIEW: "user-view",
+    CREATE: "user-create",
+    DELETE: "user-delete",
+    ASSIGN_ROLE: "user-assign-role",
+    ASSIGN_PERMISSION: "user-assign-permission",
+    
+  },
+  ROLE: {
+    MANAGE: "role-manage",
+  },
+  PERMISSION: {
+    MANAGE: "permission-manage",
+  },
+} as const;
+//user-permission
+export type Permission =
+  | (typeof PERMISSIONS)[keyof typeof PERMISSIONS][keyof (typeof PERMISSIONS)[any]];
+
+
+
+=============================
+FILE: textutils-react/src/constants/roles.ts
+=============================
+export const ADMIN_ROLES = [
+  "super-admin",
+  "admin",
+  // future: "manager", "staff"
+] as const;
+
+
+
+=============================
+FILE: textutils-react/src/constants/routeGroups.ts
+=============================
+// src/constants/routeGroups.ts
+
+export const ROUTE_GROUPS = {
+  USER_MANAGEMENT: "USER_MANAGEMENT",
+  SETTINGS: "SETTINGS",
+} as const;
+
+export type RouteGroup =
+  (typeof ROUTE_GROUPS)[keyof typeof ROUTE_GROUPS];
+
+
+
+=============================
+FILE: textutils-react/src/context/AppModalContext.tsx
+=============================
+import {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+} from "react";
+import type { ModalMap } from "../types/modal";
+
+type ModalContextType = {
+  modalType: keyof ModalMap | null;
+  modalData: ModalMap[keyof ModalMap] | null;
+  openModal: <T extends keyof ModalMap>(
+    type: T,
+    data: ModalMap[T]
+  ) => void;
+  closeModal: () => void;
+};
+
+const AppModalContext =
+  createContext<ModalContextType | null>(null);
+
+export function AppModalProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const [modalType, setModalType] =
+    useState<keyof ModalMap | null>(null);
+
+  const [modalData, setModalData] =
+    useState<ModalMap[keyof ModalMap] | null>(null);
+
+  const openModal = <T extends keyof ModalMap>(
+    type: T,
+    data: ModalMap[T]
+  ) => {
+    setModalType(type);
+    setModalData(data);
+  };
+
+  const closeModal = () => {
+    setModalType(null);
+    setModalData(null);
+  };
+
+  return (
+    <AppModalContext.Provider
+      value={{
+        modalType,
+        modalData,
+        openModal,
+        closeModal,
+      }}
+    >
+      {children}
+    </AppModalContext.Provider>
+  );
+}
+
+export function useAppModal() {
+  const ctx = useContext(AppModalContext);
+  if (!ctx) {
+    throw new Error(
+      "useAppModal must be used inside AppModalProvider"
+    );
+  }
+  return ctx;
+}
+
+
+
+=============================
+FILE: textutils-react/src/features/sidebar/sidebar.api.ts
+=============================
+// src/features/sidebar/sidebar.api.ts
+import { api } from "../../store/api";
+import type { SidebarGroup } from "../../types/sidebar";
+
+export const sidebarApi = api.injectEndpoints({
+  endpoints: (builder) => ({
+    getSidebar: builder.query<SidebarGroup[], void>({
+      query: () => "/admin/sidebar",
+      transformResponse: (res: any) => res.data,
+    }),
+  }),
+});
+
+export const { useGetSidebarQuery } = sidebarApi;
+
+
+
+=============================
+FILE: textutils-react/src/hooks/useBackendForm.ts
+=============================
+import { useState } from "react";
+
+/**
+ * Backend validation errors
+ * { field: ["error1", "error2"] }
+ */
+type Errors<T> = Partial<Record<keyof T, string[]>>;
+
+export function useBackendForm<T extends Record<string, any>>(
+  initialValues: T
+) {
+  const [values, setValues] = useState<T>(initialValues);
+  const [errors, setErrors] = useState<Errors<T>>({});
+  const [loading, setLoading] = useState<boolean>(false);
+
+  /**
+   * Update single field & clear its error
+   */
+  const setField = <K extends keyof T>(
+    key: K,
+    value: T[K]
+  ) => {
+    setValues((prev) => ({ ...prev, [key]: value }));
+    setErrors((prev) => ({ ...prev, [key]: undefined }));
+  };
+
+  /**
+   * Handle Laravel validation errors (422)
+   */
+  const handleError = (error: any) => {
+    if (error?.response?.status === 422) {
+      setErrors(error.response.data?.errors || {});
+    }
+  };
+
+  /**
+   * Reset form to initial state
+   */
+  const reset = () => {
+    setValues(initialValues);
+    setErrors({});
+  };
+
+  return {
+    values,
+    errors,
+    loading,
+
+    // setters
+    setLoading,
+    setField,
+
+    // helpers
+    handleError,
+    reset,
+  };
+}
+
+
+
+=============================
+FILE: textutils-react/src/hooks/useConfirmDelete.ts
+=============================
+import { useAppModal } from "../context/AppModalContext";
+
+export function useConfirmDelete() {
+  const { openModal } = useAppModal();
+
+  return (message: string, onConfirm: () => Promise<void>) => {
+    openModal("confirm-delete", {
+      message,
+      onConfirm,
+    });
+  };
+}
+
+
+
+=============================
+FILE: textutils-react/src/hooks/usePagination.ts
+=============================
+import { useState } from "react";
+
+type Options = {
+  initialPage?: number;
+  initialSearch?: string;
+};
+
+export function usePagination(options: Options = {}) {
+  const [page, setPage] = useState(
+    options.initialPage ?? 1
+  );
+  const [search, setSearch] = useState(
+    options.initialSearch ?? ""
+  );
+
+  const onSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1); // ðŸ”¥ reset page on search
+  };
+
+  return {
+    page,
+    setPage,
+    search,
+    setSearch: onSearchChange,
+  };
+}
+
+
+
+=============================
+FILE: textutils-react/src/layouts/AdminLayout.tsx
+=============================
+import { Outlet } from "react-router-dom";
+import AdminNavbar from "../components/admin/AdminNavbar";
+import AdminSidebar from "../components/admin/AdminSidebar";
+import ModalHost from "../components/common/ModalHost";
+
+export default function AdminLayout() {
+  return (
+    <div className="wrapper">
+      {/* TOP NAVBAR */}
+      <AdminNavbar />
+
+      {/* SIDEBAR */}
+      <AdminSidebar />
+
+      {/* MAIN CONTENT */}
+      <div className="content-wrapper">
+        <Outlet />
+      </div>
+
+      {/* ðŸ”¥ ALL GLOBAL MODALS (DELETE CONFIRM ETC.) */}
+      <ModalHost />
+
+      {/* FOOTER */}
+      <footer className="main-footer text-center">
+        <strong>AdminLTE React</strong>
+      </footer>
+    </div>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/layouts/UserLayout.tsx
+=============================
+// src/layouts/UserLayout.tsx
+
+import { Outlet } from "react-router-dom";
+
+/**
+ * UserLayout
+ * -------------------------------------------------
+ * - Layout for non-admin (user) pages
+ * - No AdminLTE sidebar / navbar
+ * - Clean, Bootstrap-4 compatible
+ *
+ * Future:
+ * - UserNavbar can be added here
+ */
+
+export default function UserLayout() {
+  return (
+    <div className="container-fluid mt-3">
+      <Outlet />
+    </div>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/main.tsx
+=============================
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import { Provider } from "react-redux";
+
+import App from "./App";
+import { store } from "./store";
+import { setStore } from "./store/storeAccessor";
+import { AppModalProvider } from "./context/AppModalContext";
+import ErrorBoundary from "./components/common/ErrorBoundary";
+import { listenAuthEvents } from "./utils/authEvents";
+import { logoutThunk } from "./store/authSlice";
+
+import "bootstrap/dist/css/bootstrap.min.css";
+import "@fortawesome/fontawesome-free/css/all.min.css";
+import "admin-lte/dist/css/adminlte.min.css";
+
+import "bootstrap/dist/js/bootstrap.bundle.min.js";
+import "admin-lte/dist/js/adminlte.min.js";
+
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+setStore(store);
+
+/* ===== MULTI TAB LOGOUT ===== */
+listenAuthEvents(() => {
+  store.dispatch(logoutThunk());
+  window.location.replace("/login");
+});
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <ErrorBoundary>
+      <Provider store={store}>
+        <BrowserRouter>
+          <AppModalProvider>
+            <App />
+            <ToastContainer
+              position="top-right"
+              autoClose={3000}
+            />
+          </AppModalProvider>
+        </BrowserRouter>
+      </Provider>
+    </ErrorBoundary>
+  </React.StrictMode>
+);
+
+
+
+=============================
+FILE: textutils-react/src/pages/admin/AdminUsers.tsx
+=============================
+import { useState } from "react";
+import CreateAdminModal from "../../components/admin/CreateAdminModal";
+
+export default function AdminUsers() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="container mt-4">
+      <h4>Admin Users</h4>
+
+      <button
+        className="btn btn-primary mb-3"
+        onClick={() => setOpen(true)}
+      >
+        + Create Admin
+      </button>
+
+      {open && (
+        <CreateAdminModal onClose={() => setOpen(false)} />
+      )}
+    </div>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/pages/admin/Dashboard.tsx
+=============================
+import { useAuth } from "../../auth/hooks/useAuth";
+import { useGetDashboardStatsQuery } from "../../store/api";
+import InfoBox from "../../ui/InfoBox";
+import { ICONS } from "../../constants/icons";
+
+export default function Dashboard() {
+  const { user, permissions } = useAuth();
+  const { data: stats } = useGetDashboardStatsQuery();
+
+  return (
+    <section className="content pt-3">
+      <div className="container-fluid">
+        <h3 className="mb-3">Admin Dashboard</h3>
+
+        <div className="row">
+          <div className="col-md-3 col-sm-6">
+            <InfoBox
+              title="Total Users"
+              value={stats?.total_users ?? 0}
+              icon={ICONS.USER}
+              color="primary"
+            />
+          </div>
+
+          <div className="col-md-3 col-sm-6">
+            <InfoBox
+              title="Permissions"
+              value={permissions.length}
+              icon={ICONS.PERMISSION}
+              color="success"
+            />
+          </div>
+
+          <div className="col-md-3 col-sm-6">
+            <InfoBox
+              title="Roles"
+              value={user?.roles.length || 0}
+              icon={ICONS.ROLE}
+              color="warning"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/pages/admin/PermissionsPage.tsx
+=============================
+import { memo } from "react";
+import Modal from "../../components/common/Modal";
+import RowActions from "../../components/common/RowActions";
+import Button from "../../components/common/Button";
+import PageHeader from "../../components/common/PageHeader";
+import DataTable from "../../components/common/DataTable";
+
+import Card from "../../ui/Card";
+import CardHeader from "../../ui/CardHeader";
+import CardBody from "../../ui/CardBody";
+import { useAppModal } from "../../context/AppModalContext";
+
+import { useBackendForm } from "../../hooks/useBackendForm";
+import { useConfirmDelete } from "../../hooks/useConfirmDelete";
+
+import {
+  useGetPermissionsQuery,
+  useCreatePermissionMutation,
+  useUpdatePermissionMutation,
+  useDeletePermissionMutation,
+} from "../../store/api";
+
+import { execute } from "../../utils/execute";
+import type { Permission } from "../../types/models";
+import Can from "../../components/common/Can";
+import { PERMISSIONS } from "../../constants/permissions";
+import { useAuth } from "../../auth/hooks/useAuth";
+
+function PermissionsPage() {
+  const confirmDelete = useConfirmDelete();
+  const { modalType, modalData, openModal, closeModal } =
+    useAppModal<Permission>();
+
+  const { data: permissions = [], isLoading } =
+    useGetPermissionsQuery();
+
+  const [createPermission] = useCreatePermissionMutation();
+  const [updatePermission] = useUpdatePermissionMutation();
+  const [deletePermission] = useDeletePermissionMutation();
+
+  const {
+    values,
+    errors,
+    loading,
+    setLoading,
+    setField,
+    handleError,
+    reset,
+  } = useBackendForm({ name: "" });
+
+  const { can } = useAuth();
+
+  const save = async () => {
+    try {
+      setLoading(true);
+      await execute(
+        () =>
+          modalData?.id
+            ? updatePermission({
+                id: modalData.id,
+                name: values.name,
+              }).unwrap()
+            : createPermission(values).unwrap(),
+        modalData?.id ? "Permission updated" : "Permission created"
+      );
+      closeModal();
+      reset();
+    } catch (e) {
+      handleError(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = (permission: Permission) =>
+    confirmDelete(
+      "Are you sure you want to delete this permission?",
+      async () => {
+        await execute(
+          () => deletePermission(permission.id).unwrap(),
+          "Permission deleted"
+        );
+      }
+    );
+
+  const getRowActions = (permission: Permission) => [
+    {
+      label: "Edit",
+      show: can(PERMISSIONS.PERMISSION.MANAGE),
+      onClick: () => {
+        setField("name", permission.name);
+        openModal("permission", permission);
+      },
+    },
+    {
+      label: "Delete",
+      variant: "danger" as const,
+      show: can(PERMISSIONS.PERMISSION.MANAGE),
+      onClick: () => handleDelete(permission),
+    },
+  ];
+
+  return (
+    <section className="content pt-3">
+      <div className="container-fluid">
+        <PageHeader
+          title="Permissions"
+          action={
+            <Can permission={PERMISSIONS.PERMISSION.MANAGE}>
+              <Button
+                label="+ Add Permission"
+                onClick={() => {
+                  reset();
+                  openModal("permission");
+                }}
+              />
+            </Can>
+          }
+        />
+
+        <Card>
+          <CardHeader title="Permissions List" />
+          <CardBody className="p-0">
+            <DataTable
+              isLoading={isLoading}
+              colSpan={2}
+              columns={
+                <tr>
+                  <th>Name</th>
+                  <th className="text-right" style={{ width: 180 }}>
+                    Actions
+                  </th>
+                </tr>
+              }
+            >
+              {permissions.map((permission) => (
+                <tr key={permission.id}>
+                  <td>{permission.name}</td>
+                  <td className="text-right">
+                    <RowActions actions={getRowActions(permission)} />
+                  </td>
+                </tr>
+              ))}
+            </DataTable>
+          </CardBody>
+        </Card>
+
+        {modalType === "permission" && (
+          <Modal
+            title="Permission"
+            onClose={closeModal}
+            onSave={save}
+            saveDisabled={loading}
+            saveText={modalData?.id ? "Update" : "Save"}
+          >
+            <input
+              className={`form-control ${errors.name ? "is-invalid" : ""}`}
+              value={values.name}
+              onChange={(e) => setField("name", e.target.value)}
+              disabled={loading}
+              placeholder="Permission name"
+            />
+            {errors.name && (
+              <div className="invalid-feedback">{errors.name[0]}</div>
+            )}
+          </Modal>
+        )}
+      </div>
+    </section>
+  );
+}
+
+export default memo(PermissionsPage);
+
+
+
+=============================
+FILE: textutils-react/src/pages/admin/Roles.tsx
+=============================
+import { memo } from "react";
+import Modal from "../../components/common/Modal";
+import RolePermissionModal from "../../components/RolePermissionModal";
+import RowActions from "../../components/common/RowActions";
+import Button from "../../components/common/Button";
+import PageHeader from "../../components/common/PageHeader";
+import DataTable from "../../components/common/DataTable";
+
+import Card from "../../ui/Card";
+import CardHeader from "../../ui/CardHeader";
+import CardBody from "../../ui/CardBody";
+import { useAppModal } from "../../context/AppModalContext";
+import { useBackendForm } from "../../hooks/useBackendForm";
+import { useConfirmDelete } from "../../hooks/useConfirmDelete";
+
+import {
+  useGetRolesQuery,
+  useCreateRoleMutation,
+  useUpdateRoleMutation,
+  useDeleteRoleMutation,
+} from "../../store/api";
+
+import { execute } from "../../utils/execute";
+import type { Role } from "../../types/models";
+import Can from "../../components/common/Can";
+import { PERMISSIONS } from "../../constants/permissions";
+import { useAuth } from "../../auth/hooks/useAuth";
+
+function Roles() {
+  const confirmDelete = useConfirmDelete();
+  const { modalType, modalData, openModal, closeModal } =
+    useAppModal<Role>();
+
+  const { data: roles = [], isLoading } = useGetRolesQuery();
+
+  const [createRole] = useCreateRoleMutation();
+  const [updateRole] = useUpdateRoleMutation();
+  const [deleteRole] = useDeleteRoleMutation();
+
+  const {
+    values,
+    errors,
+    loading,
+    setLoading,
+    setField,
+    handleError,
+    reset,
+  } = useBackendForm({ name: "" });
+
+  const { can } = useAuth();
+
+  const save = async () => {
+    try {
+      setLoading(true);
+      await execute(
+        () =>
+          modalData?.id
+            ? updateRole({
+                id: modalData.id,
+                name: values.name,
+              }).unwrap()
+            : createRole(values).unwrap(),
+        modalData?.id ? "Role updated" : "Role created"
+      );
+      closeModal();
+      reset();
+    } catch (e) {
+      handleError(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = (role: Role) =>
+    confirmDelete("Are you sure you want to delete this role?", async () => {
+      await execute(
+        () => deleteRole(role.id).unwrap(),
+        "Role deleted"
+      );
+    });
+
+  const getRowActions = (role: Role) => {
+    if (role.name === "super-admin") return [];
+
+    return [
+      {
+        label: "Assign Permissions",
+        show: can(PERMISSIONS.ROLE.MANAGE),
+        onClick: () => openModal("permission", role),
+      },
+      {
+        label: "Edit",
+        show: can(PERMISSIONS.ROLE.MANAGE),
+        onClick: () => {
+          setField("name", role.name);
+          openModal("role-edit", role);
+        },
+      },
+      {
+        label: "Delete",
+        variant: "danger" as const,
+        show: can(PERMISSIONS.ROLE.MANAGE),
+        onClick: () => handleDelete(role),
+      },
+    ];
+  };
+
+  return (
+    <section className="content pt-3">
+      <div className="container-fluid">
+        <PageHeader
+          title="Roles"
+          action={
+            <Can permission={PERMISSIONS.ROLE.MANAGE}>
+              <Button
+                label="+ Add Role"
+                onClick={() => {
+                  reset();
+                  openModal("role-add");
+                }}
+              />
+            </Can>
+          }
+        />
+
+        <Card>
+          <CardHeader title="Roles List" />
+          <CardBody className="p-0">
+            <DataTable
+              isLoading={isLoading}
+              colSpan={2}
+              columns={
+                <tr>
+                  <th>Name</th>
+                  <th className="text-right" style={{ width: 260 }}>
+                    Actions
+                  </th>
+                </tr>
+              }
+            >
+              {roles.map((role) => (
+                <tr key={role.id}>
+                  <td>{role.name}</td>
+                  <td className="text-right">
+                    <RowActions actions={getRowActions(role)} />
+                  </td>
+                </tr>
+              ))}
+            </DataTable>
+          </CardBody>
+        </Card>
+
+        {(modalType === "role-add" || modalType === "role-edit") && (
+          <Modal
+            title={
+              modalType === "role-edit" ? "Edit Role" : "Add Role"
+            }
+            onClose={closeModal}
+            onSave={save}
+            saveDisabled={loading}
+            saveText={modalType === "role-edit" ? "Update" : "Save"}
+          >
+            <input
+              className={`form-control ${errors.name ? "is-invalid" : ""}`}
+              value={values.name}
+              onChange={(e) => setField("name", e.target.value)}
+              disabled={loading}
+              placeholder="Role name"
+            />
+            {errors.name && (
+              <div className="invalid-feedback">{errors.name[0]}</div>
+            )}
+          </Modal>
+        )}
+
+        {modalType === "permission" && modalData && (
+          <RolePermissionModal role={modalData} onClose={closeModal} />
+        )}
+      </div>
+    </section>
+  );
+}
+
+export default memo(Roles);
+
+
+
+=============================
+FILE: textutils-react/src/pages/admin/Users.tsx
+=============================
+import { memo } from "react";
+import { useAppModal } from "../../context/AppModalContext";
+import { useConfirmDelete } from "../../hooks/useConfirmDelete";
+import { useAuth } from "../../auth/hooks/useAuth";
+
+import PageHeader from "../../components/common/PageHeader";
+import DataTable from "../../components/common/DataTable";
+import RowActions from "../../components/common/RowActions";
+import Button from "../../components/common/Button";
+import Can from "../../components/common/Can";
+
+import Card from "../../ui/Card";
+import CardHeader from "../../ui/CardHeader";
+import CardBody from "../../ui/CardBody";
+
+import UserFormModal from "../../components/UserFormModal";
+import UserRoleModal from "../../components/UserRoleModal";
+import UserPermissionModal from "../../components/UserPermissionModal";
+import Pagination from "../../components/common/Pagination";
+import { usePagination } from "../../hooks/usePagination";
+
+import { PERMISSIONS } from "../../constants/permissions";
+import { ICONS } from "../../constants/icons";
+
+import {
+  useGetUsersQuery,
+  useDeleteUserMutation,
+  useRestoreUserMutation,
+} from "../../store/api";
+
+import { execute } from "../../utils/execute";
+import type { User } from "../../types/models";
+
+function Users() {
+  const confirmDelete = useConfirmDelete();
+  const { modalType, modalData, openModal, closeModal } =
+    useAppModal<User | null>();
+
+  const { page, setPage, search, setSearch } = usePagination();
+
+  const { data, isLoading } = useGetUsersQuery(
+    { page, search },
+    { refetchOnMountOrArgChange: true }
+  );
+
+  const users: User[] = data?.data ?? [];
+  const meta = data?.meta;
+
+  const [deleteUser] = useDeleteUserMutation();
+  const [restoreUser] = useRestoreUserMutation();
+
+  const { can } = useAuth();
+
+  /* ================= ACTION HANDLERS ================= */
+
+  const handleArchive = (user: User) =>
+    confirmDelete(
+      "Are you sure you want to archive this user?",
+      async () => {
+        await execute(
+          () => deleteUser(user.id).unwrap(),
+          "User archived successfully"
+        );
+      }
+    );
+
+  const handleRestore = async (user: User) => {
+    await execute(
+      () => restoreUser(user.id).unwrap(),
+      "User restored successfully"
+    );
+  };
+
+  /* ================= ROW ACTIONS ================= */
+
+  const getRowActions = (user: User) => {
+    if (user.roles.includes("super-admin")) return [];
+
+    if (user.deleted_at) {
+      return [
+        {
+          label: "Restore",
+          icon: ICONS.RESTORE,
+          variant: "success" as const,
+          onClick: () => handleRestore(user),
+        },
+      ];
+    }
+
+    return [
+      {
+        label: "Roles",
+        icon: ICONS.ROLE,
+        show: can(PERMISSIONS.USER.ASSIGN_ROLE),
+        onClick: () => openModal("user-role", user),
+      },
+      {
+        label: "Permissions",
+        icon: ICONS.PERMISSION,
+        show: can(PERMISSIONS.USER.ASSIGN_PERMISSION),
+        onClick: () => openModal("user-permission", user),
+      },
+      {
+        label: "Archive",
+        icon: ICONS.DELETE,
+        variant: "danger" as const,
+        show: can(PERMISSIONS.USER.DELETE),
+        onClick: () => handleArchive(user),
+      },
+    ];
+  };
+
+  /* ================= VIEW ================= */
+
+  return (
+    <section className="content pt-3">
+      <div className="container-fluid">
+        <PageHeader
+          title="Users"
+          action={
+            <Can permission={PERMISSIONS.USER.CREATE}>
+              <Button
+                label="Add User"
+                icon={ICONS.ADD}
+                onClick={() => openModal("user-form", null)}
+              />
+            </Can>
+          }
+        />
+
+        {/* SEARCH */}
+        <div className="mb-3">
+          <div className="input-group">
+            <input
+              className="form-control"
+              placeholder="Search by name or email..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <div className="input-group-append">
+              <span className="input-group-text">
+                <i className="fas fa-search" />
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <Card>
+          <CardHeader title="Users List" />
+          <CardBody className="p-0">
+            <DataTable
+              isLoading={isLoading}
+              colSpan={5}
+              columns={
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Roles</th>
+                  <th>Status</th>
+                  <th className="text-right">Actions</th>
+                </tr>
+              }
+            >
+              {users.map((user) => (
+                <tr key={user.id}>
+                  <td>{user.name}</td>
+                  <td>{user.email}</td>
+                  <td>{user.roles.join(", ") || "â€”"}</td>
+                  <td>
+                    {user.deleted_at ? (
+                      <span className="badge badge-warning">
+                        Archived
+                      </span>
+                    ) : (
+                      <span className="badge badge-success">
+                        Active
+                      </span>
+                    )}
+                  </td>
+                  <td className="text-right">
+                    <RowActions actions={getRowActions(user)} />
+                  </td>
+                </tr>
+              ))}
+            </DataTable>
+          </CardBody>
+        </Card>
+
+        {meta && (
+          <Pagination
+            meta={meta}
+            onPageChange={setPage}
+          />
+        )}
+
+        {/* MODALS */}
+        {modalType === "user-form" && (
+          <UserFormModal
+            onClose={closeModal}
+            onSaved={closeModal}
+          />
+        )}
+
+        {modalType === "user-role" && modalData && (
+          <UserRoleModal
+            user={modalData}
+            onClose={closeModal}
+            onSaved={closeModal}
+          />
+        )}
+
+        {modalType === "user-permission" && modalData && (
+          <UserPermissionModal
+            user={modalData}
+            onClose={closeModal}
+          />
+        )}
+      </div>
+    </section>
+  );
+}
+
+export default memo(Users);
+
+
+
+=============================
+FILE: textutils-react/src/pages/auth/ForgotPassword.tsx
+=============================
+import { useBackendForm } from "../../hooks/useBackendForm";
+import api from "../../api/axios";
+import { execute } from "../../utils/execute";
+
+type FormValues = {
+  email: string;
+};
+
+export default function ForgotPassword() {
+  const {
+    values,
+    errors,
+    loading,
+    setLoading,
+    setField,
+    handleError,
+    reset,
+  } = useBackendForm<FormValues>({
+    email: "",
+  });
+
+  /* ================= SUBMIT ================= */
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    await execute(
+      async () => {
+        setLoading(true);
+
+        const res = await api.post("/forgot-password", {
+          email: values.email,
+        });
+
+        reset();
+        return res;
+      },
+      "Password reset link sent to your email"
+    ).catch(handleError)
+     .finally(() => setLoading(false));
+  };
+
+  return (
+    <div className="container mt-5" style={{ maxWidth: 420 }}>
+      <h4 className="mb-3">Forgot Password</h4>
+
+      <form onSubmit={submit}>
+        {/* EMAIL */}
+        <input
+          type="email"
+          className={`form-control mb-2 ${
+            errors.email ? "is-invalid" : ""
+          }`}
+          placeholder="Enter your email"
+          value={values.email}
+          onChange={(e) => setField("email", e.target.value)}
+          disabled={loading}
+          required
+        />
+
+        {errors.email && (
+          <div className="invalid-feedback">
+            {errors.email[0]}
+          </div>
+        )}
+
+        <button className="btn btn-primary w-100" disabled={loading}>
+          {loading ? "Sending..." : "Send Reset Link"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/pages/auth/Login.tsx
+=============================
+import { Navigate } from "react-router-dom";
+import LoginForm from "../../auth/LoginForm";
+import { useAuth } from "../../auth/hooks/useAuth";
+
+type Props = {
+  admin?: boolean;
+};
+
+export default function Login({ admin = false }: Props) {
+  const { isAuth, isAdmin } = useAuth();
+
+  /* ðŸ” Already logged in */
+  if (isAuth) {
+    return (
+      <Navigate
+        to={isAdmin ? "/admin/dashboard" : "/profile"}
+        replace
+      />
+    );
+  }
+
+  return (
+    <LoginForm
+      title={admin ? "Admin Login" : "User Login"}
+      redirectAdmin={admin}
+    />
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/pages/auth/Register.tsx
+=============================
+import RegisterForm from "../../auth/RegisterForm";
+
+export default function Register() {
+  return (
+    <div className="container mt-5" style={{ maxWidth: 420 }}>
+      <h4 className="mb-3 text-center">
+        Create Account
+      </h4>
+
+      <RegisterForm />
+    </div>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/pages/auth/ResendVerification.tsx
+=============================
+import api from "../../api/axios";
+
+export default function ResendVerification() {
+  const resend = async () => {
+    await api.post("/email/resend");
+    alert("Verification email sent");
+  };
+
+  return (
+    <div className="container mt-5 text-center">
+      <h4>Email not verified</h4>
+      <button onClick={resend} className="btn btn-primary">
+        Resend verification email
+      </button>
+    </div>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/pages/auth/ResetPassword.tsx
+=============================
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import api from "../../api/axios";
+import { handleApiError, handleApiSuccess } from "../../utils/toastHelper";
+
+export default function ResetPassword() {
+  const [params] = useSearchParams();
+  const navigate = useNavigate();
+
+  const token = params.get("token");
+  const email = params.get("email");
+
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (password !== confirm) {
+      return alert("Passwords do not match");
+    }
+
+    try {
+      setLoading(true);
+
+      const res = await api.post("/reset-password", {
+        email,
+        token,
+        password,
+        password_confirmation: confirm,
+      });
+
+      handleApiSuccess(res);
+      navigate("/login", { replace: true });
+    } catch (e) {
+      handleApiError(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!token || !email) {
+    return <p className="text-danger">Invalid reset link</p>;
+  }
+
+  return (
+    <div className="container mt-5" style={{ maxWidth: 420 }}>
+      <h4>Reset Password</h4>
+
+      <form onSubmit={submit}>
+        <input
+          type="password"
+          className="form-control mb-3"
+          placeholder="New password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+
+        <input
+          type="password"
+          className="form-control mb-3"
+          placeholder="Confirm password"
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+          required
+        />
+
+        <button
+          className="btn btn-success w-100"
+          disabled={loading}
+        >
+          {loading ? "Resetting..." : "Reset Password"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/pages/auth/VerifyEmail.tsx
+=============================
+import { useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+import api from "../../api/axios";
+
+export default function VerifyEmail() {
+  const [params] = useSearchParams();
+
+  useEffect(() => {
+    const id = params.get("id");
+    const hash = params.get("hash");
+
+    if (id && hash) {
+      api.get(`/email/verify/${id}/${hash}`);
+    }
+  }, []);
+
+  return (
+    <div className="container mt-5 text-center">
+      <h4>Email Verification</h4>
+      <p>
+        Verifying your emailâ€¦  
+        You may close this page.
+      </p>
+    </div>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/pages/errors/NotFound.tsx
+=============================
+import { Link } from "react-router-dom";
+
+export default function NotFound() {
+  return (
+    <div className="container mt-5 text-center">
+      <h2 className="mb-3">404 â€“ Page Not Found</h2>
+
+      <p className="text-muted">
+        The page you are looking for does not exist.
+      </p>
+
+      <Link to="/login" className="btn btn-secondary mt-3">
+        Go to Login
+      </Link>
+    </div>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/pages/errors/Unauthorized.tsx
+=============================
+import { Link } from "react-router-dom";
+
+export default function Unauthorized() {
+  return (
+    <div className="container mt-5 text-center">
+      <h2 className="text-danger mb-3">403 â€“ Unauthorized</h2>
+
+      <p className="text-muted">
+        You do not have permission to access this page.
+      </p>
+
+      <Link to="/admin/dashboard" className="btn btn-primary mt-3">
+        Go to Dashboard
+      </Link>
+    </div>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/pages/user/Profile.tsx
+=============================
+import { useAuth } from "../../auth/hooks/useAuth";
+import { useLogout } from "../../auth/hooks/useLogout";
+import Card from "../../ui/Card";
+import CardHeader from "../../ui/CardHeader";
+import CardBody from "../../ui/CardBody";
+import Button from "../../components/common/Button";
+
+export default function Profile() {
+  const { user } = useAuth();
+  const logout = useLogout();
+
+  if (!user) {
+    return (
+      <div className="container mt-4 text-muted">
+        No profile data found
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mt-4">
+      <Card>
+        <CardHeader
+          title="My Profile"
+          action={
+            <Button
+              label="Logout"
+              variant="danger"
+              icon="fas fa-sign-out-alt"
+              onClick={() => logout("/login")}
+            />
+          }
+        />
+
+        <CardBody>
+          <div className="row">
+            <div className="col-md-6 mb-2">
+              <strong>Name:</strong>
+              <div>{user.name}</div>
+            </div>
+
+            <div className="col-md-6 mb-2">
+              <strong>Email:</strong>
+              <div>{user.email}</div>
+            </div>
+
+            <div className="col-12 mt-3">
+              <strong>Roles:</strong>
+              <div>
+                {user.roles.length
+                  ? user.roles.join(", ")
+                  : "â€”"}
+              </div>
+            </div>
+          </div>
+        </CardBody>
+      </Card>
+    </div>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/pages/user/UserRoles.tsx
+=============================
+import { useAuth } from "../../auth/hooks/useAuth";
+
+export default function UserRoles() {
+  const { user } = useAuth();
+
+  if (!user) {
+    return (
+      <div className="container mt-4">
+        <p>No user data found</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mt-4">
+      <h3>My Roles</h3>
+
+      <ul className="list-group mt-3">
+        {user.roles?.length ? (
+          user.roles.map((role: string) => (
+            <li key={role} className="list-group-item">
+              {role}
+            </li>
+          ))
+        ) : (
+          <li className="list-group-item text-muted">
+            No roles assigned
+          </li>
+        )}
+      </ul>
+    </div>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/routes/AppRoutes.tsx
+=============================
+import { Routes, Route, Navigate } from "react-router-dom";
+
+import Login from "../pages/auth/Login";
+import Unauthorized from "../pages/errors/Unauthorized";
+import NotFound from "../pages/errors/NotFound";
+
+import UserLayout from "../layouts/UserLayout";
+//import AdminLayout from "../layouts/AdminLayout";
+import Guard from "../auth/guards/Guard";
+
+import { adminAppRoutes, userAppRoutes } from "../config/appRoutes";
+
+import ForgotPassword from "../pages/auth/ForgotPassword";
+import ResetPassword from "../pages/auth/ResetPassword";
+import AdminLayout from "../layouts/AdminLayout";
+
+export default function AppRoutes() {
+  return (
+    <Routes>
+  
+
+      {/* AUTH */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/admin/login" element={<Login admin />} />
+
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+
+      {/* USER */}
+      <Route element={<Guard />}>
+        <Route element={<UserLayout />}>
+          {userAppRoutes.map((r) => (
+            <Route key={r.path} path={r.path} element={r.element} />
+          ))}
+        </Route>
+      </Route>
+
+      {/* ADMIN */}
+      <Route element={<Guard admin />}>
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+
+          {adminAppRoutes.map((r) => (
+            <Route
+              key={r.path}
+              element={
+                r.permission ? <Guard permission={r.permission} /> : <Guard />
+              }
+            >
+              <Route path={r.path} element={r.element} />
+            </Route>
+          ))}
+        </Route>
+      </Route>
+
+      {/* ERRORS */}
+      <Route path="/admin/unauthorized" element={<Unauthorized />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/services/authService.ts
+=============================
+import api from "../api/axios";
+
+/* LOGIN */
+export const loginService = (email: string, password: string) =>
+  api.post("/login", { email, password });
+
+/* PROFILE */
+export const profileService = () =>
+  api.get("/profile");
+
+/* LOGOUT */
+export const logoutService = () =>
+  api.post("/logout");
+
+/* ðŸ†• REGISTER (USER ONLY) */
+export const registerService = (data: {
+  name: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}) => {
+  return api.post("/register", data);
+};
+
+export const refreshTokenService = (refreshToken: string) => {
+  return api.post("/refresh-token", {
+    refresh_token: refreshToken,
+  });
+};
+
+
+
+=============================
+FILE: textutils-react/src/services/userService.ts
+=============================
+import api from "../api/axios";
+
+export const createAdminService = (data: {
+  name: string;
+  email: string;
+  role: string;
+}) => {
+  return api.post("/admin/admins", data);
+};
+
+
+
+=============================
+FILE: textutils-react/src/store/api.ts
+=============================
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import type { RootState } from "./index";
+import type { User } from "../types/models";
+
+export const api = createApi({
+  reducerPath: "api",
+
+  baseQuery: fetchBaseQuery({
+    baseUrl: import.meta.env.VITE_API_URL,
+    prepareHeaders: (headers, { getState }) => {
+      const token = (getState() as RootState).auth.token;
+
+      if (token) {
+        headers.set("Authorization", `Bearer ${token}`);
+      }
+
+      headers.set("Accept", "application/json");
+      return headers;
+    },
+  }),
+
+  // ðŸ”¥ CENTRALIZED TAGS
+  tagTypes: ["Users", "Roles", "Permissions"],
+
+  endpoints: (builder) => ({
+    /* =====================================================
+       USERS
+    ===================================================== */
+
+    getUsers: builder.query<
+      { data: User[]; meta: any },
+      { page?: number; search?: string } | void
+    >({
+      query: (args = {}) => {
+        const page = args.page ?? 1;
+        const search = args.search ?? "";
+        return `/admin/users?page=${page}&search=${search}`;
+      },
+      providesTags: ["Users"],
+    }),
+
+    createUser: builder.mutation<any, any>({
+      query: (data) => ({
+        url: "/admin/users",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Users"],
+    }),
+
+    deleteUser: builder.mutation<void, number>({
+      query: (id) => ({
+        url: `/admin/users/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Users"], // archive â†’ reload
+    }),
+
+    restoreUser: builder.mutation<void, number>({
+      query: (id) => ({
+        url: `/admin/users/${id}/restore`,
+        method: "POST",
+      }),
+      invalidatesTags: ["Users"], // restore â†’ reload
+    }),
+
+    assignUserRoles: builder.mutation<
+      void,
+      { id: number; roles: string[] }
+    >({
+      query: ({ id, roles }) => ({
+        url: `/admin/users/${id}/assign-role`,
+        method: "POST",
+        body: { roles },
+      }),
+      invalidatesTags: ["Users"], // role assign â†’ reload
+    }),
+
+    /* =====================================================
+       USER â†’ PERMISSIONS
+    ===================================================== */
+
+    getUserPermissions: builder.query<
+      { permissions: any[]; assigned: string[] },
+      number
+    >({
+      query: (id) => `/admin/users/${id}/permissions`,
+      transformResponse: (res: any) => res.data,
+      providesTags: ["Users"],
+    }),
+
+    assignUserPermissions: builder.mutation<
+      void,
+      { id: number; permissions: string[] }
+    >({
+      query: ({ id, permissions }) => ({
+        url: `/admin/users/${id}/permissions`,
+        method: "POST",
+        body: { permissions },
+      }),
+      invalidatesTags: ["Users"], // permission assign â†’ reload
+    }),
+
+    /* =====================================================
+       ROLES
+    ===================================================== */
+
+    getRoles: builder.query<any[], void>({
+      query: () => "/admin/roles",
+      transformResponse: (res: any) => res.data,
+      providesTags: ["Roles"],
+    }),
+
+    createRole: builder.mutation<any, { name: string }>({
+      query: (data) => ({
+        url: "/admin/roles",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Roles"],
+    }),
+
+    updateRole: builder.mutation<any, { id: number; name: string }>({
+      query: ({ id, ...data }) => ({
+        url: `/admin/roles/${id}`,
+        method: "PUT",
+        body: data,
+      }),
+      invalidatesTags: ["Roles"],
+    }),
+
+    deleteRole: builder.mutation<void, number>({
+      query: (id) => ({
+        url: `/admin/roles/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Roles"],
+    }),
+
+    /* =====================================================
+       ROLE â†’ PERMISSIONS
+    ===================================================== */
+
+    getRolePermissions: builder.query<
+      { permissions: any[]; assigned: string[] },
+      number
+    >({
+      query: (id) => `/admin/roles/${id}/permissions`,
+      transformResponse: (res: any) => res.data,
+      providesTags: ["Roles"],
+    }),
+
+    assignRolePermissions: builder.mutation<
+      void,
+      { id: number; permissions: string[] }
+    >({
+      query: ({ id, permissions }) => ({
+        url: `/admin/roles/${id}/permissions`,
+        method: "POST",
+        body: { permissions },
+      }),
+      invalidatesTags: ["Roles"],
+    }),
+
+    /* =====================================================
+       PERMISSIONS (MASTER)
+    ===================================================== */
+
+    getPermissions: builder.query<any[], void>({
+      query: () => "/admin/permissions",
+      transformResponse: (res: any) => res.data,
+      providesTags: ["Permissions"],
+    }),
+
+    createPermission: builder.mutation<any, { name: string }>({
+      query: (data) => ({
+        url: "/admin/permissions",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Permissions"],
+    }),
+
+    updatePermission: builder.mutation<any, { id: number; name: string }>({
+      query: ({ id, ...data }) => ({
+        url: `/admin/permissions/${id}`,
+        method: "PUT",
+        body: data,
+      }),
+      invalidatesTags: ["Permissions"],
+    }),
+
+    deletePermission: builder.mutation<void, number>({
+      query: (id) => ({
+        url: `/admin/permissions/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Permissions"],
+    }),
+
+    /* =====================================================
+       DASHBOARD
+    ===================================================== */
+
+    getDashboardStats: builder.query<{ total_users: number }, void>({
+      query: () => "/admin/dashboard/stats",
+      transformResponse: (res: any) => res.data,
+    }),
+  }),
+});
+
+/* =====================================================
+   HOOK EXPORTS
+===================================================== */
+
+export const {
+  // users
+  useGetUsersQuery,
+  useCreateUserMutation,
+  useDeleteUserMutation,
+  useRestoreUserMutation,
+  useAssignUserRolesMutation,
+
+  // user â†’ permissions
+  useGetUserPermissionsQuery,
+  useAssignUserPermissionsMutation,
+
+  // roles
+  useGetRolesQuery,
+  useCreateRoleMutation,
+  useUpdateRoleMutation,
+  useDeleteRoleMutation,
+  useGetRolePermissionsQuery,
+  useAssignRolePermissionsMutation,
+
+  // permissions
+  useGetPermissionsQuery,
+  useCreatePermissionMutation,
+  useUpdatePermissionMutation,
+  useDeletePermissionMutation,
+
+  // dashboard
+  useGetDashboardStatsQuery,
+} = api;
+
+
+
+=============================
+FILE: textutils-react/src/store/authSlice.ts
+=============================
+import {
+  createSlice,
+  createAsyncThunk,
+  PayloadAction,
+} from "@reduxjs/toolkit";
+
+import {
+  loginService,
+  profileService,
+} from "../services/authService";
+import type { User } from "../types/models";
+import { emitLogoutEvent } from "../utils/authEvents";
+
+/* ================= TYPES ================= */
+
+type AuthState = {
+  user: User | null;
+  permissions: string[];
+  token: string | null;
+  loading: boolean;
+};
+
+/* ================= INITIAL STATE ================= */
+/* Rehydration from localStorage */
+
+const initialState: AuthState = {
+  user: JSON.parse(localStorage.getItem("user") || "null"),
+  permissions: JSON.parse(
+    localStorage.getItem("permissions") || "[]"
+  ),
+  token: localStorage.getItem("token"),
+  loading: false,
+};
+
+/* ================= THUNKS ================= */
+
+/**
+ * LOGIN
+ * -------------------------------------------------
+ * - Authenticate only
+ * - Store ONLY token
+ */
+export const loginThunk = createAsyncThunk(
+  "auth/login",
+  async (
+    data: { email: string; password: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const res = await loginService(
+        data.email,
+        data.password
+      );
+      return res.data.data;
+    } catch (e: any) {
+      return rejectWithValue(
+        e.response?.data?.message ||
+          "Invalid credentials"
+      );
+    }
+  }
+);
+
+/**
+ * PROFILE
+ * -------------------------------------------------
+ * - Single source of truth
+ * - user + permissions
+ */
+export const fetchProfileThunk = createAsyncThunk(
+  "auth/profile",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await profileService();
+      return res.data.data;
+    } catch {
+      return rejectWithValue("Failed to load profile");
+    }
+  }
+);
+
+/**
+ * LOGOUT
+ * -------------------------------------------------
+ * - Clear storage
+ * - Multi-tab sync
+ */
+export const logoutThunk = createAsyncThunk(
+  "auth/logout",
+  async () => {
+    localStorage.clear();
+    emitLogoutEvent();
+    return true;
+  }
+);
+
+/* ================= SLICE ================= */
+
+const authSlice = createSlice({
+  name: "auth",
+  initialState,
+
+  reducers: {
+    /**
+     * OPTIONAL manual permission override
+     * (rare cases only)
+     */
+    setPermissions(
+      state,
+      action: PayloadAction<string[]>
+    ) {
+      state.permissions = action.payload;
+      localStorage.setItem(
+        "permissions",
+        JSON.stringify(action.payload)
+      );
+    },
+  },
+
+  extraReducers: (builder) => {
+    builder
+      /* ================= LOGIN ================= */
+
+      .addCase(loginThunk.pending, (state) => {
+        state.loading = true;
+      })
+
+      .addCase(loginThunk.fulfilled, (state, action) => {
+        state.loading = false;
+        state.token = action.payload.token;
+
+        localStorage.setItem(
+          "token",
+          action.payload.token
+        );
+      })
+
+      .addCase(loginThunk.rejected, (state) => {
+        state.loading = false;
+      })
+
+      /* ================= PROFILE ================= */
+
+      .addCase(fetchProfileThunk.fulfilled, (state, action) => {
+        state.user = action.payload.user;
+        state.permissions = action.payload.permissions;
+
+        localStorage.setItem(
+          "user",
+          JSON.stringify(action.payload.user)
+        );
+
+        localStorage.setItem(
+          "permissions",
+          JSON.stringify(action.payload.permissions)
+        );
+      })
+
+      .addCase(fetchProfileThunk.rejected, (state) => {
+        state.user = null;
+        state.permissions = [];
+      })
+
+      /* ================= LOGOUT ================= */
+
+      .addCase(logoutThunk.fulfilled, (state) => {
+        state.user = null;
+        state.permissions = [];
+        state.token = null;
+        state.loading = false;
+      });
+  },
+});
+
+/* ================= EXPORTS ================= */
+
+export const { setPermissions } = authSlice.actions;
+
+export default authSlice.reducer;
+
+
+
+=============================
+FILE: textutils-react/src/store/index.ts
+=============================
+import { configureStore } from "@reduxjs/toolkit";
+import authReducer from "./authSlice";
+import { api } from "./api";
+
+export const store = configureStore({
+  reducer: {
+    auth: authReducer,
+    [api.reducerPath]: api.reducer,
+  },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware().concat(api.middleware),
+});
+
+export type RootState = ReturnType<typeof store.getState>;
+export type AppDispatch = typeof store.dispatch;
+
+
+
+=============================
+FILE: textutils-react/src/store/storeAccessor.ts
+=============================
+import type { Store } from "@reduxjs/toolkit";
+
+let store: Store | undefined;
+
+export const setStore = (_store: Store) => {
+  store = _store;
+};
+
+export const getStore = (): Store => {
+  if (!store) {
+    throw new Error("Redux store not initialized");
+  }
+  return store;
+};
+
+
+
+=============================
+FILE: textutils-react/src/types/modal.ts
+=============================
+import type { User, Role } from "./models";
+
+export type ModalMap = {
+  /* ================= USER ================= */
+
+  "user-form": null;
+
+  "user-role": User;
+
+  "user-permission": {
+    id: number;
+    name: string;
+  };
+
+  /* ================= ROLE ================= */
+
+  "role-add": null;
+
+  "role-edit": Role;
+
+  /* ================= PERMISSION ================= */
+
+  "permission": {
+    id?: number;
+    name?: string;
+  };
+
+  /* ================= GLOBAL ================= */
+
+  "confirm-delete": {
+    message: string;
+    onConfirm: () => Promise<void>;
+    confirmLabel?: string; 
+  };
+};
+
+
+
+=============================
+FILE: textutils-react/src/types/models.ts
+=============================
+// src/types/models.ts
+
+export type User = {
+  id: number;
+  name: string;
+  email: string;
+  roles: string[];
+  deleted_at?: string;
+};
+
+export type Role = {
+  id: number;
+  name: string;
+};
+
+export type Permission = {
+  id: number;
+  name: string;
+};
+
+
+
+=============================
+FILE: textutils-react/src/types/sidebar.ts
+=============================
+// src/types/sidebar.ts
+
+export type SidebarItem = {
+  label: string;
+  path?: string;
+  element?: JSX.Element;   // ðŸ”¥ ADD THIS
+  permission?: string;
+  action?: "logout";
+};
+
+export type SidebarGroup = {
+  label: string;
+  icon: string;
+  showInMenu?: boolean;
+  children: SidebarItem[];
+};
+
+
+
+=============================
+FILE: textutils-react/src/ui/Card.tsx
+=============================
+import React from "react";
+
+type Props = {
+  children: React.ReactNode;
+  className?: string;
+};
+
+export default function Card({ children, className = "" }: Props) {
+  return (
+    <div className={`card card-outline card-primary ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/ui/CardBody.tsx
+=============================
+export default function CardBody({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return <div className={`card-body ${className}`}>{children}</div>;
+}
+
+
+
+=============================
+FILE: textutils-react/src/ui/CardHeader.tsx
+=============================
+import React from "react";
+
+type Props = {
+  title?: string;
+  action?: React.ReactNode;
+};
+
+export default function CardHeader({ title, action }: Props) {
+  return (
+    <div className="card-header d-flex justify-content-between align-items-center">
+      {title && <h3 className="card-title mb-0">{title}</h3>}
+      {action}
+    </div>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/ui/InfoBox.tsx
+=============================
+type Props = {
+  title: string;
+  value: string | number;
+  icon: string;
+  color?: "info" | "success" | "warning" | "danger" | "primary";
+};
+
+export default function InfoBox({
+  title,
+  value,
+  icon,
+  color = "info",
+}: Props) {
+  return (
+    <div className="info-box">
+      <span className={`info-box-icon bg-${color}`}>
+        <i className={icon} />
+      </span>
+
+      <div className="info-box-content">
+        <span className="info-box-text">{title}</span>
+        <span className="info-box-number">{value}</span>
+      </div>
+    </div>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/ui/StatCard.tsx
+=============================
+type Props = {
+  title: string;
+  value: string | number;
+  icon?: string;
+  color?: "primary" | "success" | "warning" | "danger" | "info" | "dark";
+};
+
+export default function StatCard({
+  title,
+  value,
+  icon,
+  color = "primary",
+}: Props) {
+  return (
+    <div className={`card text-bg-${color}`}>
+      <div className="card-body d-flex justify-content-between align-items-center">
+        <div>
+          <h6 className="mb-1">{title}</h6>
+          <h3 className="mb-0">{value}</h3>
+        </div>
+        {icon && <i className={`${icon} fa-2x opacity-75`} />}
+      </div>
+    </div>
+  );
+}
+
+
+
+=============================
+FILE: textutils-react/src/utils/authEvents.ts
+=============================
+const AUTH_EVENT_KEY = "__auth_event__";
+
+export const emitLogoutEvent = () => {
+  localStorage.setItem(
+    AUTH_EVENT_KEY,
+    JSON.stringify({
+      type: "LOGOUT",
+      at: Date.now(),
+    })
+  );
+};
+
+export const listenAuthEvents = (onLogout: () => void) => {
+  window.addEventListener("storage", (e) => {
+    if (e.key === AUTH_EVENT_KEY && e.newValue) {
+      const payload = JSON.parse(e.newValue);
+      if (payload.type === "LOGOUT") {
+        onLogout();
+      }
+    }
+  });
+};
+
+
+
+=============================
+FILE: textutils-react/src/utils/authRedirect.ts
+=============================
+import type { User } from "../types/models";
+
+/**
+ * Resolve post-login redirect
+ * ------------------------------------
+ * RULES:
+ * - Admin login page â†’ /admin/dashboard
+ * - Normal login:
+ *    - Admin â†’ /admin/dashboard
+ *    - User  â†’ /profile
+ */
+export function resolveLoginRedirect(
+  user: User | null,
+  fromAdminLogin: boolean
+): string {
+  if (!user) return "/login";
+
+  /**
+   * ðŸ›¡ Normalize roles
+   * - backend safe
+   * - impersonation safe
+   */
+  const roles: string[] = Array.isArray(user.roles)
+    ? user.roles
+    : [];
+
+  const isAdmin =
+    roles.includes("super-admin") ||
+    roles.includes("admin");
+
+  /* ðŸ”¥ ADMIN LOGIN PAGE ALWAYS â†’ ADMIN */
+  if (fromAdminLogin) {
+    return isAdmin
+      ? "/admin/dashboard"
+      : "/profile";
+  }
+
+  /* ðŸ”¥ NORMAL LOGIN */
+  return isAdmin
+    ? "/admin/dashboard"
+    : "/profile";
+}
+
+
+
+=============================
+FILE: textutils-react/src/utils/execute.ts
+=============================
+import { handleApiError, handleApiSuccess } from "./toastHelper";
+
+/**
+ * Central API executor
+ * - shows backend message if present
+ * - otherwise fallback
+ */
+export async function execute<T>(
+  fn: () => Promise<T>,
+  successFallback?: string
+): Promise<T> {
+  try {
+    const res: any = await fn();
+
+    handleApiSuccess(
+      res,
+      successFallback
+    );
+
+    return res;
+  } catch (e) {
+    handleApiError(e);
+    throw e; // ðŸ”¥ do not swallow
+  }
+}
+
+
+
+=============================
+FILE: textutils-react/src/utils/toastHelper.ts
+=============================
+import { toast } from "react-toastify";
+
+function extractMessage(input: any, fallback: string): string {
+  if (!input) return fallback;
+
+  // axios / rtk response
+  const data = input?.data ?? input?.response?.data;
+
+  if (data?.message) return data.message;
+
+  // validation
+  if (data?.errors) {
+    const firstKey = Object.keys(data.errors)[0];
+    if (firstKey && data.errors[firstKey]?.length) {
+      return data.errors[firstKey][0];
+    }
+  }
+
+  return fallback;
+}
+
+/* ================= SUCCESS ================= */
+export const handleApiSuccess = (
+  res?: any,
+  fallback = "Action completed successfully"
+) => {
+  const message = extractMessage(res, fallback);
+  toast.success(message);
+};
+
+/* ================= ERROR ================= */
+export const handleApiError = (
+  error: any,
+  fallback = "Something went wrong"
+) => {
+  const status =
+    error?.status ?? error?.response?.status;
+
+  let defaultMessage = fallback;
+
+  if (status === 401) {
+    defaultMessage = "Please login to continue";
+  }
+
+  if (status === 403) {
+    defaultMessage = "You are not authorized";
+  }
+
+  const message = extractMessage(error, defaultMessage);
+  toast.error(message);
+};
+
