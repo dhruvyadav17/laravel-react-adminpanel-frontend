@@ -6,7 +6,11 @@ type Props = {
 };
 
 export default function PermissionGuard({ permission }: Props) {
-  const { can } = useAuth();
+  const { isAuth, can } = useAuth();
+
+  if (!isAuth) {
+    return <Navigate to="/admin/login" replace />;
+  }
 
   if (!can(permission)) {
     return <Navigate to="/admin/unauthorized" replace />;

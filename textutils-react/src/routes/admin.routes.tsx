@@ -1,5 +1,4 @@
 import { RouteObject, Navigate } from "react-router-dom";
-
 import AdminGuard from "../guards/AdminGuard";
 import PermissionGuard from "../guards/PermissionGuard";
 import AdminLayout from "../layouts/AdminLayout";
@@ -21,13 +20,9 @@ export const adminRoutes: RouteObject[] = [
         element: <AdminLayout />,
         children: [
           { index: true, element: <Navigate to="dashboard" replace /> },
-
           { path: "dashboard", element: <Dashboard /> },
-
-          // ✅ ADMIN PROFILE
           { path: "profile", element: <AdminProfilePage /> },
 
-          // USERS
           {
             element: (
               <PermissionGuard permission={PERMISSIONS.USER.VIEW} />
@@ -35,7 +30,6 @@ export const adminRoutes: RouteObject[] = [
             children: [{ path: "users", element: <Users /> }],
           },
 
-          // ROLES
           {
             element: (
               <PermissionGuard permission={PERMISSIONS.ROLE.MANAGE} />
@@ -43,19 +37,13 @@ export const adminRoutes: RouteObject[] = [
             children: [{ path: "roles", element: <Roles /> }],
           },
 
-          // PERMISSIONS
           {
             element: (
               <PermissionGuard
                 permission={PERMISSIONS.PERMISSION.MANAGE}
               />
             ),
-            children: [
-              {
-                path: "permissions",
-                element: <PermissionsPage />,
-              },
-            ],
+            children: [{ path: "permissions", element: <PermissionsPage /> }],
           },
         ],
       },

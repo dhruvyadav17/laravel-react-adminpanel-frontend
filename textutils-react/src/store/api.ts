@@ -14,12 +14,10 @@ export const api = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
 
-  tagTypes: ["Users", "Roles", "Permissions"],
+  tagTypes: ["Users", "Roles", "Permissions", "Sidebar"],
 
   endpoints: (builder) => ({
-    /* =====================================================
-       USERS
-    ===================================================== */
+    /* ================= USERS ================= */
 
     getUsers: builder.query<
       { data: User[]; meta: PaginationMeta },
@@ -27,23 +25,11 @@ export const api = createApi({
     >({
       query: (params) =>
         `/admin/users${buildQueryParams(params)}`,
-
-      // 🔥 BACKEND → FRONTEND CONTRACT
       transformResponse: (res: any) => ({
         data: res.data ?? [],
         meta: res.meta,
       }),
-
-      providesTags: (res) =>
-        res?.data
-          ? [
-              ...res.data.map((u: User) => ({
-                type: "Users" as const,
-                id: u.id,
-              })),
-              { type: "Users", id: "LIST" },
-            ]
-          : [{ type: "Users", id: "LIST" }],
+      providesTags: [{ type: "Users", id: "LIST" }],
     }),
 
     createUser: builder.mutation<any, Partial<User>>({
@@ -52,7 +38,7 @@ export const api = createApi({
         method: "POST",
         body,
       }),
-      invalidatesTags: [{ type: "Users", id: "LIST" }],
+      invalidatesTags: ["Users"],
     }),
 
     deleteUser: builder.mutation<void, number>({
@@ -60,10 +46,7 @@ export const api = createApi({
         url: `/admin/users/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: (_r, _e, id) => [
-        { type: "Users", id },
-        { type: "Users", id: "LIST" },
-      ],
+      invalidatesTags: ["Users"],
     }),
 
     restoreUser: builder.mutation<void, number>({
@@ -71,7 +54,7 @@ export const api = createApi({
         url: `/admin/users/${id}/restore`,
         method: "POST",
       }),
-      invalidatesTags: [{ type: "Users", id: "LIST" }],
+      invalidatesTags: ["Users"],
     }),
 
     assignUserRoles: builder.mutation<
@@ -83,12 +66,10 @@ export const api = createApi({
         method: "POST",
         body: { roles },
       }),
-      invalidatesTags: [{ type: "Users", id: "LIST" }],
+      invalidatesTags: ["Users"],
     }),
 
-    /* =====================================================
-       USER → PERMISSIONS
-    ===================================================== */
+    /* ================= USER → PERMISSIONS ================= */
 
     getUserPermissions: builder.query<
       { permissions: Permission[]; assigned: string[] },
@@ -111,23 +92,12 @@ export const api = createApi({
       invalidatesTags: (_r, _e, { id }) => [{ type: "Users", id }],
     }),
 
-    /* =====================================================
-       ROLES
-    ===================================================== */
+    /* ================= ROLES ================= */
 
     getRoles: builder.query<Role[], void>({
       query: () => "/admin/roles",
       transformResponse: (res: any) => res.data ?? [],
-      providesTags: (res) =>
-        res
-          ? [
-              ...res.map((r: Role) => ({
-                type: "Roles" as const,
-                id: r.id,
-              })),
-              { type: "Roles", id: "LIST" },
-            ]
-          : [{ type: "Roles", id: "LIST" }],
+      providesTags: ["Roles"],
     }),
 
     createRole: builder.mutation<any, { name: string }>({
@@ -136,7 +106,7 @@ export const api = createApi({
         method: "POST",
         body,
       }),
-      invalidatesTags: [{ type: "Roles", id: "LIST" }],
+      invalidatesTags: ["Roles"],
     }),
 
     updateRole: builder.mutation<any, { id: number; name: string }>({
@@ -145,10 +115,7 @@ export const api = createApi({
         method: "PUT",
         body,
       }),
-      invalidatesTags: (_r, _e, { id }) => [
-        { type: "Roles", id },
-        { type: "Roles", id: "LIST" },
-      ],
+      invalidatesTags: ["Roles"],
     }),
 
     deleteRole: builder.mutation<void, number>({
@@ -156,12 +123,10 @@ export const api = createApi({
         url: `/admin/roles/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: [{ type: "Roles", id: "LIST" }],
+      invalidatesTags: ["Roles"],
     }),
 
-    /* =====================================================
-       ROLE → PERMISSIONS
-    ===================================================== */
+    /* ================= ROLE → PERMISSIONS  ✅ FIX ================= */
 
     getRolePermissions: builder.query<
       { permissions: Permission[]; assigned: string[] },
@@ -184,23 +149,12 @@ export const api = createApi({
       invalidatesTags: (_r, _e, { id }) => [{ type: "Roles", id }],
     }),
 
-    /* =====================================================
-       PERMISSIONS (MASTER)
-    ===================================================== */
+    /* ================= PERMISSIONS ================= */
 
     getPermissions: builder.query<Permission[], void>({
       query: () => "/admin/permissions",
       transformResponse: (res: any) => res.data ?? [],
-      providesTags: (res) =>
-        res
-          ? [
-              ...res.map((p: Permission) => ({
-                type: "Permissions" as const,
-                id: p.id,
-              })),
-              { type: "Permissions", id: "LIST" },
-            ]
-          : [{ type: "Permissions", id: "LIST" }],
+      providesTags: ["Permissions"],
     }),
 
     createPermission: builder.mutation<any, { name: string }>({
@@ -209,7 +163,7 @@ export const api = createApi({
         method: "POST",
         body,
       }),
-      invalidatesTags: [{ type: "Permissions", id: "LIST" }],
+      invalidatesTags: ["Permissions"],
     }),
 
     updatePermission: builder.mutation<any, { id: number; name: string }>({
@@ -218,7 +172,7 @@ export const api = createApi({
         method: "PUT",
         body,
       }),
-      invalidatesTags: [{ type: "Permissions", id: "LIST" }],
+      invalidatesTags: ["Permissions"],
     }),
 
     deletePermission: builder.mutation<void, number>({
@@ -226,14 +180,23 @@ export const api = createApi({
         url: `/admin/permissions/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: [{ type: "Permissions", id: "LIST" }],
+      invalidatesTags: ["Permissions"],
     }),
 
-    /* =====================================================
-       DASHBOARD
-    ===================================================== */
+    /* ================= SIDEBAR ================= */
 
-    getDashboardStats: builder.query<{ total_users: number }, void>({
+    getSidebar: builder.query<any[], void>({
+      query: () => "/admin/sidebar",
+      transformResponse: (res: any) => res.data ?? [],
+      providesTags: ["Sidebar"],
+    }),
+
+    /* ================= DASHBOARD ================= */
+
+    getDashboardStats: builder.query<
+      { total_users: number },
+      void
+    >({
       query: () => "/admin/dashboard/stats",
       transformResponse: (res: any) => res.data,
     }),
@@ -241,7 +204,7 @@ export const api = createApi({
 });
 
 /* =====================================================
-   AUTO-GENERATED HOOK EXPORTS (🔥 COMPLETE)
+   EXPORT HOOKS  ✅ ALL REQUIRED
 ===================================================== */
 
 export const {
@@ -262,7 +225,7 @@ export const {
   useUpdateRoleMutation,
   useDeleteRoleMutation,
 
-  // ROLE → PERMISSIONS (🔥 CRASH FIXED)
+  // ROLE → PERMISSIONS  ✅ FIX
   useGetRolePermissionsQuery,
   useAssignRolePermissionsMutation,
 
@@ -271,6 +234,9 @@ export const {
   useCreatePermissionMutation,
   useUpdatePermissionMutation,
   useDeletePermissionMutation,
+
+  // SIDEBAR
+  useGetSidebarQuery,
 
   // DASHBOARD
   useGetDashboardStatsQuery,

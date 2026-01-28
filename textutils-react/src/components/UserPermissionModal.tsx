@@ -1,95 +1,111 @@
-import { useEffect, useState } from "react";
+import { memo } from "react";
 import Modal from "./common/Modal";
+import { useConfirmDelete } from "../hooks/useConfirmDelete";
+
 import {
   useGetUserPermissionsQuery,
   useAssignUserPermissionsMutation,
 } from "../store/api";
+
 import { execute } from "../utils/execute";
+import type { User } from "../types/models";
 
 type Props = {
-  user: {
-    id: number;
-    name: string;
-  };
+  user: User;
   onClose: () => void;
 };
 
-export default function UserPermissionModal({
-  user,
-  onClose,
-}: Props) {
-  const [selected, setSelected] = useState<string[]>([]);
+function UserPermissionModal({ user, onClose }: Props) {
+  const confirmDelete = useConfirmDelete();
 
-  const { data, isLoading, isError } =
-    useGetUserPermissionsQuery(user.id, {
-      skip: !user.id,
-      refetchOnMountOrArgChange: true,
-    });
+  const { data, isLoading } = useGetUserPermissionsQuery(user.id);
 
   const [assignPermissions, { isLoading: saving }] =
     useAssignUserPermissionsMutation();
 
-  /* 🔁 RESET ON OPEN */
-  useEffect(() => {
-    setSelected(data?.assigned ?? []);
-  }, [user.id, data?.assigned]);
+  const assigned = data?.assigned ?? [];
+  const permissions = data?.permissions ?? [];
 
-  const toggle = (permission: string) => {
-    setSelected((prev) =>
-      prev.includes(permission)
-        ? prev.filter((p) => p !== permission)
-        : [...prev, permission]
-    );
-  };
+  const togglePermission = async (permission: string) => {
+    const updated = assigned.includes(permission)
+      ? assigned.filter((p) => p !== permission)
+      : [...assigned, permission];
 
-  const save = async () => {
     await execute(
       () =>
         assignPermissions({
           id: user.id,
-          permissions: selected,
+          permissions: updated,
         }).unwrap(),
       "Permissions updated"
     );
-    onClose();
   };
+
+  const handleReset = () =>
+    confirmDelete(
+      "Are you sure you want to remove all permissions?",
+      async () => {
+        await execute(
+          () =>
+            assignPermissions({
+              id: user.id,
+              permissions: [],
+            }).unwrap(),
+          "Permissions cleared"
+        );
+      }
+    );
 
   return (
     <Modal
-      title={`Assign Permissions – ${user.name}`}
+      title={`Permissions – ${user.name}`}
       onClose={onClose}
-      onSave={save}
-      saveDisabled={saving}
-      saveText={saving ? "Saving..." : "Save"}
-      size="lg"
+      saveDisabled
     >
-      {isLoading && <p>Loading permissions...</p>}
-      {isError && (
-        <p className="text-danger">
-          Failed to load permissions
-        </p>
-      )}
-
-      {!isLoading && data?.permissions && (
-        <div className="row">
-          {data.permissions.map((p: any) => (
-            <div key={p.id} className="col-md-4">
-              <div className="form-check">
+      {isLoading ? (
+        <p className="text-muted">Loading permissions…</p>
+      ) : (
+        <>
+          <div className="mb-3">
+            {permissions.map((permission) => (
+              <div
+                key={permission.name}
+                className="form-check mb-2"
+              >
                 <input
                   type="checkbox"
                   className="form-check-input"
-                  checked={selected.includes(p.name)}
-                  onChange={() => toggle(p.name)}
+                  id={permission.name}
+                  checked={assigned.includes(permission.name)}
                   disabled={saving}
+                  onChange={() =>
+                    togglePermission(permission.name)
+                  }
                 />
-                <label className="form-check-label">
-                  {p.name}
+                <label
+                  className="form-check-label"
+                  htmlFor={permission.name}
+                >
+                  {permission.name}
                 </label>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+
+          {assigned.length > 0 && (
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-danger"
+              disabled={saving}
+              onClick={handleReset}
+            >
+              Remove All Permissions
+            </button>
+          )}
+        </>
       )}
     </Modal>
   );
 }
+
+export default memo(UserPermissionModal);

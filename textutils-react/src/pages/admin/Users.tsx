@@ -49,18 +49,21 @@ function Users() {
   const [deleteUser] = useDeleteUserMutation();
   const [restoreUser] = useRestoreUserMutation();
 
-  // ✅ MUST COME BEFORE getRowActions
+  // ✅ ONLY permission logic (no role checks)
   const { can } = useAuth();
 
   /* ================= ACTION HANDLERS ================= */
 
   const handleArchive = (user: User) =>
-    confirmDelete("Are you sure you want to archive this user?", async () => {
-      await execute(
-        () => deleteUser(user.id).unwrap(),
-        "User archived successfully"
-      );
-    });
+    confirmDelete(
+      "Are you sure you want to archive this user?",
+      async () => {
+        await execute(
+          () => deleteUser(user.id).unwrap(),
+          "User archived successfully"
+        );
+      }
+    );
 
   const handleRestore = async (user: User) => {
     await execute(
@@ -72,8 +75,7 @@ function Users() {
   /* ================= ROW ACTIONS ================= */
 
   const getRowActions = (user: User) => {
-    if (user.roles.includes("super-admin")) return [];
-
+    // Archived user → only restore (permission assumed backend-side)
     if (user.deleted_at) {
       return [
         {
@@ -147,7 +149,7 @@ function Users() {
               isLoading={isLoading}
               colSpan={5}
               hasData={users.length > 0}
-              columns={(
+              columns={
                 <tr>
                   <th>Name</th>
                   <th>Email</th>
@@ -155,7 +157,7 @@ function Users() {
                   <th>Status</th>
                   <th className="text-right">Actions</th>
                 </tr>
-              )}
+              }
             >
               {users.map((user) => (
                 <tr key={user.id}>
@@ -164,9 +166,13 @@ function Users() {
                   <td>{user.roles.join(", ") || "—"}</td>
                   <td>
                     {user.deleted_at ? (
-                      <span className="badge badge-warning">Archived</span>
+                      <span className="badge badge-warning">
+                        Archived
+                      </span>
                     ) : (
-                      <span className="badge badge-success">Active</span>
+                      <span className="badge badge-success">
+                        Active
+                      </span>
                     )}
                   </td>
                   <td className="text-right">
@@ -178,11 +184,16 @@ function Users() {
           </CardBody>
         </Card>
 
-        {meta && <Pagination meta={meta} onPageChange={setPage} />}
+        {meta && (
+          <Pagination meta={meta} onPageChange={setPage} />
+        )}
 
         {/* MODALS */}
         {modalType === "user-form" && (
-          <UserFormModal onClose={closeModal} onSaved={closeModal} />
+          <UserFormModal
+            onClose={closeModal}
+            onSaved={closeModal}
+          />
         )}
 
         {modalType === "user-role" && modalData && (
@@ -194,7 +205,10 @@ function Users() {
         )}
 
         {modalType === "user-permission" && modalData && (
-          <UserPermissionModal user={modalData} onClose={closeModal} />
+          <UserPermissionModal
+            user={modalData}
+            onClose={closeModal}
+          />
         )}
       </div>
     </section>

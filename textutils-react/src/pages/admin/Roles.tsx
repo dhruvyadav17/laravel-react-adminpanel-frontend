@@ -9,9 +9,11 @@ import DataTable from "../../components/common/DataTable";
 import Card from "../../ui/Card";
 import CardHeader from "../../ui/CardHeader";
 import CardBody from "../../ui/CardBody";
+
 import { useAppModal } from "../../context/AppModalContext";
 import { useBackendForm } from "../../hooks/useBackendForm";
 import { useConfirmDelete } from "../../hooks/useConfirmDelete";
+import { useAuth } from "../../auth/hooks/useAuth";
 
 import {
   useGetRolesQuery,
@@ -22,12 +24,13 @@ import {
 
 import { execute } from "../../utils/execute";
 import type { Role } from "../../types/models";
+
 import Can from "../../components/common/Can";
 import { PERMISSIONS } from "../../constants/permissions";
-import { useAuth } from "../../auth/hooks/useAuth";
 
 function Roles() {
   const confirmDelete = useConfirmDelete();
+
   const { modalType, modalData, openModal, closeModal } =
     useAppModal<Role>();
 
@@ -49,9 +52,12 @@ function Roles() {
 
   const { can } = useAuth();
 
+  /* ================= SAVE ================= */
+
   const save = async () => {
     try {
       setLoading(true);
+
       await execute(
         () =>
           modalData?.id
@@ -62,6 +68,7 @@ function Roles() {
             : createRole(values).unwrap(),
         modalData?.id ? "Role updated" : "Role created"
       );
+
       closeModal();
       reset();
     } catch (e) {
@@ -71,18 +78,22 @@ function Roles() {
     }
   };
 
+  /* ================= DELETE ================= */
+
   const handleDelete = (role: Role) =>
-    confirmDelete("Are you sure you want to delete this role?", async () => {
-      await execute(
-        () => deleteRole(role.id).unwrap(),
-        "Role deleted"
-      );
-    });
+    confirmDelete(
+      "Are you sure you want to delete this role?",
+      async () => {
+        await execute(
+          () => deleteRole(role.id).unwrap(),
+          "Role deleted"
+        );
+      }
+    );
 
-const getRowActions = (role: Role) => {
-  if (role.name === "super-admin") return [];
+  /* ================= ROW ACTIONS ================= */
 
-  return [
+  const getRowActions = (role: Role) => [
     {
       key: "permissions",
       label: "Assign Permissions",
@@ -106,8 +117,8 @@ const getRowActions = (role: Role) => {
       onClick: () => handleDelete(role),
     },
   ];
-};
 
+  /* ================= VIEW ================= */
 
   return (
     <section className="content pt-3">
@@ -134,14 +145,14 @@ const getRowActions = (role: Role) => {
               isLoading={isLoading}
               colSpan={2}
               hasData={roles.length > 0}
-              columns={(
+              columns={
                 <tr>
                   <th>Name</th>
                   <th className="text-right" style={{ width: 260 }}>
                     Actions
                   </th>
                 </tr>
-              )}
+              }
             >
               {roles.map((role) => (
                 <tr key={role.id}>
@@ -157,27 +168,37 @@ const getRowActions = (role: Role) => {
 
         {(modalType === "role-add" || modalType === "role-edit") && (
           <Modal
-            title={modalType === "role-edit" ? "Edit Role" : "Add Role"}
+            title={
+              modalType === "role-edit" ? "Edit Role" : "Add Role"
+            }
             onClose={closeModal}
             onSave={save}
             saveDisabled={loading}
             saveText={modalType === "role-edit" ? "Update" : "Save"}
           >
             <input
-              className={`form-control ${errors.name ? "is-invalid" : ""}`}
+              className={`form-control ${
+                errors.name ? "is-invalid" : ""
+              }`}
               value={values.name}
               onChange={(e) => setField("name", e.target.value)}
               disabled={loading}
               placeholder="Role name"
             />
+
             {errors.name && (
-              <div className="invalid-feedback">{errors.name[0]}</div>
+              <div className="invalid-feedback">
+                {errors.name[0]}
+              </div>
             )}
           </Modal>
         )}
 
         {modalType === "permission" && modalData && (
-          <RolePermissionModal role={modalData} onClose={closeModal} />
+          <RolePermissionModal
+            role={modalData}
+            onClose={closeModal}
+          />
         )}
       </div>
     </section>
