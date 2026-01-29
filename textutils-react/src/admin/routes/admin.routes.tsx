@@ -3,7 +3,9 @@ import AdminGuard from "../../guards/AdminGuard";
 import AdminLayout from "../layouts/AdminLayout";
 
 import DashboardPage from "../features/dashboard/DashboardPage";
-import UsersPage from "../features/users/UsersPage";
+//import UsersPage from "../features/users/UsersPage";
+import { UsersPage } from "../features/users";
+
 import RolesPage from "../features/roles/RolesPage";
 import PermissionsPage from "../features/permissions/PermissionsPage";
 import AdminProfilePage from "../features/profile/AdminProfilePage";
