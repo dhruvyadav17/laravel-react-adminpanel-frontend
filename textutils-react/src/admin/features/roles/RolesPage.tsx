@@ -1,34 +1,34 @@
 import { memo } from "react";
-import Modal from "../../components/common/Modal";
-import RolePermissionModal from "../../components/RolePermissionModal";
-import RowActions from "../../components/common/RowActions";
-import Button from "../../components/common/Button";
-import PageHeader from "../../components/common/PageHeader";
-import DataTable from "../../components/common/DataTable";
+import Modal from "../../../components/common/Modal";
+import RolePermissionModal from "../../../components/RolePermissionModal";
+import RowActions from "../../../components/common/RowActions";
+import Button from "../../../components/common/Button";
+import PageHeader from "../../../components/common/PageHeader";
+import DataTable from "../../../components/common/DataTable";
 
-import Card from "../../ui/Card";
-import CardHeader from "../../ui/CardHeader";
-import CardBody from "../../ui/CardBody";
+import Card from "../../../ui/Card";
+import CardHeader from "../../../ui/CardHeader";
+import CardBody from "../../../ui/CardBody";
 
-import { useAppModal } from "../../context/AppModalContext";
-import { useBackendForm } from "../../hooks/useBackendForm";
-import { useConfirmDelete } from "../../hooks/useConfirmDelete";
-import { useAuth } from "../../auth/hooks/useAuth";
+import { useAppModal } from "../../../context/AppModalContext";
+import { useBackendForm } from "../../../hooks/useBackendForm";
+import { useConfirmDelete } from "../../../hooks/useConfirmDelete";
+import { useAuth } from "../../../auth/hooks/useAuth";
 
 import {
   useGetRolesQuery,
   useCreateRoleMutation,
   useUpdateRoleMutation,
   useDeleteRoleMutation,
-} from "../../store/api";
+} from "../../../store/api";
 
-import { execute } from "../../utils/execute";
-import type { Role } from "../../types/models";
+import { execute } from "../../../utils/execute";
+import type { Role } from "../../../types/models";
 
-import Can from "../../components/common/Can";
-import { PERMISSIONS } from "../../constants/permissions";
+import Can from "../../../components/common/Can";
+import { PERMISSIONS } from "../../../constants/permissions";
 
-function Roles() {
+function RolesPage() {
   const confirmDelete = useConfirmDelete();
 
   const { modalType, modalData, openModal, closeModal } =
@@ -205,4 +205,4 @@ function Roles() {
   );
 }
 
-export default memo(Roles);
+export default memo(RolesPage);

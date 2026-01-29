@@ -1,7 +1,7 @@
 import { Outlet } from "react-router-dom";
-import AdminNavbar from "../components/admin/AdminNavbar";
-import AdminSidebar from "../components/admin/AdminSidebar";
-import ModalHost from "../components/common/ModalHost";
+import AdminNavbar from "../components/AdminNavbar";
+import AdminSidebar from "../components/AdminSidebar";
+import ModalHost from "../../components/common/ModalHost";
 
 export default function AdminLayout() {
   return (

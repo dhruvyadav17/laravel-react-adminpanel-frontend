@@ -1,6 +1,6 @@
 import { useAuth } from "../../../auth/hooks/useAuth";
 
-export default function UserProfilePage() {
+export default function ProfilePage() {
   const { user, roles } = useAuth();
 
   return (

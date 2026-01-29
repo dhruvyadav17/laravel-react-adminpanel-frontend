@@ -1,31 +1,31 @@
 import { memo } from "react";
-import Modal from "../../components/common/Modal";
-import RowActions from "../../components/common/RowActions";
-import Button from "../../components/common/Button";
-import PageHeader from "../../components/common/PageHeader";
-import DataTable from "../../components/common/DataTable";
+import Modal from "../../../components/common/Modal";
+import RowActions from "../../../components/common/RowActions";
+import Button from "../../../components/common/Button";
+import PageHeader from "../../../components/common/PageHeader";
+import DataTable from "../../../components/common/DataTable";
 
-import Card from "../../ui/Card";
-import CardHeader from "../../ui/CardHeader";
-import CardBody from "../../ui/CardBody";
+import Card from "../../../ui/Card";
+import CardHeader from "../../../ui/CardHeader";
+import CardBody from "../../../ui/CardBody";
 
-import { useAppModal } from "../../context/AppModalContext";
-import { useBackendForm } from "../../hooks/useBackendForm";
-import { useConfirmDelete } from "../../hooks/useConfirmDelete";
-import { useAuth } from "../../auth/hooks/useAuth";
+import { useAppModal } from "../../../context/AppModalContext";
+import { useBackendForm } from "../../../hooks/useBackendForm";
+import { useConfirmDelete } from "../../../hooks/useConfirmDelete";
+import { useAuth } from "../../../auth/hooks/useAuth";
 
 import {
   useGetPermissionsQuery,
   useCreatePermissionMutation,
   useUpdatePermissionMutation,
   useDeletePermissionMutation,
-} from "../../store/api";
+} from "../../../store/api";
 
-import { execute } from "../../utils/execute";
-import type { Permission } from "../../types/models";
+import { execute } from "../../../utils/execute";
+import type { Permission } from "../../../types/models";
 
-import Can from "../../components/common/Can";
-import { PERMISSIONS } from "../../constants/permissions";
+import Can from "../../../components/common/Can";
+import { PERMISSIONS } from "../../../constants/permissions";
 
 function PermissionsPage() {
   const confirmDelete = useConfirmDelete();

@@ -1,15 +1,15 @@
 import { RouteObject, Navigate } from "react-router-dom";
-import AdminGuard from "../guards/AdminGuard";
-import PermissionGuard from "../guards/PermissionGuard";
+import AdminGuard from "../../guards/AdminGuard";
+import PermissionGuard from "../../guards/PermissionGuard";
 import AdminLayout from "../layouts/AdminLayout";
 
-import Dashboard from "../pages/admin/Dashboard";
-import Users from "../pages/admin/Users";
-import Roles from "../pages/admin/Roles";
-import PermissionsPage from "../pages/admin/PermissionsPage";
-import AdminProfilePage from "../pages/admin/Profile/AdminProfilePage";
+import Dashboard from "../pages/Dashboard";
+import Users from "../features/users/UsersPage";
+import Roles from "../features/roles/RolesPage";
+import PermissionsPage from "../features/permissions/PermissionsPage";
+import AdminProfilePage from "../pages/Profile/AdminProfilePage";
 
-import { PERMISSIONS } from "../constants/permissions";
+import { PERMISSIONS } from "../../constants/permissions";
 
 export const adminRoutes: RouteObject[] = [
   {

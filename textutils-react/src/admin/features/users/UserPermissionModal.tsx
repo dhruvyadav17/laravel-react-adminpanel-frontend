@@ -1,14 +1,14 @@
 import { memo } from "react";
-import Modal from "./common/Modal";
-import { useConfirmDelete } from "../hooks/useConfirmDelete";
+import Modal from "../../../components/common/Modal";
+import { useConfirmDelete } from "../../../hooks/useConfirmDelete";
 
 import {
   useGetUserPermissionsQuery,
   useAssignUserPermissionsMutation,
-} from "../store/api";
+} from "../../../store/api";
 
-import { execute } from "../utils/execute";
-import type { User } from "../types/models";
+import { execute } from "../../../utils/execute";
+import type { User } from "../../../types/models";
 
 type Props = {
   user: User;

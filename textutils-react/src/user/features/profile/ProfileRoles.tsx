@@ -1,6 +1,6 @@
-import { useAuth } from "../../auth/hooks/useAuth";
+import { useAuth } from "../../../auth/hooks/useAuth";
 
-export default function UserRoles() {
+export default function ProfileRoles() {
   const { user } = useAuth();
 
   if (!user) {

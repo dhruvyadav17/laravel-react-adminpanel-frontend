@@ -1,7 +1,7 @@
-import Modal from "./common/Modal";
-import { useBackendForm } from "../hooks/useBackendForm";
-import { useCreateUserMutation } from "../store/api";
-import { execute } from "../utils/execute";
+import Modal from "../../../components/common/Modal";
+import { useBackendForm } from "../../../hooks/useBackendForm";
+import { useCreateUserMutation } from "../../../store/api";
+import { execute } from "../../../utils/execute";
 
 type Props = {
   onClose: () => void;

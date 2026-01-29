@@ -1,37 +1,37 @@
 import { memo } from "react";
-import { useAppModal } from "../../context/AppModalContext";
-import { useConfirmDelete } from "../../hooks/useConfirmDelete";
-import { useAuth } from "../../auth/hooks/useAuth";
+import { useAppModal } from "../../../context/AppModalContext";
+import { useConfirmDelete } from "../../../hooks/useConfirmDelete";
+import { useAuth } from "../../../auth/hooks/useAuth";
 
-import PageHeader from "../../components/common/PageHeader";
-import DataTable from "../../components/common/DataTable";
-import RowActions from "../../components/common/RowActions";
-import Button from "../../components/common/Button";
-import Can from "../../components/common/Can";
+import PageHeader from "../../../components/common/PageHeader";
+import DataTable from "../../../components/common/DataTable";
+import RowActions from "../../../components/common/RowActions";
+import Button from "../../../components/common/Button";
+import Can from "../../../components/common/Can";
 
-import Card from "../../ui/Card";
-import CardHeader from "../../ui/CardHeader";
-import CardBody from "../../ui/CardBody";
+import Card from "../../../ui/Card";
+import CardHeader from "../../../ui/CardHeader";
+import CardBody from "../../../ui/CardBody";
 
-import UserFormModal from "../../components/UserFormModal";
-import UserRoleModal from "../../components/UserRoleModal";
-import UserPermissionModal from "../../components/UserPermissionModal";
-import Pagination from "../../components/common/Pagination";
-import { usePagination } from "../../hooks/usePagination";
+import UserFormModal from "./UserFormModal";
+import UserRoleModal from "./UserRoleModal";
+import UserPermissionModal from "./UserPermissionModal";
+import Pagination from "../../../components/common/Pagination";
+import { usePagination } from "../../../hooks/usePagination";
 
-import { PERMISSIONS } from "../../constants/permissions";
-import { ICONS } from "../../constants/icons";
+import { PERMISSIONS } from "../../../constants/permissions";
+import { ICONS } from "../../../constants/icons";
 
 import {
   useGetUsersQuery,
   useDeleteUserMutation,
   useRestoreUserMutation,
-} from "../../store/api";
+} from "../../../store/api";
 
-import { execute } from "../../utils/execute";
-import type { User } from "../../types/models";
+import { execute } from "../../../utils/execute";
+import type { User } from "../../../types/models";
 
-function Users() {
+function UsersPage() {
   const confirmDelete = useConfirmDelete();
   const { modalType, modalData, openModal, closeModal } =
     useAppModal<User | null>();
@@ -215,4 +215,4 @@ function Users() {
   );
 }
 
-export default memo(Users);
+export default memo(UsersPage);

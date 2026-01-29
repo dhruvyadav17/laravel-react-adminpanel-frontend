@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import Modal from "./common/Modal";
+import Modal from "../../../components/common/Modal";
 import {
   useGetRolesQuery,
   useAssignUserRolesMutation,
-} from "../store/api";
-import { execute } from "../utils/execute";
-import type { User } from "../types/models";
+} from "../../../store/api";
+import { execute } from "../../../utils/execute";
+import type { User } from "../../../types/models";
 
 type Props = {
   user: User;

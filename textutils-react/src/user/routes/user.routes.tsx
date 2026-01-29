@@ -1,8 +1,8 @@
-import AuthGuard from "../guards/AuthGuard";
+import AuthGuard from "../../guards/AuthGuard";
 import UserLayout from "../layouts/UserLayout";
 
-import UserProfilePage from "../pages/user/Profile/UserProfilePage";
-import UserRoles from "../pages/user/UserRoles";
+import ProfilePage from "../features/profile/ProfilePage";
+import UserRoles from "../features/profile/ProfileRoles";
 
 export const userRoutes = [
   {
@@ -11,7 +11,7 @@ export const userRoutes = [
       {
         element: <UserLayout />,
         children: [
-          { path: "/profile", element: <UserProfilePage /> },
+          { path: "/profile", element: <ProfilePage /> },
           { path: "/roles", element: <UserRoles /> },
         ],
       },

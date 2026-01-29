@@ -1,5 +1,5 @@
 import { useState } from "react";
-import CreateAdminModal from "../../components/admin/CreateAdminModal";
+import CreateAdminModal from "../../admin/components/CreateAdminModal";
 
 export default function AdminUsers() {
   const [open, setOpen] = useState(false);
