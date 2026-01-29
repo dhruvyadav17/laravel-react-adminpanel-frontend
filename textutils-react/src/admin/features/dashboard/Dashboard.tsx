@@ -1,7 +1,7 @@
-import { useAuth } from "../../auth/hooks/useAuth";
-import { useGetDashboardStatsQuery } from "../../store/api";
-import InfoBox from "../../ui/InfoBox";
-import { ICONS } from "../../constants/icons";
+import { useAuth } from "../../../auth/hooks/useAuth";
+import { useGetDashboardStatsQuery } from "../../../store/api";
+import InfoBox from "../../../ui/InfoBox";
+import { ICONS } from "../../../constants/icons";
 
 export default function Dashboard() {
   const { user, permissions } = useAuth();
