@@ -1,4 +1,4 @@
-import AuthLayout from "../layouts/AuthLayout";
+import AuthLayout from "../auth/layouts/AuthLayout";
 import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
 import ForgotPassword from "../pages/auth/ForgotPassword";

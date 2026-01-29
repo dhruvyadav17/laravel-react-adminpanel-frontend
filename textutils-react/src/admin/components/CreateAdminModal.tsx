@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createAdminService } from "../../services/userService";
+import { createAdminService } from "../features/users/user.api";
 
 export default function CreateAdminModal({
   onClose,
