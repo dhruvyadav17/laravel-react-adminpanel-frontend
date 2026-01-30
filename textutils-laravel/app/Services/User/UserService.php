@@ -4,6 +4,7 @@ namespace App\Services\User;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\PermissionRegistrar;
 
 class UserService
@@ -34,6 +35,10 @@ class UserService
 
     public function create(array $data): User
     {
+        if (isset($data['password'])) {
+            $data['password'] = Hash::make($data['password']);
+        }
+
         return User::create($data);
     }
 

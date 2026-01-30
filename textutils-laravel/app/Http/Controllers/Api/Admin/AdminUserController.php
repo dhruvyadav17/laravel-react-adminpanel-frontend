@@ -41,4 +41,3 @@ class AdminUserController extends Controller
         );
     }
 }
-UserService
