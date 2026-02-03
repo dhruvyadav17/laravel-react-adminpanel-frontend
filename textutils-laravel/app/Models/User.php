@@ -48,4 +48,12 @@ class User extends Authenticatable implements MustVerifyEmail
             );
     }
 
+    public function passwordHistories()
+    {
+        return $this->hasMany(
+            \App\Models\PasswordHistory::class
+        );
+    }
+
+
 }

@@ -1,5 +1,3 @@
-// src/store/authSlice.ts
-
 import {
   createSlice,
   createAsyncThunk,
@@ -14,22 +12,17 @@ import {
 import type { User } from "../types/models";
 import { emitLogoutEvent } from "../utils/authEvents";
 
-/* =====================================================
-   TYPES
-===================================================== */
+/* ================= TYPES ================= */
 
 export type AuthState = {
   user: User | null;
   permissions: string[];
   token: string | null;
   loading: boolean;
+  forcePasswordReset: boolean;
 };
 
-/* =====================================================
-   INITIAL STATE
-   - Safe rehydration
-   - No business logic here
-===================================================== */
+/* ================= INITIAL STATE ================= */
 
 const initialState: AuthState = {
   user: (() => {
@@ -50,21 +43,13 @@ const initialState: AuthState = {
 
   token: localStorage.getItem("token"),
   loading: false,
+  forcePasswordReset: false,
 };
 
-/* =====================================================
-   THUNKS
-===================================================== */
+/* ================= THUNKS ================= */
 
-/**
- * LOGIN
- * -------------------------------------------------
- * - Auth only
- * - Tokens handled here
- * - Profile fetched separately
- */
 export const loginThunk = createAsyncThunk<
-  { token: string; refresh_token?: string },
+  { token: string; force_password_reset: boolean },
   { email: string; password: string },
   { rejectValue: string }
 >("auth/login", async (data, { rejectWithValue }) => {
@@ -78,14 +63,12 @@ export const loginThunk = createAsyncThunk<
   }
 });
 
-/**
- * PROFILE
- * -------------------------------------------------
- * - SINGLE SOURCE OF TRUTH
- * - user + permissions only
- */
 export const fetchProfileThunk = createAsyncThunk<
-  { user: User; permissions: string[] },
+  {
+    user: User;
+    permissions: string[];
+    force_password_reset: boolean;
+  },
   void,
   { rejectValue: string }
 >("auth/profile", async (_, { rejectWithValue }) => {
@@ -97,13 +80,6 @@ export const fetchProfileThunk = createAsyncThunk<
   }
 });
 
-/**
- * LOGOUT
- * -------------------------------------------------
- * - Clear state
- * - Clear storage
- * - Multi-tab sync
- */
 export const logoutThunk = createAsyncThunk(
   "auth/logout",
   async () => {
@@ -113,19 +89,13 @@ export const logoutThunk = createAsyncThunk(
   }
 );
 
-/* =====================================================
-   SLICE
-===================================================== */
+/* ================= SLICE ================= */
 
 const authSlice = createSlice({
   name: "auth",
   initialState,
 
   reducers: {
-    /**
-     * OPTIONAL
-     * Manual permission override (rare / admin only)
-     */
     setPermissions(
       state,
       action: PayloadAction<string[]>
@@ -140,8 +110,8 @@ const authSlice = createSlice({
 
   extraReducers: (builder) => {
     builder
-      /* ================= LOGIN ================= */
 
+      /* LOGIN */
       .addCase(loginThunk.pending, (state) => {
         state.loading = true;
       })
@@ -149,26 +119,25 @@ const authSlice = createSlice({
       .addCase(loginThunk.fulfilled, (state, action) => {
         state.loading = false;
         state.token = action.payload.token;
+        state.forcePasswordReset =
+          action.payload.force_password_reset;
 
-        localStorage.setItem("token", action.payload.token);
-
-        if (action.payload.refresh_token) {
-          localStorage.setItem(
-            "refresh_token",
-            action.payload.refresh_token
-          );
-        }
+        localStorage.setItem(
+          "token",
+          action.payload.token
+        );
       })
 
       .addCase(loginThunk.rejected, (state) => {
         state.loading = false;
       })
 
-      /* ================= PROFILE ================= */
-
+      /* PROFILE */
       .addCase(fetchProfileThunk.fulfilled, (state, action) => {
         state.user = action.payload.user;
         state.permissions = action.payload.permissions;
+        state.forcePasswordReset =
+          action.payload.force_password_reset;
 
         localStorage.setItem(
           "user",
@@ -184,22 +153,19 @@ const authSlice = createSlice({
       .addCase(fetchProfileThunk.rejected, (state) => {
         state.user = null;
         state.permissions = [];
+        state.forcePasswordReset = false;
       })
 
-      /* ================= LOGOUT ================= */
-
+      /* LOGOUT */
       .addCase(logoutThunk.fulfilled, (state) => {
         state.user = null;
         state.permissions = [];
         state.token = null;
         state.loading = false;
+        state.forcePasswordReset = false;
       });
   },
 });
-
-/* =====================================================
-   EXPORTS
-===================================================== */
 
 export const { setPermissions } = authSlice.actions;
 export default authSlice.reducer;

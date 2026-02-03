@@ -22,8 +22,6 @@ export default function UserFormModal({
   } = useBackendForm({
     name: "",
     email: "",
-    password: "",
-    password_confirmation: "",
   });
 
   const [createUser] = useCreateUserMutation();
@@ -34,7 +32,7 @@ export default function UserFormModal({
     try {
       await execute(
         () => createUser(values).unwrap(),
-        "User created successfully"
+        "User created successfully. Password setup email sent."
       );
 
       reset();
@@ -52,7 +50,7 @@ export default function UserFormModal({
       onClose={onClose}
       onSave={save}
       saveDisabled={loading}
-      button_name={loading ? "Saving..." : "Save"}
+      saveText={loading ? "Creating..." : "Create"}
     >
       <input
         className={`form-control mb-2 ${
@@ -73,6 +71,7 @@ export default function UserFormModal({
         className={`form-control mb-2 ${
           errors.email ? "is-invalid" : ""
         }`}
+        type="email"
         placeholder="Email"
         value={values.email}
         onChange={(e) =>
@@ -83,47 +82,6 @@ export default function UserFormModal({
       {errors.email && (
         <div className="invalid-feedback">
           {errors.email[0]}
-        </div>
-      )}
-
-      <input
-        className={`form-control mb-2 ${
-          errors.password ? "is-invalid" : ""
-        }`}
-        type="password"
-        placeholder="Password (min 8 chars)"
-        value={values.password}
-        onChange={(e) =>
-          setField("password", e.target.value)
-        }
-        disabled={loading}
-      />
-      {errors.password && (
-        <div className="invalid-feedback">
-          {errors.password[0]}
-        </div>
-      )}
-
-      <input
-        className={`form-control mb-2 ${
-          errors.password_confirmation
-            ? "is-invalid"
-            : ""
-        }`}
-        type="password"
-        placeholder="Confirm Password"
-        value={values.password_confirmation}
-        onChange={(e) =>
-          setField(
-            "password_confirmation",
-            e.target.value
-          )
-        }
-        disabled={loading}
-      />
-      {errors.password_confirmation && (
-        <div className="invalid-feedback">
-          {errors.password_confirmation[0]}
         </div>
       )}
     </Modal>

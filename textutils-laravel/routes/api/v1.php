@@ -29,6 +29,7 @@ use App\Http\Controllers\Api\{
     RoleController,
     PermissionController
 };
+use App\Http\Controllers\Api\Profile\ChangePasswordController;
 
 /*
 |--------------------------------------------------------------------------
@@ -48,6 +49,16 @@ Route::post('/refresh-token', RefreshTokenController::class);
 | AUTHENTICATED ROUTES
 |--------------------------------------------------------------------------
 */
+
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post(
+        '/profile/change-password',
+        ChangePasswordController::class
+    );
+});
+
 Route::middleware('auth:sanctum')->group(function () {
 
     /* ================= AUTH ================= */

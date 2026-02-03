@@ -10,7 +10,13 @@ export default function Guard({
   admin = false,
   permission,
 }: Props) {
-  const { isAuth, isAdmin, can, user } = useAuth();
+  const {
+    isAuth,
+    isAdmin,
+    can,
+    user,
+    forcePasswordReset,
+  } = useAuth();
 
   /* 🔒 NOT LOGGED IN */
   if (!isAuth) {
@@ -22,11 +28,21 @@ export default function Guard({
     );
   }
 
+  /* 🔑 FORCE PASSWORD RESET (ADMIN + USER) */
+  if (forcePasswordReset) {
+    return (
+      <Navigate
+        to="/reset-password-required"
+        replace
+      />
+    );
+  }
+
   /* 📧 EMAIL NOT VERIFIED (USER ONLY) */
   // if (
-  //   !admin &&                       // admin routes skip
+  //   !admin &&
   //   user &&
-  //   !user.email_verified_at         // not verified
+  //   !user.email_verified_at
   // ) {
   //   return <Navigate to="/verify-email" replace />;
   // }

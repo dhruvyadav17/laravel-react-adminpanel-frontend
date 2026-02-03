@@ -12,20 +12,21 @@ class LoginService
     {
         $user = User::where('email', $data['email'])->first();
 
+        /* ❌ INVALID CREDENTIALS */
         if (! $user || ! Hash::check($data['password'], $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['Invalid credentials'],
             ]);
         }
 
-        // 🔒 inactive user
+        /* ❌ ACCOUNT DISABLED */
         if (! $user->is_active) {
             throw ValidationException::withMessages([
                 'email' => ['Account is disabled'],
             ]);
         }
 
-        // 🔐 email verification
+        /* ❌ EMAIL NOT VERIFIED */
         if (
             config('features.email_verification') &&
             ! $user->hasVerifiedEmail()
@@ -35,21 +36,26 @@ class LoginService
             ]);
         }
 
-        // 🔑 token
-        $abilities = $user->getAllPermissions()
+        /* 🔑 TOKEN */
+        $abilities = $user
+            ->getAllPermissions()
             ->pluck('name')
             ->toArray();
 
-        $token = $user->createToken('api', $abilities)->plainTextToken;
+        $token = $user
+            ->createToken('api', $abilities)
+            ->plainTextToken;
 
-        // 🕒 login meta
+        /* 🕒 LOGIN META */
         $user->update([
             'last_login_at' => now(),
             'last_login_ip' => request()->ip(),
         ]);
 
+        /* ✅ IMPORTANT: expose force_password_reset */
         return [
             'token' => $token,
+            'force_password_reset' => (bool) $user->force_password_reset,
         ];
     }
 }

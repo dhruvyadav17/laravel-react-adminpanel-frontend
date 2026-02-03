@@ -1,7 +1,10 @@
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import api from "../../api/axios";
-import { handleApiError, handleApiSuccess } from "../../utils/toastHelper";
+import {
+  handleApiError,
+  handleApiSuccess,
+} from "../../utils/toastHelper";
 
 export default function ResetPassword() {
   const [params] = useSearchParams();
@@ -34,6 +37,7 @@ export default function ResetPassword() {
       handleApiSuccess(res);
       navigate("/login", { replace: true });
     } catch (e) {
+      // ✅ Backend DomainException message shown here
       handleApiError(e);
     } finally {
       setLoading(false);
@@ -41,29 +45,47 @@ export default function ResetPassword() {
   };
 
   if (!token || !email) {
-    return <p className="text-danger">Invalid reset link</p>;
+    return (
+      <p className="text-danger">
+        Invalid reset link
+      </p>
+    );
   }
 
   return (
-    <div className="container mt-5" style={{ maxWidth: 420 }}>
+    <div
+      className="container mt-5"
+      style={{ maxWidth: 420 }}
+    >
       <h4>Reset Password</h4>
 
       <form onSubmit={submit}>
+        {/* New Password */}
         <input
           type="password"
-          className="form-control mb-3"
+          className="form-control mb-1"
           placeholder="New password"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) =>
+            setPassword(e.target.value)
+          }
           required
         />
 
+        {/* 🔑 STEP-7: UX HINT (ONLY ADDITION) */}
+        <small className="text-muted d-block mb-3">
+          Password must be different from last 5 passwords
+        </small>
+
+        {/* Confirm Password */}
         <input
           type="password"
           className="form-control mb-3"
           placeholder="Confirm password"
           value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
+          onChange={(e) =>
+            setConfirm(e.target.value)
+          }
           required
         />
 
@@ -71,7 +93,9 @@ export default function ResetPassword() {
           className="btn btn-success w-100"
           disabled={loading}
         >
-          {loading ? "Resetting..." : "Reset Password"}
+          {loading
+            ? "Resetting..."
+            : "Reset Password"}
         </button>
       </form>
     </div>

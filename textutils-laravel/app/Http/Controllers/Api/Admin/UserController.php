@@ -7,6 +7,7 @@ use App\Models\Permission;
 use Illuminate\Http\Request;
 use App\Services\User\UserService;
 use App\Http\Resources\UserResource;
+use App\Services\User\UserCreatorService;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Controllers\Api\BaseApiController;
 
@@ -31,13 +32,18 @@ class UserController extends BaseApiController
 
     /* ================= CREATE ================= */
 
-    public function store(StoreUserRequest $request)
-    {
-        $user = $this->service->create($request->validated());
+    public function store(
+        StoreUserRequest $request,
+        UserCreatorService $creator
+    ) {
+        $creator->create(
+            $request->validated(),
+            'user'
+        );
 
         return $this->success(
-            'User created successfully',
-            new UserResource($user)
+            null,
+            'User created. Password setup email sent.'
         );
     }
 

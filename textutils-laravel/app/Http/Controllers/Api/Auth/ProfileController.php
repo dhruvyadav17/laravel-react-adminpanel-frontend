@@ -11,6 +11,7 @@ class ProfileController extends Controller
 {
     use ApiResponse;
 
+
     public function __invoke(Request $request)
     {
         $user = $request->user()->load('roles');
@@ -26,6 +27,9 @@ class ProfileController extends Controller
             'email_verified' => ! is_null(
                 $user->email_verified_at
             ),
+
+            // 🔥 ADD THIS LINE
+            'force_password_reset' => (bool) $user->force_password_reset,
         ]);
     }
 }
