@@ -18,7 +18,6 @@ class RoleSeeder extends Seeder
             'user'        => 'manager',
         ];
 
-        // 1️⃣ Create roles
         foreach ($hierarchy as $role => $parent) {
             Role::firstOrCreate([
                 'name'       => $role,
@@ -26,20 +25,12 @@ class RoleSeeder extends Seeder
             ]);
         }
 
-        // 2️⃣ Assign parents
         foreach ($hierarchy as $role => $parent) {
-            if (! $parent) {
-                continue;
-            }
+            if (! $parent) continue;
 
-            $child  = Role::where('name', $role)->first();
-            $parent = Role::where('name', $parent)->first();
-
-            if ($child && $parent) {
-                $child->update([
-                    'parent_id' => $parent->id,
-                ]);
-            }
+            Role::where('name', $role)->update([
+                'parent_id' => Role::where('name', $parent)->value('id'),
+            ]);
         }
     }
 }

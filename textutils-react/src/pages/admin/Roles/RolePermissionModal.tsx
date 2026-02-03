@@ -39,10 +39,12 @@ export default function RolePermissionModal({ roleId, onClose }: Props) {
       <CardHeader title="Manage Role Permissions" />
       <CardBody>
         <PermissionGroupAccordion
-          permissions={data.permissions}
-          selected={selectedPermissions}
-          onChange={setSelectedPermissions}
+        permissions={data.permissions}
+        selected={selectedPermissions}
+        inherited={data.inherited}
+        onChange={setSelectedPermissions}
         />
+
 
         <div className="text-end mt-3">
           <Button label="Save" onClick={handleSave} />

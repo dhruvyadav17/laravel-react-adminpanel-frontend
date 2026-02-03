@@ -4,17 +4,12 @@ namespace App\Services\Permission;
 
 use App\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
+use App\Services\Role\RolePermissionResolver;
 
 class PermissionService
 {
     /**
-     * 🔹 Grouped permissions for UI (Role/User modal)
-     *
-     * Return format:
-     * [
-     *   "User" => [{ id, name }],
-     *   "Role" => [{ id, name }],
-     * ]
+     * 🔹 Grouped permissions (for Role/User modal)
      */
     public function grouped(): array
     {
@@ -35,19 +30,20 @@ class PermissionService
     }
 
     /**
-     * 🔹 Flat permissions list (Permissions page)
+     * 🔹 Flat permissions (Permissions page)
      */
     public function flat()
     {
         return Permission::query()
             ->select('id', 'name', 'group_name')
+            ->whereNull('deleted_at')
             ->orderBy('group_name')
             ->orderBy('name')
             ->get();
     }
 
     /**
-     * Create permission
+     * ➕ Create permission
      */
     public function create(array $data): Permission
     {
@@ -58,13 +54,14 @@ class PermissionService
             'is_active'  => true,
         ]);
 
+        RolePermissionResolver::clearAll();
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         return $permission;
     }
 
     /**
-     * Update permission
+     * ✏️ Update permission
      */
     public function update(Permission $permission, array $data): Permission
     {
@@ -73,28 +70,33 @@ class PermissionService
             'group_name' => $data['group_name'],
         ]);
 
+        RolePermissionResolver::clearAll();
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         return $permission;
     }
 
     /**
-     * Delete permission (soft delete)
+     * ❌ Soft delete permission
      */
     public function delete(Permission $permission): void
     {
         $permission->delete();
+
+        RolePermissionResolver::clearAll();
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
     /**
-     * Enable / Disable permission
+     * 🔁 Toggle active state
      */
     public function toggle(Permission $permission): Permission
     {
         $permission->update([
             'is_active' => ! $permission->is_active,
         ]);
+
+        RolePermissionResolver::clearAll();
 
         return $permission;
     }

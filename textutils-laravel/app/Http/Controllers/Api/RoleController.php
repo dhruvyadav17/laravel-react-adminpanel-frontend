@@ -100,11 +100,13 @@ class RoleController extends BaseApiController
         $data = $this->service->permissions($role);
 
         return $this->success('Role permissions fetched', [
-            'role'        => RoleResource::make($data['role']),
-            'permissions' => PermissionResource::collection($data['permissions']),
-            'assigned'    => $data['assigned'],
+            'role'       => $data['role'],
+            'permissions'=> $data['permissions'],
+            'assigned'   => $data['assigned'],
+            'inherited'  => $data['inherited'],
         ]);
     }
+
 
     /**
      * 🔄 POST /api/v1/admin/roles/{role}/permissions
