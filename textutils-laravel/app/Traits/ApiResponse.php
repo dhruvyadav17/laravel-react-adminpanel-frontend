@@ -21,6 +21,7 @@ trait ApiResponse
         ], $status);
     }
 
+
     protected function error(
         string $message,
         mixed $errors = null,

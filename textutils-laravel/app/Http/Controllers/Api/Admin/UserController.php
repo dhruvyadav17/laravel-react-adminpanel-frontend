@@ -36,11 +36,16 @@ class UserController extends BaseApiController
         StoreUserRequest $request,
         UserCreatorService $creator
     ) {
-        $creator->create($request->validated(), 'user');
+        $creator->createByAdmin(
+            $request->validated(),
+            $request->input('role') // null allowed
+        );
 
         return $this->success(
-            null,
-            'User created. Password setup email sent.'
+            'User created. Password setup email sent.',
+            [
+                'role' => $request->input('role'),
+            ]
         );
     }
 
@@ -64,10 +69,12 @@ class UserController extends BaseApiController
 
     public function toggleStatus(User $user)
     {
-        $this->service->toggleStatus($user);
+        $user->update([
+            'is_active' => ! $user->is_active,
+        ]);
 
         return $this->success(
-            'User status updated',
+            'User status updated successfully',
             ['is_active' => $user->is_active]
         );
     }

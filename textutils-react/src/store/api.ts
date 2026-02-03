@@ -75,12 +75,11 @@ export const api = createApi({
       invalidatesTags: ["Users"],
     }),
 
-    toggleUserStatus: builder.mutation<void, number>({
+    toggleUserStatus: builder.mutation({
       query: (id) => ({
         url: `/admin/users/${id}/toggle-status`,
-        method: "POST",
+        method: 'PATCH',
       }),
-      invalidatesTags: ["Users"],
     }),
 
     forceUserPasswordReset: builder.mutation<void, number>({

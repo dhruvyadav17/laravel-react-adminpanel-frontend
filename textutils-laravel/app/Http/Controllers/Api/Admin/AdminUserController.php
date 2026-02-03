@@ -19,18 +19,19 @@ class AdminUserController extends Controller
         CreateAdminRequest $request,
         UserCreatorService $creator
     ) {
-        $user = $creator->create(
+        $user = $creator->createByAdmin(
             $request->validated(),
-            $request->role // admin / manager
+            $request->role
         );
 
         return $this->success(
             'Admin created successfully',
             [
-                'email'    => $user->email,
+                'email' => $user->email,
             ],
             [],
             201
         );
+
     }
 }

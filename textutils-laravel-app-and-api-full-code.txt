@@ -1,0 +1,3111 @@
+﻿
+
+=============================
+FILE: textutils-laravel/app/Exceptions/Handler.php
+=============================
+<?php
+
+namespace App\Exceptions;
+
+use Throwable;
+use App\Traits\ApiResponse;
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+
+class Handler extends ExceptionHandler
+{
+    use ApiResponse;
+
+    /**
+     * The list of the inputs that are never flashed to the session.
+     */
+    protected $dontFlash = [
+        'current_password',
+        'password',
+        'password_confirmation',
+    ];
+
+    /**
+     * Register the exception handling callbacks.
+     */
+    public function register(): void
+    {
+        /**
+         * ðŸ›‘ AUTHORIZATION ERROR (403)
+         * -------------------------------------------------
+         * permission / policy / gate failures
+         */
+        $this->renderable(function ( AuthorizationException $e, $request ) {
+            if ($request->is('api/*')) {
+                return $this->error(
+                    'Forbidden',
+                    null,
+                    403
+                );
+            }
+        });
+
+        /**
+         * ðŸ§¨ HTTP EXCEPTIONS (custom abort())
+         * -------------------------------------------------
+         * abort(403), abort(404), abort(500) etc.
+         */
+        $this->renderable(function ( HttpExceptionInterface $e, $request ) {
+            if ($request->is('api/*')) {
+                return $this->error(
+                    $e->getMessage() ?: 'Server error',
+                    null,
+                    $e->getStatusCode()
+                );
+            }
+        });
+
+        /**
+         * ðŸ”¥ FALLBACK (500)
+         * -------------------------------------------------
+         * Any unhandled exception
+         */
+        $this->renderable(function ( Throwable $e, $request ) {
+            if ($request->is('api/*')) {
+                return $this->error(
+                    'Internal server error',
+                    null,
+                    500
+                );
+            }
+        });
+    }
+
+    /**
+     * ðŸ” UNAUTHENTICATED (401)
+     * -------------------------------------------------
+     * Sanctum / auth middleware
+     */
+    protected function unauthenticated( $request,  AuthenticationException $exception ) {
+        if ($request->is('api/*')) {
+            return $this->error(
+                'Please login to continue',
+                null,
+                401
+            );
+        }
+        return redirect()->guest(route('login'));
+    }
+
+    /**
+     * âŒ VALIDATION ERROR (422)
+     * -------------------------------------------------
+     * FormRequest / Validator failures
+     */
+    protected function invalidJson( $request, ValidationException $exception ) {
+        return $this->error(
+            'Validation failed',
+            $exception->errors(),
+            422
+        );
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Controllers/Api/Admin/AdminUserController.php
+=============================
+<?php
+
+namespace App\Http\Controllers\Api\Admin;
+
+use App\Models\User;
+use App\Traits\ApiResponse;
+use Illuminate\Support\Str;
+use App\Services\User\UserService;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Hash;
+use App\Services\User\UserCreatorService;
+use App\Http\Requests\Admin\CreateAdminRequest;
+
+class AdminUserController extends Controller
+{
+    use ApiResponse;
+
+    public function store(
+        CreateAdminRequest $request,
+        UserCreatorService $creator
+    ) {
+        $user = $creator->create(
+            $request->validated(),
+            $request->role // admin / manager
+        );
+
+        return $this->success(
+            'Admin created successfully',
+            [
+                'email'    => $user->email,
+            ],
+            [],
+            201
+        );
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Controllers/Api/Admin/AuditLogController.php
+=============================
+<?php
+
+namespace App\Http\Controllers\Api\Admin;
+
+use App\Models\AuditLog;
+use App\Http\Controllers\Api\BaseApiController;
+use Illuminate\Http\Request;
+
+class AuditLogController extends BaseApiController
+{
+    public function index(Request $request)
+    {
+        $logs = AuditLog::with('user')
+            ->when($request->filled('action'),
+                fn ($q) => $q->where('action', $request->action)
+            )
+            ->latest()
+            ->paginate(15);
+
+        return $this->success(
+            'Audit logs fetched',
+            $logs->items(),
+            [
+                'current_page' => $logs->currentPage(),
+                'last_page'    => $logs->lastPage(),
+                'total'        => $logs->total(),
+            ]
+        );
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Controllers/Api/Admin/DashboardController.php
+=============================
+<?php
+
+namespace App\Http\Controllers\Api\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\User;
+
+class DashboardController extends Controller
+{
+    public function stats()
+    {
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'total_users' => User::count(),
+            ],
+        ]);
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Controllers/Api/Admin/SidebarController.php
+=============================
+<?php
+
+namespace App\Http\Controllers\Api\Admin;
+
+use App\Http\Controllers\Api\BaseApiController;
+use App\Services\Sidebar\SidebarService;
+
+class SidebarController extends BaseApiController
+{
+    public function __construct(
+        protected SidebarService $service
+    ) {}
+
+    /**
+     * GET /api/v1/admin/sidebar
+     */
+    public function __invoke()
+    {
+        return $this->success(
+            'Sidebar loaded',
+            $this->service->get()
+        );
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Controllers/Api/Admin/UserController.php
+=============================
+<?php
+
+namespace App\Http\Controllers\Api\Admin;
+
+use App\Models\User;
+use App\Models\Permission;
+use Illuminate\Http\Request;
+use App\Services\User\UserService;
+use App\Http\Resources\UserResource;
+use App\Services\User\UserCreatorService;
+use App\Http\Requests\Admin\StoreUserRequest;
+use App\Http\Controllers\Api\BaseApiController;
+
+class UserController extends BaseApiController
+{
+    public function __construct(
+        protected UserService $service
+    ) {}
+
+    /* ================= LIST ================= */
+
+    public function index(Request $request)
+    {
+        $result = $this->service->paginate($request);
+
+        return $this->success(
+            'Users fetched successfully',
+            UserResource::collection($result['data']),
+            $result['meta']
+        );
+    }
+
+    /* ================= CREATE ================= */
+
+    public function store(
+        StoreUserRequest $request,
+        UserCreatorService $creator
+    ) {
+        $creator->create($request->validated(), 'user');
+
+        return $this->success(
+            null,
+            'User created. Password setup email sent.'
+        );
+    }
+
+    /* ================= ARCHIVE ================= */
+
+    public function destroy(User $user)
+    {
+        $this->service->delete($user);
+
+        return $this->success('User archived successfully');
+    }
+
+    public function restore(User $user)
+    {
+        $this->service->restore($user);
+
+        return $this->success('User restored successfully');
+    }
+
+    /* ================= STATUS TOGGLE ðŸ†• ================= */
+
+    public function toggleStatus(User $user)
+    {
+        $this->service->toggleStatus($user);
+
+        return $this->success(
+            'User status updated',
+            ['is_active' => $user->is_active]
+        );
+    }
+
+    /* ================= FORCE PASSWORD RESET ðŸ†• ================= */
+
+    public function forcePasswordReset(User $user)
+    {
+        $this->service->forcePasswordReset($user);
+
+        return $this->success(
+            'Force password reset updated',
+            ['force_password_reset' => $user->force_password_reset]
+        );
+    }
+
+    /* ================= ROLES ================= */
+
+    public function assignRole(Request $request, User $user)
+    {
+        $data = $request->validate([
+            'roles'   => ['array'],
+            'roles.*' => ['string', 'exists:roles,name'],
+        ]);
+
+        $this->service->assignRoles($user, $data['roles'] ?? []);
+
+        return $this->success('Roles assigned successfully', [
+            'roles' => $user->getRoleNames()->values(),
+        ]);
+    }
+
+    /* ================= PERMISSIONS ================= */
+
+    public function permissions(User $user)
+    {
+        return $this->success('User permissions', [
+            'permissions' => Permission::select('id', 'name')->orderBy('name')->get(),
+            'assigned'    => $user->getAllPermissions()->pluck('name')->values(),
+        ]);
+    }
+
+    public function assignPermissions(Request $request, User $user)
+    {
+        $data = $request->validate([
+            'permissions'   => ['array'],
+            'permissions.*' => ['string', 'exists:permissions,name'],
+        ]);
+
+        $this->service->assignPermissions($user, $data['permissions'] ?? []);
+
+        return $this->success('Permissions updated successfully', [
+            'assigned' => $user->getAllPermissions()->pluck('name')->values(),
+        ]);
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Controllers/Api/Auth/EmailVerificationController.php
+=============================
+<?php
+
+namespace App\Http\Controllers\Api\Auth;
+
+use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use App\Traits\ApiResponse;
+use Illuminate\Auth\Events\Verified;
+
+class EmailVerificationController extends Controller
+{
+    use ApiResponse;
+
+    public function verify(Request $request)
+    {
+        $user = $request->user();
+
+        if ($user->hasVerifiedEmail()) {
+            return $this->success(
+                'Email already verified'
+            );
+        }
+
+        if (
+            ! hash_equals(
+                (string) $request->id,
+                (string) $user->getKey()
+            )
+        ) {
+            return $this->error(
+                'Invalid verification link',
+                null,
+                403
+            );
+        }
+
+        if (
+            ! hash_equals(
+                (string) $request->hash,
+                sha1($user->getEmailForVerification())
+            )
+        ) {
+            return $this->error(
+                'Invalid verification hash',
+                null,
+                403
+            );
+        }
+
+        if ($user->markEmailAsVerified()) {
+            event(new Verified($user));
+        }
+
+        return $this->success(
+            'Email verified successfully'
+        );
+    }
+
+    public function resend(Request $request)
+    {
+        if (! config('features.email_verification')) {
+            return $this->success('Email verification disabled');
+        }
+
+        $user = $request->user();
+
+        if ($user->hasVerifiedEmail()) {
+            return $this->success('Email already verified');
+        }
+
+        $user->sendEmailVerificationNotification();
+
+        return $this->success('Verification email sent');
+    }
+
+}
+
+
+=============================
+FILE: textutils-laravel/app/Http/Controllers/Api/Auth/LoginController.php
+=============================
+<?php
+
+namespace App\Http\Controllers\Api\Auth;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\LoginRequest;
+use App\Services\Auth\LoginService;
+use App\Traits\ApiResponse;
+
+class LoginController extends Controller
+{
+    use ApiResponse;
+
+    public function __invoke(LoginRequest $request, LoginService $service)
+    {
+        if (! config('features.login_rate_limit')) {
+            return $this->error('Login temporarily disabled', null, 403);
+        }
+
+        return $this->success(
+            'Login successful',
+            $service->login($request->validated())
+        );
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Controllers/Api/Auth/LogoutController.php
+=============================
+<?php
+
+namespace App\Http\Controllers\Api\Auth;
+
+use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use App\Traits\ApiResponse;
+use App\Models\RefreshToken;
+use App\Services\Audit\AuditService;
+
+class LogoutController extends Controller
+{
+    use ApiResponse;
+
+    public function __invoke(Request $request)
+    {
+        if ($token = $request->user()->currentAccessToken()) {
+            $token->delete();
+        }
+
+        if (config('features.refresh_token')) {
+            RefreshToken::where('user_id', $request->user()->id)
+                ->whereNull('revoked_at')
+                ->update(['revoked_at' => now()]);
+        }
+
+        /* ðŸ§¾ AUDIT LOG */
+        AuditService::log('logout');
+
+        return $this->success('Logged out successfully');
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Controllers/Api/Auth/ProfileController.php
+=============================
+<?php
+
+namespace App\Http\Controllers\Api\Auth;
+
+use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use App\Traits\ApiResponse;
+use App\Http\Resources\UserResource;
+
+class ProfileController extends Controller
+{
+    use ApiResponse;
+
+
+    public function __invoke(Request $request)
+    {
+        $user = $request->user()->load('roles');
+
+        return $this->success('Profile fetched', [
+            'user' => UserResource::make($user),
+
+            'permissions' => $user
+                ->getAllPermissions()
+                ->pluck('name')
+                ->values(),
+
+            'email_verified' => ! is_null(
+                $user->email_verified_at
+            ),
+
+            // ðŸ”¥ ADD THIS LINE
+            'force_password_reset' => (bool) $user->force_password_reset,
+        ]);
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Controllers/Api/Auth/RefreshTokenController.php
+=============================
+<?php
+
+namespace App\Http\Controllers\Api\Auth;
+
+use App\Models\RefreshToken;
+use Illuminate\Http\Request;
+use App\Traits\ApiResponse;
+use App\Http\Controllers\Controller;
+
+class RefreshTokenController extends Controller
+{
+    use ApiResponse;
+
+    public function __invoke(Request $request)
+    {
+        if (! config('features.refresh_token')) {
+            return $this->error(
+                'Refresh token feature disabled',
+                null,
+                403
+            );
+        }
+
+        $request->validate([
+            'refresh_token' => ['required', 'string'],
+        ]);
+
+        $record = RefreshToken::active()
+            ->where('token', $request->refresh_token)
+            ->first();
+
+        if (! $record) {
+            return $this->error('Invalid or expired refresh token', null, 401);
+        }
+
+        $user = $record->user;
+
+        // ðŸ”’ Rotate token (single-use)
+        $record->update([
+            'revoked_at' => now(),
+        ]);
+
+        $abilities = $user
+            ->getAllPermissions()
+            ->pluck('name')
+            ->toArray();
+
+        $accessToken = $user
+            ->createToken('api', $abilities)
+            ->plainTextToken;
+
+        return $this->success('Token refreshed successfully', [
+            'token' => $accessToken,
+        ]);
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Controllers/Api/Auth/RegisterController.php
+=============================
+<?php
+
+namespace App\Http\Controllers\Api\Auth;
+
+use App\Models\User;
+use App\Http\Controllers\Controller;
+use App\Traits\ApiResponse;
+use App\Http\Requests\Auth\RegisterRequest;
+use Carbon\Carbon;
+
+class RegisterController extends Controller
+{
+    use ApiResponse;
+
+    public function __invoke(RegisterRequest $request)
+    {
+        $user = User::create([
+            ...$request->validated(),
+            'password'              => bcrypt($request->password),
+            'is_active'             => true,
+            'force_password_reset'  => false,
+            'password_expires_at'   => config('features.password_expiry')
+                ? Carbon::now()->addDays(90)
+                : null,
+            'email_verified_at'     => config('features.email_verification')
+                ? null
+                : now(),
+        ]);
+
+        // ðŸ”’ DEFAULT ROLE
+        $user->assignRole('user');
+
+        // ðŸ“§ EMAIL VERIFICATION
+        if (config('features.email_verification')) {
+            $user->sendEmailVerificationNotification();
+        }
+
+        // ðŸ§¾ AUDIT LOG (future safe)
+        activity('auth')
+            ->performedOn($user)
+            ->withProperties([
+                'ip' => request()->ip(),
+                'agent' => request()->userAgent(),
+            ])
+            ->log('User registered');
+
+        return $this->success(
+            config('features.email_verification')
+                ? 'Registered successfully. Please verify your email.'
+                : 'Registered successfully',
+            null,
+            [],
+            201
+        );
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Controllers/Api/BaseApiController.php
+=============================
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Traits\ApiResponse;
+
+abstract class BaseApiController extends Controller
+{
+    use ApiResponse;
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Controllers/Api/Password/ForgotPasswordController.php
+=============================
+<?php
+
+namespace App\Http\Controllers\Api\Password;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Password;
+use App\Http\Controllers\Controller;
+use App\Notifications\ApiResetPasswordNotification;
+use App\Traits\ApiResponse;
+
+class ForgotPasswordController extends Controller
+{
+    use ApiResponse;
+
+    /**
+     * POST /api/forgot-password
+     */
+    public function __invoke(Request $request)
+    {
+        $data = $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $status = Password::sendResetLink(
+            ['email' => $data['email']],
+            function ($user, $token) {
+                $user->notify(
+                    new ApiResetPasswordNotification($token)
+                );
+            }
+        );
+
+        if ($status === Password::RESET_LINK_SENT) {
+            return $this->success(
+                'Password reset link sent successfully'
+            );
+        }
+
+        return $this->error(
+            'Unable to send reset link',
+            ['email' => __($status)],
+            422
+        );
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Controllers/Api/Password/ResetPasswordController.php
+=============================
+<?php
+
+namespace App\Http\Controllers\Api\Password;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Password;
+use App\Http\Controllers\Controller;
+use App\Traits\ApiResponse;
+use App\Services\Auth\PasswordService;
+use DomainException;
+
+class ResetPasswordController extends Controller
+{
+    use ApiResponse;
+
+    /**
+     * POST /api/reset-password
+     */
+    public function __invoke(
+        Request $request,
+        PasswordService $passwordService
+    ) {
+        // âœ… Basic request validation
+        $data = $request->validate([
+            'email'    => 'required|email',
+            'token'    => 'required',
+            'password' => 'required|min:8|confirmed',
+        ]);
+
+        try {
+            // ðŸ” Laravel password broker (token validation etc.)
+            $status = Password::reset(
+                $data,
+                function ($user, $password) use ($passwordService) {
+
+                    // ðŸ”¥ ALL business logic moved to service
+                    $passwordService->updatePassword(
+                        $user,
+                        $password
+                    );
+                }
+            );
+        }
+        // ðŸ§  BUSINESS RULE VIOLATION (password reuse, expiry, etc.)
+        catch (DomainException $e) {
+            return $this->error(
+                $e->getMessage(),
+                [],
+                422
+            );
+        }
+
+        // âœ… SUCCESS
+        if ($status === Password::PASSWORD_RESET) {
+            return $this->success(
+                'Password reset successful'
+            );
+        }
+
+        // âŒ TOKEN / EMAIL ERROR
+        return $this->error(
+            'Password reset failed',
+            ['email' => __($status)],
+            422
+        );
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Controllers/Api/PermissionController.php
+=============================
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use Illuminate\Http\Request;
+use App\Models\Permission;
+use App\Services\Permission\PermissionService;
+use App\Http\Controllers\Api\BaseApiController;
+
+class PermissionController extends BaseApiController
+{
+    public function __construct(
+        protected PermissionService $service
+    ) {}
+
+    /**
+     * âœ… flat=1 â†’ Permissions Page (table)
+     * âŒ no flag â†’ Role/User Modal (grouped)
+     */
+    public function index(Request $request)
+    {
+        if ($request->boolean('flat')) {
+            return $this->success(
+                'Permissions fetched',
+                $this->service->flat()
+            );
+        }
+
+        return $this->success(
+            'Permissions fetched',
+            [
+                'permissions' => $this->service->grouped(),
+            ]
+        );
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'name'       => ['required', 'string', 'unique:permissions,name'],
+            'group_name' => ['required', 'string'],
+        ]);
+
+        $permission = $this->service->create($data);
+
+        return $this->success(
+            'Permission created',
+            [
+                'id'         => $permission->id,
+                'name'       => $permission->name,
+                'group_name' => $permission->group_name,
+            ]
+        );
+    }
+
+    public function update(Request $request, Permission $permission)
+    {
+        $data = $request->validate([
+            'name'       => ['required', 'string', 'unique:permissions,name,' . $permission->id],
+            'group_name' => ['required', 'string'],
+        ]);
+
+        $permission = $this->service->update($permission, $data);
+
+        return $this->success(
+            'Permission updated',
+            [
+                'id'         => $permission->id,
+                'name'       => $permission->name,
+                'group_name' => $permission->group_name,
+            ]
+        );
+    }
+
+    public function destroy(Permission $permission)
+    {
+        $this->service->delete($permission);
+
+        return $this->success('Permission deleted');
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Controllers/Api/Profile/ChangePasswordController.php
+=============================
+<?php
+
+namespace App\Http\Controllers\Api\Profile;
+
+use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use App\Traits\ApiResponse;
+use App\Services\Profile\ProfileService;
+use DomainException;
+
+class ChangePasswordController extends Controller
+{
+    use ApiResponse;
+
+    /**
+     * POST /api/profile/change-password
+     */
+    public function __invoke(
+        Request $request,
+        ProfileService $profileService
+    ) {
+        $data = $request->validate([
+            'password' => 'required|min:8|confirmed',
+        ]);
+
+        try {
+            $profileService->changePassword(
+                $request->user(),
+                $data['password']
+            );
+        } catch (DomainException $e) {
+            return $this->error(
+                $e->getMessage(),
+                [],
+                422
+            );
+        }
+
+        return $this->success(
+            null,
+            'Password updated successfully'
+        );
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Controllers/Api/RoleController.php
+=============================
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Models\Role;
+use Illuminate\Http\Request;
+use App\Services\Role\RoleService;
+use App\Http\Resources\RoleResource;
+use App\Http\Resources\PermissionResource;
+use App\Http\Controllers\Api\BaseApiController;
+
+class RoleController extends BaseApiController
+{
+    public function __construct(
+        protected RoleService $service
+    ) {}
+
+    /**
+     * ðŸ“„ GET /api/v1/admin/roles
+     */
+    public function index()
+    {
+        $roles = $this->service->list();
+
+        return $this->success(
+            'Roles fetched successfully',
+            RoleResource::collection($roles)
+        );
+    }
+
+    /**
+     * âž• POST /api/v1/admin/roles
+     */
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:100', 'unique:roles,name'],
+        ]);
+
+        $role = $this->service->create($data);
+
+        return $this->success(
+            'Role created successfully',
+            RoleResource::make($role),
+            [],
+            201
+        );
+    }
+
+    /**
+     * âœï¸ PUT /api/v1/admin/roles/{role}
+     */
+    public function update(Request $request, Role $role)
+    {
+        $data = $request->validate([
+            'name' => [
+                'required',
+                'string',
+                'max:100',
+                'unique:roles,name,' . $role->id,
+            ],
+        ]);
+
+        $updated = $this->service->update($role, $data);
+
+        return $this->success(
+            'Role updated successfully',
+            RoleResource::make($updated)
+        );
+    }
+
+    /**
+     * âŒ DELETE /api/v1/admin/roles/{role}
+     */
+    public function destroy(Role $role)
+    {
+        $this->service->delete($role);
+
+        return $this->success('Role deleted successfully');
+    }
+
+    /**
+     * ðŸ” PATCH /api/v1/admin/roles/{role}/toggle
+     */
+    public function toggle(Role $role)
+    {
+        $role = $this->service->toggle($role);
+
+        return $this->success(
+            'Role status updated',
+            RoleResource::make($role)
+        );
+    }
+
+    /**
+     * ðŸ” GET /api/v1/admin/roles/{role}/permissions
+     */
+    public function permissions(Role $role)
+    {
+        $data = $this->service->permissions($role);
+
+        return $this->success('Role permissions fetched', [
+            'role'       => $data['role'],
+            'permissions'=> $data['permissions'],
+            'assigned'   => $data['assigned'],
+            'inherited'  => $data['inherited'],
+        ]);
+    }
+
+
+    /**
+     * ðŸ”„ POST /api/v1/admin/roles/{role}/permissions
+     */
+    public function assignPermissions(Request $request, Role $role)
+    {
+        $data = $request->validate([
+            'permissions'   => ['array'],
+            'permissions.*' => ['string', 'exists:permissions,name'],
+        ]);
+
+        $this->service->syncPermissions(
+            $role,
+            $data['permissions'] ?? []
+        );
+
+        return $this->success('Permissions updated successfully');
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Controllers/Controller.php
+=============================
+<?php
+
+namespace App\Http\Controllers;
+
+abstract class Controller
+{
+    //
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Middleware/RoleMiddleware.php
+=============================
+<?php
+
+namespace App\Http\Middleware;
+
+use Closure;
+use App\Traits\ApiResponse;
+
+class RoleMiddleware
+{
+    use ApiResponse;
+
+    public function handle($request, Closure $next, ...$roles)
+    {
+        $user = $request->user();
+
+        if (! $user || ! $user->hasAnyRole($roles)) {
+            return $this->error('Forbidden', null, 403);
+        }
+
+        return $next($request);
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Requests/Admin/CreateAdminRequest.php
+=============================
+<?php
+
+namespace App\Http\Requests\Admin;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class CreateAdminRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return $this->user()?->isAdmin();
+    }
+
+    public function rules(): array
+    {
+        return [
+            'name'  => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'role'  => 'required|string', // admin / manager
+        ];
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Requests/Admin/StoreUserRequest.php
+=============================
+<?php
+
+namespace App\Http\Requests\Admin;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class StoreUserRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true; // already protected by middleware
+    }
+
+    public function rules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'unique:users,email'],
+            'password' => ['required', 'min:8', 'confirmed'],
+            // 'roles' => ['required', 'array'],
+            // 'roles.*' => ['string', 'exists:roles,name'],
+        ];
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Requests/Admin/UpdateUserRequest.php
+=============================
+<?php
+
+namespace App\Http\Requests\Admin;
+
+use Illuminate\Foundation\Http\FormRequest;
+class UpdateUserRequest extends FormRequest
+{
+    public function rules(): array
+    {
+        return [
+            'name' => 'required|string',
+            'email' => 'required|email|unique:users,email,' . $this->user->id
+        ];
+    }
+}
+
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Requests/Auth/LoginRequest.php
+=============================
+<?php
+
+namespace App\Http\Requests\Auth;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class LoginRequest extends FormRequest
+{
+    public function rules(): array
+    {
+        return [
+            'email' => 'required|email',
+            'password' => 'required'
+        ];
+    }
+}
+
+
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Requests/Auth/RegisterRequest.php
+=============================
+<?php
+
+namespace App\Http\Requests\Auth;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class RegisterRequest extends FormRequest
+{
+    public function rules(): array
+    {
+        return [
+            'name' => 'required|string',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|min:6|confirmed',
+        ];
+    }
+}
+
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Requests/Permission/StorePermissionRequest.php
+=============================
+<?php
+
+namespace App\Http\Requests\Permission;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class StorePermissionRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'unique:permissions,name'],
+        ];
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Requests/Permission/UpdatePermissionRequest.php
+=============================
+<?php
+
+namespace App\Http\Requests\Permission;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class UpdatePermissionRequest extends FormRequest
+{
+    public function rules(): array
+    {
+        return [
+            'name' => [
+                'required',
+                'string',
+                'unique:permissions,name,' . $this->permission->id,
+            ],
+        ];
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Requests/Role/StoreRoleRequest.php
+=============================
+<?php
+
+namespace App\Http\Requests\Role;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class StoreRoleRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        // Already protected by middleware / permission
+        return true;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'name' => [
+                'required',
+                'string',
+                'max:100',
+                'unique:roles,name',
+            ],
+        ];
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Resources/PermissionResource.php
+=============================
+<?php
+
+namespace App\Http\Resources;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+class PermissionResource extends JsonResource
+{
+    public function toArray(Request $request): array
+    {
+        return [
+            'id'        => $this->id,
+            'name'      => $this->name,
+            'is_active' => $this->is_active,
+        ];
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Resources/RoleResource.php
+=============================
+<?php
+
+namespace App\Http\Resources;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+class RoleResource extends JsonResource
+{
+    public function toArray(Request $request): array
+    {
+        return [
+            'id'        => $this->id,
+            'name'      => $this->name,
+            'is_active' => $this->is_active,
+        ];
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Resources/UserResource.php
+=============================
+<?php
+
+namespace App\Http\Resources;
+
+use Illuminate\Http\Resources\Json\JsonResource;
+
+class UserResource extends JsonResource
+{
+    public function toArray($request)
+    {
+        return [
+            'id'         => $this->id,
+            'name'       => $this->name,
+            'email'      => $this->email,
+            'roles'      => $this->whenLoaded('roles', fn () =>
+                $this->roles->pluck('name')->values()
+            ),
+            'deleted_at' => $this->deleted_at,
+        ];
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Http/Responses/ApiResponse.php
+=============================
+<?php
+
+namespace App\Http\Responses;
+
+use Illuminate\Http\JsonResponse;
+
+class ApiResponse
+{
+    public static function success(
+        string $message,
+        mixed $data = null,
+        array $meta = [],
+        int $status = 200
+    ): JsonResponse {
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'data'    => $data,
+            'meta'    => $meta,
+            'errors'  => null,
+        ], $status);
+    }
+
+    public static function error(
+        string $message,
+        mixed $errors = null,
+        int $status = 400
+    ): JsonResponse {
+        return response()->json([
+            'success' => false,
+            'message' => $message,
+            'data'    => null,
+            'meta'    => null,
+            'errors'  => $errors,
+        ], $status);
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Models/AuditLog.php
+=============================
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class AuditLog extends Model
+{
+    protected $fillable = [
+        'user_id',
+        'action',
+        'subject_type',
+        'subject_id',
+        'ip_address',
+        'user_agent',
+        'meta',
+    ];
+
+    protected $casts = [
+        'meta' => 'array',
+    ];
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Models/LoginAttempt.php
+=============================
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+class LoginAttempt extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'user_id',
+        'ip_address',
+        'user_agent',
+        'attempted_at',
+    ];
+
+    public $timestamps = false;
+
+    protected $casts = [
+        'attempted_at' => 'datetime',
+    ];
+
+    /* ðŸ”— RELATION */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Models/PasswordHistory.php
+=============================
+<?php
+// app/Models/PasswordHistory.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class PasswordHistory extends Model
+{
+    public $timestamps = false;
+
+    protected $fillable = [
+        'user_id',
+        'password',
+        'created_at',
+    ];
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Models/Permission.php
+=============================
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Permission\Models\Permission as SpatieRole;
+
+class Permission extends SpatieRole
+{
+    use SoftDeletes;
+    protected $fillable = [
+        'name',
+        'guard_name',
+        'is_active'
+    ];
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Models/RefreshToken.php
+=============================
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class RefreshToken extends Model
+{
+    protected $fillable = [
+        'user_id',
+        'token',
+        'expires_at',
+        'revoked_at',
+    ];
+
+    protected $casts = [
+        'expires_at' => 'datetime',
+        'revoked_at' => 'datetime',
+    ];
+
+    /* ================= RELATIONS ================= */
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /* ================= SCOPES ================= */
+
+    public function scopeActive($query)
+    {
+        return $query
+            ->whereNull('revoked_at')
+            ->where('expires_at', '>', now());
+    }
+
+    public function isRevoked(): bool
+    {
+        return ! is_null($this->revoked_at);
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Models/Role.php
+=============================
+<?php
+
+namespace App\Models;
+
+use Spatie\Permission\Models\Role as SpatieRole;
+
+class Role extends SpatieRole
+{
+    protected $fillable = [
+        'name',
+        'guard_name',
+        'parent_id',
+        'is_active',
+    ];
+
+    /* ================= HIERARCHY ================= */
+
+    public function parent()
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    public function children()
+    {
+        return $this->hasMany(self::class, 'parent_id');
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Models/User.php
+=============================
+<?php
+
+namespace App\Models;
+
+use App\Models\LoginAttempt;
+use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
+use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+
+class User extends Authenticatable implements MustVerifyEmail
+{
+    use HasApiTokens,
+        HasFactory,
+        Notifiable,
+        SoftDeletes,
+        HasRoles;
+
+    protected $guarded = [];
+
+    protected $guard_name = 'api';
+
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+    ];
+
+    /* ==========================================================
+     | ROLE HELPERS
+     ========================================================== */
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->hasRole('super-admin');
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->isSuperAdmin()
+            || $this->hasAnyRole(
+                config('roles.admin_roles', [])
+            );
+    }
+
+    public function passwordHistories()
+    {
+        return $this->hasMany(
+            \App\Models\PasswordHistory::class
+        );
+    }
+
+    public function loginAttempts()
+    {
+        return $this->hasMany(
+            LoginAttempt::class
+        );
+    }
+
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Notifications/ApiResetPasswordNotification.php
+=============================
+<?php
+
+namespace App\Notifications;
+
+use Illuminate\Notifications\Notification;
+use Illuminate\Notifications\Messages\MailMessage;
+
+class ApiResetPasswordNotification extends Notification
+{
+    public function __construct(public string $token) {}
+
+    public function via($notifiable)
+    {
+        return ['mail'];
+    }
+
+    public function toMail($notifiable)
+    {
+        $url = config('app.frontend_url')
+             . "/reset-password?token={$this->token}&email={$notifiable->email}";
+
+        return (new MailMessage)
+            ->subject('Reset Password')
+            ->action('Reset Password', $url);
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Observers/RoleObserver.php
+=============================
+
+
+=============================
+FILE: textutils-laravel/app/Providers/AppServiceProvider.php
+=============================
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\ServiceProvider;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Support\Facades\RateLimiter;
+
+class AppServiceProvider extends ServiceProvider
+{
+    public function boot(): void
+    {
+        RateLimiter::for('api', function (Request $request) {
+            return Limit::perMinute(60)->by(
+                $request->user()?->id ?: $request->ip()
+            );
+        });
+
+        /* ðŸ”¥ SUPER ADMIN = GOD MODE */
+        Gate::before(function ($user) {
+            return $user->isSuperAdmin() ? true : null;
+        });
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Providers/AuthServiceProvider.php
+=============================
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+use Spatie\Permission\PermissionRegistrar;
+class AuthServiceProvider extends ServiceProvider
+{
+    /**
+     * Register services.
+     */
+    public function register(): void
+    {
+        //
+    }
+
+    /**
+     * Bootstrap services.
+     */
+    public function boot(): void
+    {
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Services/Audit/AuditService.php
+=============================
+<?php
+
+namespace App\Services\Audit;
+
+use App\Models\AuditLog;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
+
+class AuditService
+{
+    public static function log(
+        string $action,
+        ?Model $subject = null,
+        array $meta = []
+    ): void {
+        AuditLog::create([
+            'user_id'      => Auth::id(),
+            'action'       => $action,
+            'subject_type' => $subject ? get_class($subject) : null,
+            'subject_id'   => $subject?->getKey(),
+            'ip_address'   => request()->ip(),
+            'user_agent'   => request()->userAgent(),
+            'meta'         => $meta,
+        ]);
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Services/Auth/LoginService.php
+=============================
+<?php
+
+namespace App\Services\Auth;
+
+use App\Models\User;
+use App\Traits\HandlesLoginAttempts;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
+use App\Services\Audit\AuditService;
+use App\Services\Role\RolePermissionResolver;
+
+class LoginService
+{
+    use HandlesLoginAttempts;
+
+    public function login(array $data): array
+    {
+        $user = User::where('email', $data['email'])->first();
+
+        /* âŒ USER NOT FOUND */
+        if (! $user) {
+            throw ValidationException::withMessages([
+                'email' => ['Invalid credentials'],
+            ]);
+        }
+
+        /* ðŸ”’ CHECK ACCOUNT LOCK */
+        $this->ensureAccountIsNotLocked($user);
+
+        /* âŒ INVALID PASSWORD */
+        if (! Hash::check($data['password'], $user->password)) {
+            $this->recordFailedLogin($user, request());
+
+            throw ValidationException::withMessages([
+                'email' => ['Invalid credentials'],
+            ])->errorBag('login')->status(422);
+        }
+
+        /* âŒ ACCOUNT DISABLED */
+        if (! $user->is_active) {
+            throw ValidationException::withMessages([
+                'email' => ['Account is disabled'],
+            ]);
+        }
+
+        /* âŒ EMAIL NOT VERIFIED */
+        if (
+            config('features.email_verification') &&
+            ! $user->hasVerifiedEmail()
+        ) {
+            throw ValidationException::withMessages([
+                'email' => ['Email not verified'],
+            ]);
+        }
+
+        /* âœ… RESET FAILED ATTEMPTS */
+        $this->resetLoginAttempts($user);
+
+        /* ðŸ”‘ RESOLVED PERMISSIONS (ROLE HIERARCHY AWARE) */
+        $abilities = RolePermissionResolver::for($user)
+            ->pluck('name')
+            ->toArray();
+
+        $token = $user
+            ->createToken('api', $abilities)
+            ->plainTextToken;
+
+        /* ðŸ•’ LOGIN META */
+        $user->update([
+            'last_login_at' => now(),
+            'last_login_ip' => request()->ip(),
+        ]);
+
+        /* ðŸ§¾ AUDIT LOG */
+        AuditService::log(
+            'login',
+            $user,
+            ['success' => true]
+        );
+
+        return [
+            'token' => $token,
+            'force_password_reset' => (bool) $user->force_password_reset,
+        ];
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Services/Auth/PasswordPolicyService.php
+=============================
+<?php
+// app/Services/Auth/PasswordPolicyService.php
+namespace App\Services\Auth;
+
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+
+class PasswordPolicyService
+{
+    public function ensureNotReused(
+        User $user,
+        string $newPassword
+    ): void {
+        $limit = config('security.password.history_limit', 5);
+
+        $recentPasswords = $user->passwordHistories()
+            ->latest('created_at')
+            ->limit($limit)
+            ->pluck('password');
+
+        foreach ($recentPasswords as $oldHash) {
+            if (Hash::check($newPassword, $oldHash)) {
+                throw new \DomainException(
+                    "You cannot reuse your last {$limit} passwords."
+                );
+            }
+        }
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Services/Auth/PasswordService.php
+=============================
+<?php
+
+namespace App\Services\Auth;
+
+use App\Models\User;
+use App\Models\PasswordHistory;
+use Illuminate\Support\Facades\Hash;
+
+class PasswordService
+{
+    public function updatePassword(User $user, string $newPassword): void
+    {
+        // ðŸ” Enforce reuse rule
+        app(PasswordPolicyService::class)
+            ->ensureNotReused($user, $newPassword);
+
+        // ðŸ” Save old password hash
+        PasswordHistory::create([
+            'user_id'    => $user->id,
+            'password'   => $user->password,
+            'created_at' => now(),
+        ]);
+
+        // ðŸ”„ Update password
+        $user->update([
+            'password'             => Hash::make($newPassword),
+            'password_changed_at'  => now(),
+            'force_password_reset' => false,
+        ]);
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Services/Auth/RefreshTokenService.php
+=============================
+
+
+=============================
+FILE: textutils-laravel/app/Services/Permission/PermissionService.php
+=============================
+<?php
+
+namespace App\Services\Permission;
+
+use App\Models\Permission;
+use Spatie\Permission\PermissionRegistrar;
+use App\Services\Role\RolePermissionResolver;
+
+class PermissionService
+{
+    /**
+     * ðŸ”¹ Grouped permissions (for Role/User modal)
+     */
+    public function grouped(): array
+    {
+        return Permission::query()
+            ->where('is_active', true)
+            ->whereNull('deleted_at')
+            ->orderBy('group_name')
+            ->orderBy('name')
+            ->get()
+            ->groupBy('group_name')
+            ->map(fn ($items) =>
+                $items->map(fn ($p) => [
+                    'id'   => $p->id,
+                    'name' => $p->name,
+                ])
+            )
+            ->toArray();
+    }
+
+    /**
+     * ðŸ”¹ Flat permissions (Permissions page)
+     */
+    public function flat()
+    {
+        return Permission::query()
+            ->select('id', 'name', 'group_name')
+            ->whereNull('deleted_at')
+            ->orderBy('group_name')
+            ->orderBy('name')
+            ->get();
+    }
+
+    /**
+     * âž• Create permission
+     */
+    public function create(array $data): Permission
+    {
+        $permission = Permission::create([
+            'name'       => $data['name'],
+            'group_name' => $data['group_name'],
+            'guard_name' => 'api',
+            'is_active'  => true,
+        ]);
+
+        RolePermissionResolver::clearAll();
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        return $permission;
+    }
+
+    /**
+     * âœï¸ Update permission
+     */
+    public function update(Permission $permission, array $data): Permission
+    {
+        $permission->update([
+            'name'       => $data['name'],
+            'group_name' => $data['group_name'],
+        ]);
+
+        RolePermissionResolver::clearAll();
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        return $permission;
+    }
+
+    /**
+     * âŒ Soft delete permission
+     */
+    public function delete(Permission $permission): void
+    {
+        $permission->delete();
+
+        RolePermissionResolver::clearAll();
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    /**
+     * ðŸ” Toggle active state
+     */
+    public function toggle(Permission $permission): Permission
+    {
+        $permission->update([
+            'is_active' => ! $permission->is_active,
+        ]);
+
+        RolePermissionResolver::clearAll();
+
+        return $permission;
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Services/Profile/ProfileService.php
+=============================
+<?php
+
+namespace App\Services\Profile;
+
+use App\Models\User;
+use App\Services\Auth\PasswordService;
+
+class ProfileService
+{
+    public function changePassword(
+        User $user,
+        string $newPassword
+    ): void {
+        app(PasswordService::class)
+            ->updatePassword($user, $newPassword);
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Services/Role/RolePermissionResolver.php
+=============================
+<?php
+
+namespace App\Services\Role;
+
+use App\Models\User;
+use App\Models\Role as AppRole;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
+use Spatie\Permission\Models\Role as SpatieRole;
+
+class RolePermissionResolver
+{
+    /* ================= CACHE KEYS ================= */
+
+    protected static function roleCacheKey(int $roleId): string
+    {
+        return "role_permissions_{$roleId}";
+    }
+
+    protected static function userCacheKey(int $userId): string
+    {
+        return "user_permissions_{$userId}";
+    }
+
+    /* ================= PUBLIC API ================= */
+
+    public static function for(User $user): Collection
+    {
+        return self::forUser($user);
+    }
+
+    public static function forUser(User $user): Collection
+    {
+        return Cache::remember(
+            self::userCacheKey($user->id),
+            now()->addMinutes(10),
+            fn () => self::resolveForUser($user)
+        );
+    }
+
+    public static function forRole(?AppRole $role): Collection
+    {
+        if (! $role) {
+            return collect();
+        }
+
+        return Cache::remember(
+            self::roleCacheKey($role->id),
+            now()->addMinutes(10),
+            fn () => self::resolveRolePermissions($role)
+        );
+    }
+
+    /* ================= CACHE CLEAR ================= */
+
+    public static function clearRoleCache(AppRole $role): void
+    {
+        Cache::forget(self::roleCacheKey($role->id));
+    }
+
+    public static function clearUserCache(User $user): void
+    {
+        Cache::forget(self::userCacheKey($user->id));
+    }
+
+    public static function clearAll(): void
+    {
+        Cache::flush(); // safe for admin systems
+    }
+
+    /* ================= INTERNAL ================= */
+
+    protected static function resolveForUser(User $user): Collection
+    {
+        $permissions = collect();
+
+        foreach ($user->roles as $spatieRole) {
+            /** @var SpatieRole $spatieRole */
+            $role = AppRole::find($spatieRole->id);
+
+            if ($role) {
+                $permissions = $permissions->merge(
+                    self::forRole($role) // ðŸ”¥ role cache reuse
+                );
+            }
+        }
+
+        return $permissions->unique()->values();
+    }
+
+    protected static function resolveRolePermissions(
+        AppRole $role,
+        array $visited = []
+    ): Collection {
+        if (in_array($role->id, $visited, true)) {
+            return collect();
+        }
+
+        $visited[] = $role->id;
+
+        // Direct permissions
+        $permissions = $role->permissions->pluck('name');
+
+        // Inherited permissions
+        if ($role->parent) {
+            $permissions = $permissions->merge(
+                self::resolveRolePermissions($role->parent, $visited)
+            );
+        }
+
+        return $permissions;
+    }
+}
+
+
+=============================
+FILE: textutils-laravel/app/Services/Role/RoleService.php
+=============================
+<?php
+
+namespace App\Services\Role;
+
+use App\Models\Role;
+use App\Models\Permission;
+use Spatie\Permission\PermissionRegistrar;
+use App\Services\Audit\AuditService;
+
+class RoleService
+{
+    public function list()
+    {
+        return Role::with('parent')
+            ->withCount('permissions')
+            ->orderBy('name')
+            ->get();
+    }
+
+    public function create(array $data): Role
+    {
+        $role = Role::create([
+            'name'       => $data['name'],
+            'guard_name' => 'api',
+            'parent_id'  => $data['parent_id'] ?? null,
+        ]);
+
+        RolePermissionResolver::clearAll();
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        return $role;
+    }
+
+    public function update(Role $role, array $data): Role
+    {
+        if ($role->name === 'super-admin') {
+            abort(403, 'Super-admin cannot be modified');
+        }
+
+        if (
+            isset($data['parent_id']) &&
+            $this->createsCycle($role, $data['parent_id'])
+        ) {
+            abort(422, 'Circular role hierarchy detected');
+        }
+
+        $role->update([
+            'name'      => $data['name'],
+            'parent_id' => $data['parent_id'] ?? null,
+        ]);
+
+        RolePermissionResolver::clearAll();
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        return $role;
+    }
+
+    protected function createsCycle(Role $role, ?int $parentId): bool
+    {
+        while ($parentId) {
+            if ($parentId === $role->id) {
+                return true;
+            }
+
+            $parent = Role::find($parentId);
+            $parentId = $parent?->parent_id;
+        }
+
+        return false;
+    }
+
+    public function syncPermissions(Role $role, array $permissions = []): void
+    {
+        if ($role->name === 'super-admin') {
+            abort(403, 'Super-admin permissions cannot be modified');
+        }
+
+        $old = $role->permissions->pluck('name')->toArray();
+
+        $role->syncPermissions($permissions);
+
+        AuditService::log(
+            'role-permissions-updated',
+            $role,
+            ['old' => $old, 'new' => $permissions]
+        );
+
+        RolePermissionResolver::clearAll();
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    public function permissions(Role $role): array
+    {
+        return [
+            'role' => $role,
+            'permissions' => Permission::orderBy('group_name')
+                ->orderBy('name')
+                ->get()
+                ->groupBy('group_name')
+                ->map(fn ($items) =>
+                    $items->map(fn ($p) => [
+                        'id'   => $p->id,
+                        'name' => $p->name,
+                    ])
+                ),
+            'assigned' => $role->permissions->pluck('name')->values(),
+            'inherited' => RolePermissionResolver::forRole($role->parent)
+                ->diff($role->permissions->pluck('name'))
+                ->values(),
+        ];
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Services/Sidebar/SidebarService.php
+=============================
+<?php
+
+namespace App\Services\Sidebar;
+
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use App\Services\Role\RolePermissionResolver;
+
+class SidebarService
+{
+    public function get(): array
+    {
+        $user = Auth::user();
+        $version = Cache::get('permission_version', 1);
+
+        return Cache::remember(
+            "sidebar_{$user->id}_v{$version}",
+            now()->addMinutes(10),
+            fn () => $this->buildSidebar($user)
+        );
+    }
+
+    protected function buildSidebar($user): array
+    {
+        $sidebar = config('sidebar');
+
+        $permissions = RolePermissionResolver::for($user)->toArray();
+
+        return collect($sidebar)
+            ->map(fn ($group) => $this->transformGroup($group, $permissions, $user))
+            ->filter(fn ($group) => ! empty($group['children']))
+            ->values()
+            ->toArray();
+    }
+
+    protected function canAccess(array $item, array $permissions, $user): bool
+    {
+        if ($user->hasRole('super-admin')) {
+            return true;
+        }
+
+        if (! isset($item['permission']) && ! isset($item['role'])) {
+            return true;
+        }
+
+        if (isset($item['permission'])) {
+            return in_array($item['permission'], $permissions, true);
+        }
+
+        if (isset($item['role'])) {
+            return $user->hasAnyRole((array) $item['role']);
+        }
+
+        return false;
+    }
+
+    protected function transformGroup(array $group, array $permissions, $user): array
+    {
+        return [
+            'label' => $group['label'],
+            'icon'  => $group['icon'] ?? 'fas fa-circle',
+            'children' => collect($group['children'] ?? [])
+                ->filter(fn ($item) => $this->canAccess($item, $permissions, $user))
+                ->map(fn ($item) => [
+                    'label'  => $item['label'],
+                    'path'   => $item['route'] ?? null,
+                    'action' => $item['action'] ?? null,
+                ])
+                ->values()
+                ->toArray(),
+        ];
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Services/User/UserCreatorService.php
+=============================
+<?php
+namespace App\Services\User;
+
+use App\Models\User;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+
+class UserCreatorService
+{
+    public function create(array $data, string $role): User
+    {
+        $password = Str::random(16);
+
+        $user = User::create([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => Hash::make($password),
+            'force_password_reset' => true,
+            'email_verified_at' => now(),
+        ]);
+
+        $user->assignRole($role);
+
+        // ðŸ”¥ SEND PASSWORD RESET LINK
+        Password::sendResetLink(['email' => $user->email]);
+
+        return $user;
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Services/User/UserService.php
+=============================
+<?php
+
+namespace App\Services\User;
+
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\PermissionRegistrar;
+use App\Services\Audit\AuditService;
+
+class UserService
+{
+    public function paginate(Request $request): array
+    {
+        $users = User::withTrashed()
+            ->with('roles')
+            ->when(
+                $request->filled('search'),
+                fn ($q) =>
+                    $q->where('name', 'like', "%{$request->search}%")
+                      ->orWhere('email', 'like', "%{$request->search}%")
+            )
+            ->latest()
+            ->paginate(10);
+
+        return [
+            'data' => $users->items(),
+            'meta' => [
+                'current_page' => $users->currentPage(),
+                'last_page'    => $users->lastPage(),
+                'per_page'     => $users->perPage(),
+                'total'        => $users->total(),
+            ],
+        ];
+    }
+
+    public function delete(User $user): void
+    {
+        $user->delete();
+    }
+
+    public function restore(User $user): void
+    {
+        $user->restore();
+    }
+
+    /* ================= STATUS TOGGLE ðŸ†• ================= */
+
+    public function toggleStatus(User $user): void
+    {
+        $user->update([
+            'is_active' => ! $user->is_active,
+        ]);
+
+        AuditService::log(
+            'user-status-updated',
+            $user,
+            ['is_active' => $user->is_active]
+        );
+    }
+
+    /* ================= FORCE PASSWORD RESET ðŸ†• ================= */
+
+    public function forcePasswordReset(User $user): void
+    {
+        $user->update([
+            'force_password_reset' => ! $user->force_password_reset,
+        ]);
+
+        AuditService::log(
+            'user-force-password-reset',
+            $user,
+            ['force' => $user->force_password_reset]
+        );
+    }
+
+    /* ================= ROLES ================= */
+
+    public function assignRoles(User $user, array $roles): void
+    {
+        $oldRoles = $user->getRoleNames()->toArray();
+
+        $user->syncRoles($roles);
+        $user->load('roles');
+
+        AuditService::log('user-roles-updated', $user, [
+            'old' => $oldRoles,
+            'new' => $roles,
+        ]);
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    /* ================= PERMISSIONS ================= */
+
+    public function assignPermissions(User $user, array $permissions): void
+    {
+        $old = $user->getAllPermissions()->pluck('name')->toArray();
+
+        $user->syncPermissions($permissions);
+
+        AuditService::log('user-permissions-updated', $user, [
+            'old' => $old,
+            'new' => $permissions,
+        ]);
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Traits/ApiResponse.php
+=============================
+<?php
+
+namespace App\Traits;
+
+use Illuminate\Http\JsonResponse;
+
+trait ApiResponse
+{
+    protected function success(
+        string $message,
+        mixed $data = null,
+        array $meta = [],
+        int $status = 200
+    ): JsonResponse {
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'data'    => $data,
+            'meta'    => (object) $meta,
+            'errors'  => null,
+        ], $status);
+    }
+
+    protected function error(
+        string $message,
+        mixed $errors = null,
+        int $status = 400
+    ): JsonResponse {
+        return response()->json([
+            'success' => false,
+            'message' => $message,
+            'data'    => null,
+            'meta'    => (object) [],
+            'errors'  => $errors,
+        ], $status);
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/app/Traits/HandlesLoginAttempts.php
+=============================
+<?php
+
+namespace App\Traits;
+
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+
+trait HandlesLoginAttempts
+{
+    protected function ensureAccountIsNotLocked(User $user): void
+    {
+        if (
+            $user->locked_until &&
+            now()->lessThan($user->locked_until)
+        ) {
+            throw ValidationException::withMessages([
+                'email' => [
+                    'Account is temporarily locked. Try again later.',
+                ],
+            ])->status(423);
+        }
+    }
+
+    protected function recordFailedLogin(User $user, Request $request): void
+    {
+        $maxAttempts = config('security.login.max_attempts');
+        $lockMinutes = config('security.login.lock_minutes');
+
+        $user->increment('failed_login_attempts');
+
+        if ($user->failed_login_attempts >= $maxAttempts) {
+            $user->update([
+                'locked_until' => now()->addMinutes($lockMinutes),
+            ]);
+        }
+
+        if (config('security.login.track_ip')) {
+            $user->loginAttempts()->create([
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'attempted_at' => now(),
+            ]);
+        }
+    }
+
+    protected function resetLoginAttempts(User $user): void
+    {
+        if ($user->failed_login_attempts > 0 || $user->locked_until) {
+            $user->update([
+                'failed_login_attempts' => 0,
+                'locked_until' => null,
+            ]);
+        }
+    }
+}
+
+
+
+=============================
+FILE: textutils-laravel/config/cors.php
+=============================
+<?php
+
+return [
+
+    'paths' => [
+        'api/*',
+        'sanctum/csrf-cookie',
+    ],
+
+    'allowed_methods' => ['*'],
+
+    'allowed_origins' => [
+        'http://localhost:5173',
+    ],
+
+    'allowed_origins_patterns' => [],
+
+    'allowed_headers' => ['*'],
+
+    'exposed_headers' => [],
+
+    'max_age' => 0,
+
+    'supports_credentials' => false,
+
+];
+
+
+
+
+=============================
+FILE: textutils-laravel/config/features.php
+=============================
+<?php
+return [
+  'refresh_token'        => false,
+  'email_verification'   => false,
+  'password_reset'       => true,
+  'audit_logs'           => true,
+  'login_rate_limit'     => true,
+  'password_expiry'      => true,
+];
+
+
+
+=============================
+FILE: textutils-laravel/config/permissions.php
+=============================
+<?php
+
+return [
+
+    'User' => [
+        'user-view',
+        'user-create',
+        'user-update',
+        'user-delete',
+        'user-assign-role',
+        'user-assign-permission',
+    ],
+
+    'Role' => [
+        'role-manage',
+    ],
+
+    'Permission' => [
+        'permission-manage',
+    ],
+
+    'System' => [
+        'admin-impersonate',
+        'audit-view',
+    ],
+
+];
+
+
+
+=============================
+FILE: textutils-laravel/config/roles.php
+=============================
+<?php
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Role Hierarchy
+    |--------------------------------------------------------------------------
+    | child => parent
+    */
+
+    'hierarchy' => [
+        'super-admin' => null,
+        'admin'       => 'super-admin',
+        'manager'     => 'admin',
+        'user'        => 'manager',
+    ],
+
+];
+
+
+
+=============================
+FILE: textutils-laravel/config/sidebar.php
+=============================
+<?php
+
+return [
+
+    [
+        'label' => 'Main',
+        'icon'  => 'fas fa-tachometer-alt',
+        'children' => [
+            [
+                'label' => 'Dashboard',
+                'route' => '/admin/dashboard',
+            ],
+        ],
+    ],
+
+    [
+        'label' => 'User Management',
+        'icon'  => 'fas fa-users',
+        'children' => [
+            [
+                'label' => 'Users',
+                'permission' => 'user-view',
+                'route' => '/admin/users',
+            ],
+            [
+                'label' => 'Roles',
+                'permission' => 'role-manage',
+                'route' => '/admin/roles',
+            ],
+            [
+                'label' => 'Permissions',
+                'permission' => 'permission-manage',
+                'route' => '/admin/permissions',
+            ],
+        ],
+    ],
+
+    [
+        'label' => 'Account',
+        'icon'  => 'fas fa-user',
+        'children' => [
+            [
+                'label' => 'Profile',
+                'route' => '/admin/profile',
+            ],
+            [
+                'label' => 'Logout',
+                'action' => 'logout',
+            ],
+        ],
+    ],
+
+];
+
+
+
+=============================
+FILE: textutils-laravel/routes/api.php
+=============================
+<?php
+
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| API VERSIONING ENTRY
+|--------------------------------------------------------------------------
+*/
+//require __DIR__.'/api/v1.php';
+
+Route::prefix('v1')->group(
+    base_path('routes/api/v1.php')
+);
+
+
+=============================
+FILE: textutils-laravel/routes/api/v1.php
+=============================
+<?php
+
+use Illuminate\Support\Facades\Route;
+
+/* ================= AUTH ================= */
+use App\Http\Controllers\Api\Auth\{
+    RegisterController,
+    LoginController,
+    ProfileController,
+    LogoutController,
+    EmailVerificationController,
+    RefreshTokenController
+};
+
+use App\Http\Controllers\Api\Password\{
+    ForgotPasswordController,
+    ResetPasswordController
+};
+
+/* ================= ADMIN ================= */
+use App\Http\Controllers\Api\Admin\{
+    UserController,
+    SidebarController,
+    DashboardController,
+    AdminUserController
+};
+
+use App\Http\Controllers\Api\{
+    RoleController,
+    PermissionController
+};
+use App\Http\Controllers\Api\Profile\ChangePasswordController;
+use App\Http\Controllers\Api\Admin\AuditLogController;
+
+
+/*
+|--------------------------------------------------------------------------
+| PUBLIC ROUTES
+|--------------------------------------------------------------------------
+*/
+Route::post('/register', RegisterController::class);
+Route::post('/login', LoginController::class);
+Route::post('/forgot-password', ForgotPasswordController::class);
+Route::post('/reset-password', ResetPasswordController::class);
+Route::post('/refresh-token', RefreshTokenController::class);
+
+
+
+Route::middleware(['auth:sanctum', 'permission:audit-view'])
+    ->get('/admin/audit-logs', [AuditLogController::class, 'index']);
+
+
+/*
+|--------------------------------------------------------------------------
+| AUTHENTICATED ROUTES
+|--------------------------------------------------------------------------
+*/
+
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post(
+        '/profile/change-password',
+        ChangePasswordController::class
+    );
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+
+    /* ================= AUTH ================= */
+    Route::get('/profile', ProfileController::class);
+    Route::post('/logout', LogoutController::class);
+
+    /* ================= EMAIL VERIFICATION ================= */
+    Route::get(
+        '/email/verify/{id}/{hash}',
+        [EmailVerificationController::class, 'verify']
+    )->name('verification.verify');
+
+    Route::post(
+        '/email/resend',
+        [EmailVerificationController::class, 'resend']
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | ADMIN ROUTES
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('admin')->group(function () {
+
+        /* ================= DASHBOARD ================= */
+        Route::get('/sidebar', SidebarController::class);
+        Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
+
+
+        /* ================= CREATE ADMIN ================= */
+        Route::post(
+            '/admins',
+            [AdminUserController::class, 'store']
+        )->middleware('permission:role-manage');
+
+        /* ================= USERS ================= */
+        Route::prefix('users')->group(function () {
+
+            Route::middleware('permission:user-view')
+                ->get('/', [UserController::class, 'index']);
+
+            Route::middleware('permission:user-create')
+                ->post('/', [UserController::class, 'store']);
+
+            Route::middleware('permission:user-update')
+                ->put('/{user}', [UserController::class, 'update']);
+
+            Route::middleware('permission:user-delete')
+                ->delete('/{user}', [UserController::class, 'destroy']);
+
+            Route::middleware('permission:user-delete')
+                ->post('/{user}/restore', [UserController::class, 'restore'])
+                ->withTrashed();
+
+            Route::middleware('permission:user-assign-role')
+                ->post('/{user}/assign-role', [UserController::class, 'assignRole']);
+
+            Route::middleware('permission:user-assign-permission')
+                ->post('/{user}/permissions', [UserController::class, 'assignPermissions']);
+
+            Route::middleware('permission:user-view')
+                ->get('/{user}/permissions', [UserController::class, 'permissions']);
+        });
+
+        /* ================= ROLES ================= */
+        Route::prefix('roles')
+            ->middleware('permission:role-manage')
+            ->group(function () {
+
+                Route::get('/', [RoleController::class, 'index']);
+                Route::post('/', [RoleController::class, 'store']);
+                Route::put('/{role}', [RoleController::class, 'update']);
+                Route::delete('/{role}', [RoleController::class, 'destroy']);
+
+                Route::get('/{role}/permissions', [RoleController::class, 'permissions']);
+                Route::post('/{role}/permissions', [RoleController::class, 'assignPermissions']);
+            });
+
+        /* ================= PERMISSIONS ================= */
+        Route::prefix('permissions')
+            ->middleware('permission:permission-manage')
+            ->group(function () {
+
+                Route::get('/', [PermissionController::class, 'index']);
+                Route::post('/', [PermissionController::class, 'store']);
+                Route::get('/{permission}', [PermissionController::class, 'show']);
+                Route::put('/{permission}', [PermissionController::class, 'update']);
+                Route::delete('/{permission}', [PermissionController::class, 'destroy']);
+            });
+    });
+});
+
+
+
+=============================
+FILE: textutils-laravel/routes/api/v2.php
+=============================
+<?php
+
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| API V2
+|--------------------------------------------------------------------------
+| Future mobile / new frontend APIs
+*/
+
+// Example
+// Route::get('/profile', [NewProfileController::class, 'show']);
+
