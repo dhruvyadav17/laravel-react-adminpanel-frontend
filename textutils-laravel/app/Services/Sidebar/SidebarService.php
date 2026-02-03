@@ -3,6 +3,7 @@
 namespace App\Services\Sidebar;
 
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use App\Services\Role\RolePermissionResolver;
 
 class SidebarService
@@ -10,12 +11,20 @@ class SidebarService
     public function get(): array
     {
         $user = Auth::user();
+        $version = Cache::get('permission_version', 1);
+
+        return Cache::remember(
+            "sidebar_{$user->id}_v{$version}",
+            now()->addMinutes(10),
+            fn () => $this->buildSidebar($user)
+        );
+    }
+
+    protected function buildSidebar($user): array
+    {
         $sidebar = config('sidebar');
 
-        // 🔥 Resolve effective permissions once
-        $permissions = RolePermissionResolver::for($user)
-            ->pluck('name')
-            ->toArray();
+        $permissions = RolePermissionResolver::for($user)->toArray();
 
         return collect($sidebar)
             ->map(fn ($group) => $this->transformGroup($group, $permissions, $user))
@@ -26,21 +35,18 @@ class SidebarService
 
     protected function canAccess(array $item, array $permissions, $user): bool
     {
-        // 🔥 SUPER ADMIN = SEE EVERYTHING
         if ($user->hasRole('super-admin')) {
             return true;
         }
-        // No restriction
+
         if (! isset($item['permission']) && ! isset($item['role'])) {
             return true;
         }
 
-        // Permission based (ROLE HIERARCHY AWARE ✅)
         if (isset($item['permission'])) {
             return in_array($item['permission'], $permissions, true);
         }
 
-        // Role based (direct role check only)
         if (isset($item['role'])) {
             return $user->hasAnyRole((array) $item['role']);
         }
