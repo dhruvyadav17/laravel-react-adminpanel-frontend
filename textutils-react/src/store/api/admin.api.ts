@@ -1,27 +1,9 @@
-// src/store/api.ts
+import { baseApi } from "./baseApi";
+import type { User, Role, Permission } from "@/types/models";
+import type { PaginationMeta } from "@/types/pagination";
+import { buildQueryParams } from "@/utils/buildQueryParams";
 
-import { createApi } from "@reduxjs/toolkit/query/react";
-import type { User, Role, Permission } from "../types/models";
-import type { PaginationMeta } from "../types/pagination";
-import { baseQueryWithReauth } from "./baseQueryWithReauth";
-import { buildQueryParams } from "./apiHelpers";
-
-/* =====================================================
-   API SLICE – SINGLE SOURCE OF TRUTH
-===================================================== */
-
-export const api = createApi({
-  reducerPath: "api",
-  baseQuery: baseQueryWithReauth,
-
-  tagTypes: [
-    "Users",
-    "Roles",
-    "Permissions",
-    "Sidebar",
-    "AuditLogs",
-  ],
-
+export const adminApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     /* ================= USERS ================= */
 
@@ -75,11 +57,12 @@ export const api = createApi({
       invalidatesTags: ["Users"],
     }),
 
-    toggleUserStatus: builder.mutation({
+    toggleUserStatus: builder.mutation<void, number>({
       query: (id) => ({
         url: `/admin/users/${id}/toggle-status`,
-        method: 'PATCH',
+        method: "PATCH",
       }),
+      invalidatesTags: ["Users"],
     }),
 
     forceUserPasswordReset: builder.mutation<void, number>({
@@ -172,12 +155,15 @@ export const api = createApi({
 
     /* ================= PERMISSIONS ================= */
 
-  getPermissions: builder.query<Permission[], { flat?: boolean } | void>({
-    query: (params) =>
-      `/admin/permissions${buildQueryParams(params)}`,
-    transformResponse: (res: any) => res.data ?? [],
-    providesTags: ["Permissions"],
-  }),
+    getPermissions: builder.query<
+      Permission[],
+      { flat?: boolean } | void
+    >({
+      query: (params) =>
+        `/admin/permissions${buildQueryParams(params)}`,
+      transformResponse: (res: any) => res.data ?? [],
+      providesTags: ["Permissions"],
+    }),
 
     createPermission: builder.mutation<any, { name: string }>({
       query: (body) => ({
@@ -215,10 +201,7 @@ export const api = createApi({
 
     /* ================= DASHBOARD ================= */
 
-    getDashboardStats: builder.query<
-      { total_users: number },
-      void
-    >({
+    getDashboardStats: builder.query<{ total_users: number }, void>({
       query: () => "/admin/dashboard/stats",
       transformResponse: (res: any) => res.data,
     }),
@@ -240,12 +223,7 @@ export const api = createApi({
   }),
 });
 
-/* =====================================================
-   EXPORT HOOKS
-===================================================== */
-
 export const {
-  // USERS
   useGetUsersQuery,
   useCreateUserMutation,
   useDeleteUserMutation,
@@ -254,32 +232,23 @@ export const {
   useToggleUserStatusMutation,
   useForceUserPasswordResetMutation,
 
-  // USER → PERMISSIONS
   useGetUserPermissionsQuery,
   useAssignUserPermissionsMutation,
 
-  // ROLES
   useGetRolesQuery,
   useCreateRoleMutation,
   useUpdateRoleMutation,
   useDeleteRoleMutation,
 
-  // ROLE → PERMISSIONS
   useGetRolePermissionsQuery,
   useAssignRolePermissionsMutation,
 
-  // PERMISSIONS ✅ FIXED
   useGetPermissionsQuery,
   useCreatePermissionMutation,
   useUpdatePermissionMutation,
   useDeletePermissionMutation,
 
-  // SIDEBAR
   useGetSidebarQuery,
-
-  // DASHBOARD
   useGetDashboardStatsQuery,
-
-  // AUDIT LOGS
   useGetAuditLogsQuery,
-} = api;
+} = adminApi;

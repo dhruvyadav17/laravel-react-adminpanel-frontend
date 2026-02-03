@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useGetAuditLogsQuery } from "@/store/api.audit";
+import { useGetAuditLogsQuery } from "@/store/api";
+
 import AuditLogsTable from "./AuditLogsTable";
 import AuditLogsFilters from "./AuditLogsFilters";
 import Can from "@/components/common/Can";

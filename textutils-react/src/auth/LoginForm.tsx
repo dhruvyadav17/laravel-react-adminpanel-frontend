@@ -9,7 +9,8 @@ import {
 
 import type { RootState, AppDispatch } from "../store";
 import { handleApiError } from "../utils/toastHelper";
-import { resolveLoginRedirect } from "../utils/authRedirect";
+import { resolveLoginRedirect } from "@/utils/resolveLoginRedirect";
+
 
 type Props = {
   title: string;
