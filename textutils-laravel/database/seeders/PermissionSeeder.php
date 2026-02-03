@@ -11,18 +11,30 @@ class PermissionSeeder extends Seeder
     {
         $guard = 'api';
 
-        /* ================= BASE PERMISSIONS ================= */
-        foreach (config('permissions') as $group) {
-            foreach ($group as $permission) {
-                Permission::firstOrCreate([
-                    'name'       => $permission,
-                    'guard_name' => $guard,
-                ]);
+        /*
+        |--------------------------------------------------------------------------
+        | Permissions Seeder
+        |--------------------------------------------------------------------------
+        | config/permissions.php
+        | key   => group (User, Role, System)
+        | value => permissions list
+        |--------------------------------------------------------------------------
+        */
+
+        foreach (config('permissions') as $group => $permissions) {
+            foreach ($permissions as $permission) {
+                Permission::updateOrCreate(
+                    [
+                        'name'       => $permission,
+                        'guard_name' => $guard,
+                    ],
+                    [
+                        // ✅ CORRECT COLUMN
+                        'group_name' => ucfirst($group),
+                        'is_active'  => true,
+                    ]
+                );
             }
         }
-
-     
-
-      
     }
 }

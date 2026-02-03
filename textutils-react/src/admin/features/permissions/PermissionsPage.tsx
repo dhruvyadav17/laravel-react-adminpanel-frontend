@@ -33,8 +33,9 @@ function PermissionsPage() {
   const { modalType, modalData, openModal, closeModal } =
     useAppModal<Permission>();
 
+  /* ✅ FLAT PERMISSIONS ONLY */
   const { data: permissions = [], isLoading } =
-    useGetPermissionsQuery();
+    useGetPermissionsQuery({ flat: true });
 
   const [createPermission] = useCreatePermissionMutation();
   const [updatePermission] = useUpdatePermissionMutation();
@@ -48,7 +49,10 @@ function PermissionsPage() {
     setField,
     handleError,
     reset,
-  } = useBackendForm({ name: "" });
+  } = useBackendForm({
+    name: "",
+    group_name: "",
+  });
 
   const { can } = useAuth();
 
@@ -64,6 +68,7 @@ function PermissionsPage() {
             ? updatePermission({
                 id: modalData.id,
                 name: values.name,
+                group_name: values.group_name,
               }).unwrap()
             : createPermission(values).unwrap(),
         modalData?.id
@@ -102,6 +107,7 @@ function PermissionsPage() {
       show: can(PERMISSIONS.PERMISSION.MANAGE),
       onClick: () => {
         setField("name", permission.name);
+        setField("group_name", permission.group_name);
         openModal("permission", permission);
       },
     },
@@ -139,27 +145,22 @@ function PermissionsPage() {
           <CardBody className="p-0">
             <DataTable
               isLoading={isLoading}
-              colSpan={2}
+              colSpan={3}
               hasData={permissions.length > 0}
               columns={
                 <tr>
                   <th>Name</th>
-                  <th
-                    className="text-right"
-                    style={{ width: 180 }}
-                  >
-                    Actions
-                  </th>
+                  <th>Group</th>
+                  <th className="text-right">Actions</th>
                 </tr>
               }
             >
               {permissions.map((permission) => (
                 <tr key={permission.id}>
                   <td>{permission.name}</td>
+                  <td>{permission.group_name}</td>
                   <td className="text-right">
-                    <RowActions
-                      actions={getRowActions(permission)}
-                    />
+                    <RowActions actions={getRowActions(permission)} />
                   </td>
                 </tr>
               ))}
@@ -175,25 +176,28 @@ function PermissionsPage() {
             onClose={closeModal}
             onSave={save}
             saveDisabled={loading}
-            saveText={modalData?.id ? "Update" : "Save"}
           >
             <input
-              className={`form-control ${
+              className={`form-control mb-2 ${
                 errors.name ? "is-invalid" : ""
               }`}
               value={values.name}
               onChange={(e) =>
                 setField("name", e.target.value)
               }
-              disabled={loading}
               placeholder="Permission name"
             />
 
-            {errors.name && (
-              <div className="invalid-feedback">
-                {errors.name[0]}
-              </div>
-            )}
+            <input
+              className={`form-control ${
+                errors.group_name ? "is-invalid" : ""
+              }`}
+              value={values.group_name}
+              onChange={(e) =>
+                setField("group_name", e.target.value)
+              }
+              placeholder="Group (User / Role / System)"
+            />
           </Modal>
         )}
       </div>

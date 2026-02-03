@@ -8,11 +8,42 @@ use Spatie\Permission\PermissionRegistrar;
 class PermissionService
 {
     /**
-     * List all permissions
+     * 🔹 Grouped permissions for UI (Role/User modal)
+     *
+     * Return format:
+     * [
+     *   "User" => [{ id, name }],
+     *   "Role" => [{ id, name }],
+     * ]
      */
-    public function list()
+    public function grouped(): array
     {
-        return Permission::orderBy('name')->get();
+        return Permission::query()
+            ->where('is_active', true)
+            ->whereNull('deleted_at')
+            ->orderBy('group_name')
+            ->orderBy('name')
+            ->get()
+            ->groupBy('group_name')
+            ->map(fn ($items) =>
+                $items->map(fn ($p) => [
+                    'id'   => $p->id,
+                    'name' => $p->name,
+                ])
+            )
+            ->toArray();
+    }
+
+    /**
+     * 🔹 Flat permissions list (Permissions page)
+     */
+    public function flat()
+    {
+        return Permission::query()
+            ->select('id', 'name', 'group_name')
+            ->orderBy('group_name')
+            ->orderBy('name')
+            ->get();
     }
 
     /**
@@ -22,7 +53,9 @@ class PermissionService
     {
         $permission = Permission::create([
             'name'       => $data['name'],
+            'group_name' => $data['group_name'],
             'guard_name' => 'api',
+            'is_active'  => true,
         ]);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -36,7 +69,8 @@ class PermissionService
     public function update(Permission $permission, array $data): Permission
     {
         $permission->update([
-            'name' => $data['name'],
+            'name'       => $data['name'],
+            'group_name' => $data['group_name'],
         ]);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -45,12 +79,11 @@ class PermissionService
     }
 
     /**
-     * Delete permission
+     * Delete permission (soft delete)
      */
     public function delete(Permission $permission): void
     {
         $permission->delete();
-
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 

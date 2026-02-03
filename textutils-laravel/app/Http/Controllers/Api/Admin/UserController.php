@@ -36,10 +36,7 @@ class UserController extends BaseApiController
         StoreUserRequest $request,
         UserCreatorService $creator
     ) {
-        $creator->create(
-            $request->validated(),
-            'user'
-        );
+        $creator->create($request->validated(), 'user');
 
         return $this->success(
             null,
@@ -53,16 +50,38 @@ class UserController extends BaseApiController
     {
         $this->service->delete($user);
 
-        return $this->success('User archived successfully', null);
+        return $this->success('User archived successfully');
     }
-
-    /* ================= RESTORE ================= */
 
     public function restore(User $user)
     {
         $this->service->restore($user);
 
-        return $this->success('User restored successfully', null);
+        return $this->success('User restored successfully');
+    }
+
+    /* ================= STATUS TOGGLE 🆕 ================= */
+
+    public function toggleStatus(User $user)
+    {
+        $this->service->toggleStatus($user);
+
+        return $this->success(
+            'User status updated',
+            ['is_active' => $user->is_active]
+        );
+    }
+
+    /* ================= FORCE PASSWORD RESET 🆕 ================= */
+
+    public function forcePasswordReset(User $user)
+    {
+        $this->service->forcePasswordReset($user);
+
+        return $this->success(
+            'Force password reset updated',
+            ['force_password_reset' => $user->force_password_reset]
+        );
     }
 
     /* ================= ROLES ================= */
@@ -76,12 +95,9 @@ class UserController extends BaseApiController
 
         $this->service->assignRoles($user, $data['roles'] ?? []);
 
-        return $this->success(
-            'Roles assigned successfully',
-            [
-                'roles' => $user->getRoleNames()->values(),
-            ]
-        );
+        return $this->success('Roles assigned successfully', [
+            'roles' => $user->getRoleNames()->values(),
+        ]);
     }
 
     /* ================= PERMISSIONS ================= */
@@ -103,11 +119,8 @@ class UserController extends BaseApiController
 
         $this->service->assignPermissions($user, $data['permissions'] ?? []);
 
-        return $this->success(
-            'Permissions updated successfully',
-            [
-                'assigned' => $user->getAllPermissions()->pluck('name')->values(),
-            ]
-        );
+        return $this->success('Permissions updated successfully', [
+            'assigned' => $user->getAllPermissions()->pluck('name')->values(),
+        ]);
     }
 }

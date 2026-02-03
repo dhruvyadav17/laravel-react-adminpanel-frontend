@@ -4,14 +4,16 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Admin Roles
+    | Role Hierarchy
     |--------------------------------------------------------------------------
-    | Any role listed here = ADMIN user
+    | child => parent
     */
-    'admin_roles' => [
-        'super-admin',
-        'admin',
-        'manager', // 🔥 future ready
+
+    'hierarchy' => [
+        'super-admin' => null,
+        'admin'       => 'super-admin',
+        'manager'     => 'admin',
+        'user'        => 'manager',
     ],
 
 ];

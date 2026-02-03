@@ -35,7 +35,9 @@ const initialState: AuthState = {
 
   permissions: (() => {
     try {
-      return JSON.parse(localStorage.getItem("permissions") || "[]");
+      return JSON.parse(
+        localStorage.getItem("permissions") || "[]"
+      );
     } catch {
       return [];
     }
@@ -46,22 +48,37 @@ const initialState: AuthState = {
   forcePasswordReset: false,
 };
 
-/* ================= THUNKS ================= */
+/* ================= LOGIN THUNK (FIXED) ================= */
 
 export const loginThunk = createAsyncThunk<
   { token: string; force_password_reset: boolean },
   { email: string; password: string },
-  { rejectValue: string }
+  {
+    rejectValue: {
+      message: string;
+      errors?: any;
+    };
+  }
 >("auth/login", async (data, { rejectWithValue }) => {
   try {
-    const res = await loginService(data.email, data.password);
+    const res = await loginService(
+      data.email,
+      data.password
+    );
+
     return res.data.data;
   } catch (e: any) {
-    return rejectWithValue(
-      e.response?.data?.message || "Invalid credentials"
-    );
+    const data = e.response?.data;
+
+    return rejectWithValue({
+      message:
+        data?.message || "Invalid credentials",
+      errors: data?.errors || null,
+    });
   }
 });
+
+/* ================= PROFILE ================= */
 
 export const fetchProfileThunk = createAsyncThunk<
   {
@@ -76,9 +93,13 @@ export const fetchProfileThunk = createAsyncThunk<
     const res = await profileService();
     return res.data.data;
   } catch {
-    return rejectWithValue("Failed to load profile");
+    return rejectWithValue(
+      "Failed to load profile"
+    );
   }
 });
+
+/* ================= LOGOUT ================= */
 
 export const logoutThunk = createAsyncThunk(
   "auth/logout",
@@ -116,39 +137,48 @@ const authSlice = createSlice({
         state.loading = true;
       })
 
-      .addCase(loginThunk.fulfilled, (state, action) => {
-        state.loading = false;
-        state.token = action.payload.token;
-        state.forcePasswordReset =
-          action.payload.force_password_reset;
+      .addCase(
+        loginThunk.fulfilled,
+        (state, action) => {
+          state.loading = false;
+          state.token = action.payload.token;
+          state.forcePasswordReset =
+            action.payload.force_password_reset;
 
-        localStorage.setItem(
-          "token",
-          action.payload.token
-        );
-      })
+          localStorage.setItem(
+            "token",
+            action.payload.token
+          );
+        }
+      )
 
       .addCase(loginThunk.rejected, (state) => {
         state.loading = false;
       })
 
       /* PROFILE */
-      .addCase(fetchProfileThunk.fulfilled, (state, action) => {
-        state.user = action.payload.user;
-        state.permissions = action.payload.permissions;
-        state.forcePasswordReset =
-          action.payload.force_password_reset;
+      .addCase(
+        fetchProfileThunk.fulfilled,
+        (state, action) => {
+          state.user = action.payload.user;
+          state.permissions =
+            action.payload.permissions;
+          state.forcePasswordReset =
+            action.payload.force_password_reset;
 
-        localStorage.setItem(
-          "user",
-          JSON.stringify(action.payload.user)
-        );
+          localStorage.setItem(
+            "user",
+            JSON.stringify(action.payload.user)
+          );
 
-        localStorage.setItem(
-          "permissions",
-          JSON.stringify(action.payload.permissions)
-        );
-      })
+          localStorage.setItem(
+            "permissions",
+            JSON.stringify(
+              action.payload.permissions
+            )
+          );
+        }
+      )
 
       .addCase(fetchProfileThunk.rejected, (state) => {
         state.user = null;
@@ -157,15 +187,20 @@ const authSlice = createSlice({
       })
 
       /* LOGOUT */
-      .addCase(logoutThunk.fulfilled, (state) => {
-        state.user = null;
-        state.permissions = [];
-        state.token = null;
-        state.loading = false;
-        state.forcePasswordReset = false;
-      });
+      .addCase(
+        logoutThunk.fulfilled,
+        (state) => {
+          state.user = null;
+          state.permissions = [];
+          state.token = null;
+          state.loading = false;
+          state.forcePasswordReset = false;
+        }
+      );
   },
 });
 
-export const { setPermissions } = authSlice.actions;
+export const { setPermissions } =
+  authSlice.actions;
+
 export default authSlice.reducer;

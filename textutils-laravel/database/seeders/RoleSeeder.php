@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 
 class RoleSeeder extends Seeder
 {
@@ -11,18 +11,35 @@ class RoleSeeder extends Seeder
     {
         $guard = 'api';
 
-        $roles = [
-            'super-admin',
-            'admin',
-            'manager', // 🔥 NEW
-            'user',
+        $hierarchy = [
+            'super-admin' => null,
+            'admin'       => 'super-admin',
+            'manager'     => 'admin',
+            'user'        => 'manager',
         ];
 
-        foreach ($roles as $role) {
+        // 1️⃣ Create roles
+        foreach ($hierarchy as $role => $parent) {
             Role::firstOrCreate([
-                'name' => $role,
+                'name'       => $role,
                 'guard_name' => $guard,
             ]);
+        }
+
+        // 2️⃣ Assign parents
+        foreach ($hierarchy as $role => $parent) {
+            if (! $parent) {
+                continue;
+            }
+
+            $child  = Role::where('name', $role)->first();
+            $parent = Role::where('name', $parent)->first();
+
+            if ($child && $parent) {
+                $child->update([
+                    'parent_id' => $parent->id,
+                ]);
+            }
         }
     }
 }

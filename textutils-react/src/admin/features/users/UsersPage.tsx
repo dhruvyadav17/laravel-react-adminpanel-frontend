@@ -8,6 +8,7 @@ import DataTable from "../../../components/common/DataTable";
 import RowActions from "../../../components/common/RowActions";
 import Button from "../../../components/common/Button";
 import Can from "../../../components/common/Can";
+import StatusToggle from "../../../components/common/StatusToggle";
 
 import Card from "../../../ui/Card";
 import CardHeader from "../../../ui/CardHeader";
@@ -26,6 +27,8 @@ import {
   useGetUsersQuery,
   useDeleteUserMutation,
   useRestoreUserMutation,
+  useToggleUserStatusMutation,
+  useForceUserPasswordResetMutation,
 } from "../../../store/api";
 
 import { execute } from "../../../utils/execute";
@@ -48,8 +51,9 @@ function UsersPage() {
 
   const [deleteUser] = useDeleteUserMutation();
   const [restoreUser] = useRestoreUserMutation();
+  const [toggleStatus] = useToggleUserStatusMutation();
+  const [forceReset] = useForceUserPasswordResetMutation();
 
-  // ✅ ONLY permission logic (no role checks)
   const { can } = useAuth();
 
   /* ================= ACTION HANDLERS ================= */
@@ -75,7 +79,6 @@ function UsersPage() {
   /* ================= ROW ACTIONS ================= */
 
   const getRowActions = (user: User) => {
-    // Archived user → only restore (permission assumed backend-side)
     if (user.deleted_at) {
       return [
         {
@@ -102,6 +105,18 @@ function UsersPage() {
         icon: ICONS.PERMISSION,
         show: can(PERMISSIONS.USER.ASSIGN_PERMISSION),
         onClick: () => openModal("user-permission", user),
+      },
+      {
+        key: "force-reset",
+        label: "Force Password Reset",
+        icon: ICONS.LOCK,
+        variant: "warning" as const,
+        show: can(PERMISSIONS.USER.UPDATE),
+        onClick: () =>
+          execute(
+            () => forceReset(user.id).unwrap(),
+            "Force password reset updated"
+          ),
       },
       {
         key: "archive",
@@ -132,7 +147,6 @@ function UsersPage() {
           }
         />
 
-        {/* SEARCH */}
         <div className="mb-3">
           <input
             className="form-control"
@@ -170,9 +184,16 @@ function UsersPage() {
                         Archived
                       </span>
                     ) : (
-                      <span className="badge badge-success">
-                        Active
-                      </span>
+                      <StatusToggle
+                        checked={user.is_active}
+                        onToggle={() =>
+                          execute(
+                            () =>
+                              toggleStatus(user.id).unwrap(),
+                            "User status updated"
+                          )
+                        }
+                      />
                     )}
                   </td>
                   <td className="text-right">

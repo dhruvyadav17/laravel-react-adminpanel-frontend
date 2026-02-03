@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Traits\ApiResponse;
 use App\Models\RefreshToken;
+use App\Services\Audit\AuditService;
 
 class LogoutController extends Controller
 {
@@ -22,6 +23,9 @@ class LogoutController extends Controller
                 ->whereNull('revoked_at')
                 ->update(['revoked_at' => now()]);
         }
+
+        /* 🧾 AUDIT LOG */
+        AuditService::log('logout');
 
         return $this->success('Logged out successfully');
     }

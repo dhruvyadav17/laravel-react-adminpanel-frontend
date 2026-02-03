@@ -30,6 +30,8 @@ use App\Http\Controllers\Api\{
     PermissionController
 };
 use App\Http\Controllers\Api\Profile\ChangePasswordController;
+use App\Http\Controllers\Api\Admin\AuditLogController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -42,6 +44,10 @@ Route::post('/forgot-password', ForgotPasswordController::class);
 Route::post('/reset-password', ResetPasswordController::class);
 Route::post('/refresh-token', RefreshTokenController::class);
 
+
+
+Route::middleware(['auth:sanctum', 'permission:audit-view'])
+    ->get('/admin/audit-logs', [AuditLogController::class, 'index']);
 
 
 /*

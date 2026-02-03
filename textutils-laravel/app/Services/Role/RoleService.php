@@ -5,12 +5,10 @@ namespace App\Services\Role;
 use App\Models\Role;
 use App\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
+use App\Services\Audit\AuditService;
 
 class RoleService
 {
-    /**
-     * 📄 List all roles
-     */
     public function list()
     {
         return Role::withCount('permissions')
@@ -18,9 +16,6 @@ class RoleService
             ->get();
     }
 
-    /**
-     * ➕ Create new role
-     */
     public function create(array $data): Role
     {
         $role = Role::create([
@@ -33,9 +28,6 @@ class RoleService
         return $role;
     }
 
-    /**
-     * ✏️ Update role
-     */
     public function update(Role $role, array $data): Role
     {
         if ($role->name === 'super-admin') {
@@ -51,9 +43,6 @@ class RoleService
         return $role;
     }
 
-    /**
-     * ❌ Delete role
-     */
     public function delete(Role $role): void
     {
         if ($role->name === 'super-admin') {
@@ -65,9 +54,6 @@ class RoleService
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
-    /**
-     * 🔁 Enable / Disable role
-     */
     public function toggle(Role $role): Role
     {
         if ($role->name === 'super-admin') {
@@ -81,23 +67,28 @@ class RoleService
         return $role;
     }
 
-    /**
-     * 🔐 Assign permissions to role
-     */
     public function syncPermissions(Role $role, array $permissions = []): void
     {
         if ($role->name === 'super-admin') {
             abort(403, 'Super admin permissions cannot be modified');
         }
 
+        $old = $role->permissions->pluck('name')->toArray();
+
         $role->syncPermissions($permissions);
+
+        AuditService::log(
+            'role-permissions-updated',
+            $role,
+            [
+                'old' => $old,
+                'new' => $permissions,
+            ]
+        );
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
-    /**
-     * 📦 Permissions data for UI (checkbox modal)
-     */
     public function permissions(Role $role): array
     {
         return [

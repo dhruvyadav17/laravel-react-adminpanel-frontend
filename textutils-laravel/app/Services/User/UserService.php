@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\PermissionRegistrar;
+use App\Services\Audit\AuditService;
 
 class UserService
 {
@@ -15,9 +16,9 @@ class UserService
             ->with('roles')
             ->when(
                 $request->filled('search'),
-                fn($q) =>
-                $q->where('name', 'like', "%{$request->search}%")
-                    ->orWhere('email', 'like', "%{$request->search}%")
+                fn ($q) =>
+                    $q->where('name', 'like', "%{$request->search}%")
+                      ->orWhere('email', 'like', "%{$request->search}%")
             )
             ->latest()
             ->paginate(10);
@@ -33,15 +34,6 @@ class UserService
         ];
     }
 
-    public function create(array $data): User
-    {
-        if (isset($data['password'])) {
-            $data['password'] = Hash::make($data['password']);
-        }
-
-        return User::create($data);
-    }
-
     public function delete(User $user): void
     {
         $user->delete();
@@ -52,12 +44,49 @@ class UserService
         $user->restore();
     }
 
+    /* ================= STATUS TOGGLE 🆕 ================= */
+
+    public function toggleStatus(User $user): void
+    {
+        $user->update([
+            'is_active' => ! $user->is_active,
+        ]);
+
+        AuditService::log(
+            'user-status-updated',
+            $user,
+            ['is_active' => $user->is_active]
+        );
+    }
+
+    /* ================= FORCE PASSWORD RESET 🆕 ================= */
+
+    public function forcePasswordReset(User $user): void
+    {
+        $user->update([
+            'force_password_reset' => ! $user->force_password_reset,
+        ]);
+
+        AuditService::log(
+            'user-force-password-reset',
+            $user,
+            ['force' => $user->force_password_reset]
+        );
+    }
+
     /* ================= ROLES ================= */
 
     public function assignRoles(User $user, array $roles): void
     {
+        $oldRoles = $user->getRoleNames()->toArray();
+
         $user->syncRoles($roles);
         $user->load('roles');
+
+        AuditService::log('user-roles-updated', $user, [
+            'old' => $oldRoles,
+            'new' => $roles,
+        ]);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
@@ -66,21 +95,15 @@ class UserService
 
     public function assignPermissions(User $user, array $permissions): void
     {
+        $old = $user->getAllPermissions()->pluck('name')->toArray();
+
         $user->syncPermissions($permissions);
 
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-    }
-
-    public function createAdmin(array $data): User
-    {
-        $user = User::create([
-            'name'     => $data['name'],
-            'email'    => $data['email'],
-            'password' => bcrypt($data['password']),
+        AuditService::log('user-permissions-updated', $user, [
+            'old' => $old,
+            'new' => $permissions,
         ]);
 
-        $user->assignRole($data['role']);
-
-        return $user;
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }

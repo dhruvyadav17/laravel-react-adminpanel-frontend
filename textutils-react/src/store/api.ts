@@ -14,7 +14,13 @@ export const api = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
 
-  tagTypes: ["Users", "Roles", "Permissions", "Sidebar"],
+  tagTypes: [
+    "Users",
+    "Roles",
+    "Permissions",
+    "Sidebar",
+    "AuditLogs",
+  ],
 
   endpoints: (builder) => ({
     /* ================= USERS ================= */
@@ -65,6 +71,22 @@ export const api = createApi({
         url: `/admin/users/${id}/assign-role`,
         method: "POST",
         body: { roles },
+      }),
+      invalidatesTags: ["Users"],
+    }),
+
+    toggleUserStatus: builder.mutation<void, number>({
+      query: (id) => ({
+        url: `/admin/users/${id}/toggle-status`,
+        method: "POST",
+      }),
+      invalidatesTags: ["Users"],
+    }),
+
+    forceUserPasswordReset: builder.mutation<void, number>({
+      query: (id) => ({
+        url: `/admin/users/${id}/force-password-reset`,
+        method: "POST",
       }),
       invalidatesTags: ["Users"],
     }),
@@ -126,7 +148,7 @@ export const api = createApi({
       invalidatesTags: ["Roles"],
     }),
 
-    /* ================= ROLE → PERMISSIONS  ✅ FIX ================= */
+    /* ================= ROLE → PERMISSIONS ================= */
 
     getRolePermissions: builder.query<
       { permissions: Permission[]; assigned: string[] },
@@ -151,11 +173,12 @@ export const api = createApi({
 
     /* ================= PERMISSIONS ================= */
 
-    getPermissions: builder.query<Permission[], void>({
-      query: () => "/admin/permissions",
-      transformResponse: (res: any) => res.data ?? [],
-      providesTags: ["Permissions"],
-    }),
+  getPermissions: builder.query<Permission[], { flat?: boolean } | void>({
+    query: (params) =>
+      `/admin/permissions${buildQueryParams(params)}`,
+    transformResponse: (res: any) => res.data ?? [],
+    providesTags: ["Permissions"],
+  }),
 
     createPermission: builder.mutation<any, { name: string }>({
       query: (body) => ({
@@ -200,11 +223,26 @@ export const api = createApi({
       query: () => "/admin/dashboard/stats",
       transformResponse: (res: any) => res.data,
     }),
+
+    /* ================= AUDIT LOGS ================= */
+
+    getAuditLogs: builder.query<
+      { data: any[]; meta: PaginationMeta },
+      { page?: number; action?: string } | void
+    >({
+      query: (params) =>
+        `/admin/audit-logs${buildQueryParams(params)}`,
+      transformResponse: (res: any) => ({
+        data: res.data ?? [],
+        meta: res.meta,
+      }),
+      providesTags: [{ type: "AuditLogs", id: "LIST" }],
+    }),
   }),
 });
 
 /* =====================================================
-   EXPORT HOOKS  ✅ ALL REQUIRED
+   EXPORT HOOKS
 ===================================================== */
 
 export const {
@@ -214,6 +252,8 @@ export const {
   useDeleteUserMutation,
   useRestoreUserMutation,
   useAssignUserRolesMutation,
+  useToggleUserStatusMutation,
+  useForceUserPasswordResetMutation,
 
   // USER → PERMISSIONS
   useGetUserPermissionsQuery,
@@ -225,11 +265,11 @@ export const {
   useUpdateRoleMutation,
   useDeleteRoleMutation,
 
-  // ROLE → PERMISSIONS  ✅ FIX
+  // ROLE → PERMISSIONS
   useGetRolePermissionsQuery,
   useAssignRolePermissionsMutation,
 
-  // PERMISSIONS
+  // PERMISSIONS ✅ FIXED
   useGetPermissionsQuery,
   useCreatePermissionMutation,
   useUpdatePermissionMutation,
@@ -240,4 +280,7 @@ export const {
 
   // DASHBOARD
   useGetDashboardStatsQuery,
+
+  // AUDIT LOGS
+  useGetAuditLogsQuery,
 } = api;
