@@ -6,10 +6,9 @@ import { toast } from "react-toastify";
    MESSAGE EXTRACTION
    -----------------------------------------------------
    Priority:
-   1. Security meta (lock / attempts)
-   2. Backend message
-   3. First validation error
-   4. Fallback
+   1. Backend message
+   2. First validation error
+   3. Fallback
 ===================================================== */
 
 function extractMessage(
@@ -22,30 +21,6 @@ function extractMessage(
     input?.data ??
     input?.response?.data ??
     input;
-
-  /* =================================================
-     🔒 ACCOUNT LOCK MESSAGE (HIGHEST PRIORITY)
-  ================================================== */
-  const lockedUntil =
-    data?.errors?.meta?.locked_until;
-
-  if (lockedUntil) {
-    const time = new Date(
-      lockedUntil
-    ).toLocaleTimeString();
-
-    return `Account locked till ${time}`;
-  }
-
-  /* =================================================
-     ❌ ATTEMPTS LEFT MESSAGE
-  ================================================== */
-  const attemptsLeft =
-    data?.errors?.meta?.attempts_left;
-
-  if (attemptsLeft !== undefined) {
-    return `Invalid credentials. Attempts left: ${attemptsLeft}`;
-  }
 
   /* ===== backend message ===== */
   if (typeof data?.message === "string") {
@@ -103,9 +78,6 @@ export const handleApiError = (
     defaultMessage = "Please login to continue";
   } else if (status === 403) {
     defaultMessage = "You are not authorized";
-  } else if (status === 423) {
-    defaultMessage =
-      "Account is temporarily locked";
   }
 
   const message = extractMessage(

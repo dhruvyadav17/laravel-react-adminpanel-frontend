@@ -1,6 +1,6 @@
 import Modal from "../../../components/common/Modal";
 import { useBackendForm } from "../../../hooks/useBackendForm";
-import { useCreateUserMutation, useGetRolesQuery } from "../../../store/api";
+import { useCreateUserMutation } from "../../../store/api";
 import { execute } from "../../../utils/execute";
 
 type Props = {
@@ -8,17 +8,25 @@ type Props = {
   onSaved: () => void;
 };
 
-export default function UserFormModal({ onClose, onSaved }: Props) {
-  const { values, errors, loading, setField, handleError, reset } =
-    useBackendForm({
-      name: "",
-      email: "",
-      password: "",
-      password_confirmation: "",
-    });
+export default function UserFormModal({
+  onClose,
+  onSaved,
+}: Props) {
+  const {
+    values,
+    errors,
+    loading,
+    setField,
+    handleError,
+    reset,
+  } = useBackendForm({
+    name: "",
+    email: "",
+    password: "",
+    password_confirmation: "",
+  });
 
   const [createUser] = useCreateUserMutation();
-  const { data: roles = [] } = useGetRolesQuery();
 
   /* ================= SAVE ================= */
 
@@ -26,7 +34,7 @@ export default function UserFormModal({ onClose, onSaved }: Props) {
     try {
       await execute(
         () => createUser(values).unwrap(),
-        "User created successfully",
+        "User created successfully"
       );
 
       reset();
@@ -44,53 +52,73 @@ export default function UserFormModal({ onClose, onSaved }: Props) {
       onClose={onClose}
       onSave={save}
       saveDisabled={loading}
-      saveText={loading ? "Creating..." : "Create"}
+      button_name={loading ? "Saving..." : "Save"}
     >
-      {/* NAME */}
       <input
-        className={`form-control mb-2 ${errors.name ? "is-invalid" : ""}`}
+        className={`form-control mb-2 ${
+          errors.name ? "is-invalid" : ""
+        }`}
         placeholder="Name"
         value={values.name}
         onChange={(e) => setField("name", e.target.value)}
         disabled={loading}
       />
-      {errors.name && <div className="invalid-feedback">{errors.name[0]}</div>}
+      {errors.name && (
+        <div className="invalid-feedback">
+          {errors.name[0]}
+        </div>
+      )}
 
-      {/* EMAIL */}
       <input
-        className={`form-control mb-2 ${errors.email ? "is-invalid" : ""}`}
-        type="email"
+        className={`form-control mb-2 ${
+          errors.email ? "is-invalid" : ""
+        }`}
         placeholder="Email"
         value={values.email}
-        onChange={(e) => setField("email", e.target.value)}
+        onChange={(e) =>
+          setField("email", e.target.value)
+        }
         disabled={loading}
       />
       {errors.email && (
-        <div className="invalid-feedback">{errors.email[0]}</div>
+        <div className="invalid-feedback">
+          {errors.email[0]}
+        </div>
       )}
 
-      {/* PASSWORD */}
       <input
-        className={`form-control mb-2 ${errors.password ? "is-invalid" : ""}`}
+        className={`form-control mb-2 ${
+          errors.password ? "is-invalid" : ""
+        }`}
         type="password"
-        placeholder="Password"
+        placeholder="Password (min 8 chars)"
         value={values.password}
-        onChange={(e) => setField("password", e.target.value)}
+        onChange={(e) =>
+          setField("password", e.target.value)
+        }
         disabled={loading}
       />
       {errors.password && (
-        <div className="invalid-feedback">{errors.password[0]}</div>
+        <div className="invalid-feedback">
+          {errors.password[0]}
+        </div>
       )}
 
-      {/* CONFIRM PASSWORD */}
       <input
         className={`form-control mb-2 ${
-          errors.password_confirmation ? "is-invalid" : ""
+          errors.password_confirmation
+            ? "is-invalid"
+            : ""
         }`}
         type="password"
         placeholder="Confirm Password"
         value={values.password_confirmation}
-        onChange={(e) => setField("password_confirmation", e.target.value)}
+        onChange={(e) =>
+          setField(
+            "password_confirmation",
+            e.target.value
+          )
+        }
         disabled={loading}
       />
       {errors.password_confirmation && (
@@ -98,22 +126,6 @@ export default function UserFormModal({ onClose, onSaved }: Props) {
           {errors.password_confirmation[0]}
         </div>
       )}
-
-      {/* ROLE (DYNAMIC) */}
-      <select
-        className={`form-control mb-2 ${errors.role ? "is-invalid" : ""}`}
-        value={values.role}
-        onChange={(e) => setField("role", e.target.value)}
-        disabled={loading}
-      >
-        {roles.map((role) => (
-          <option key={role.id} value={role.name}>
-            {role.name}
-          </option>
-        ))}
-      </select>
-
-      {errors.role && <div className="invalid-feedback">{errors.role[0]}</div>}
     </Modal>
   );
 }

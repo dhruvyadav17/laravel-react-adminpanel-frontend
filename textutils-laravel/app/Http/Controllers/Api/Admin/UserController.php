@@ -7,7 +7,6 @@ use App\Models\Permission;
 use Illuminate\Http\Request;
 use App\Services\User\UserService;
 use App\Http\Resources\UserResource;
-use App\Services\User\UserCreatorService;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Controllers\Api\BaseApiController;
 
@@ -32,20 +31,13 @@ class UserController extends BaseApiController
 
     /* ================= CREATE ================= */
 
-    public function store(
-        StoreUserRequest $request,
-        UserCreatorService $creator
-    ) {
-        $creator->createByAdmin(
-            $request->validated(),
-            $request->input('role') // null allowed
-        );
+    public function store(StoreUserRequest $request)
+    {
+        $user = $this->service->create($request->validated());
 
         return $this->success(
-            'User created. Password setup email sent.',
-            [
-                'role' => $request->input('role'),
-            ]
+            'User created successfully',
+            new UserResource($user)
         );
     }
 
@@ -55,40 +47,16 @@ class UserController extends BaseApiController
     {
         $this->service->delete($user);
 
-        return $this->success('User archived successfully');
+        return $this->success('User archived successfully', null);
     }
+
+    /* ================= RESTORE ================= */
 
     public function restore(User $user)
     {
         $this->service->restore($user);
 
-        return $this->success('User restored successfully');
-    }
-
-    /* ================= STATUS TOGGLE 🆕 ================= */
-
-    public function toggleStatus(User $user)
-    {
-        $user->update([
-            'is_active' => ! $user->is_active,
-        ]);
-
-        return $this->success(
-            'User status updated successfully',
-            ['is_active' => $user->is_active]
-        );
-    }
-
-    /* ================= FORCE PASSWORD RESET 🆕 ================= */
-
-    public function forcePasswordReset(User $user)
-    {
-        $this->service->forcePasswordReset($user);
-
-        return $this->success(
-            'Force password reset updated',
-            ['force_password_reset' => $user->force_password_reset]
-        );
+        return $this->success('User restored successfully', null);
     }
 
     /* ================= ROLES ================= */
@@ -102,9 +70,12 @@ class UserController extends BaseApiController
 
         $this->service->assignRoles($user, $data['roles'] ?? []);
 
-        return $this->success('Roles assigned successfully', [
-            'roles' => $user->getRoleNames()->values(),
-        ]);
+        return $this->success(
+            'Roles assigned successfully',
+            [
+                'roles' => $user->getRoleNames()->values(),
+            ]
+        );
     }
 
     /* ================= PERMISSIONS ================= */
@@ -126,8 +97,11 @@ class UserController extends BaseApiController
 
         $this->service->assignPermissions($user, $data['permissions'] ?? []);
 
-        return $this->success('Permissions updated successfully', [
-            'assigned' => $user->getAllPermissions()->pluck('name')->values(),
-        ]);
+        return $this->success(
+            'Permissions updated successfully',
+            [
+                'assigned' => $user->getAllPermissions()->pluck('name')->values(),
+            ]
+        );
     }
 }

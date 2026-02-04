@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
-use Illuminate\Http\Request;
 use App\Models\Permission;
+use Illuminate\Http\Request;
 use App\Services\Permission\PermissionService;
 use App\Http\Controllers\Api\BaseApiController;
 
@@ -13,69 +13,49 @@ class PermissionController extends BaseApiController
         protected PermissionService $service
     ) {}
 
-    /**
-     * ✅ flat=1 → Permissions Page (table)
-     * ❌ no flag → Role/User Modal (grouped)
-     */
-    public function index(Request $request)
+    public function index()
     {
-        if ($request->boolean('flat')) {
-            return $this->success(
-                'Permissions fetched',
-                $this->service->flat()
-            );
-        }
-
         return $this->success(
             'Permissions fetched',
-            [
-                'permissions' => $this->service->grouped(),
-            ]
+            $this->service->list()->map(fn ($p) => [
+                'id'   => $p->id,
+                'name' => $p->name,
+            ])
         );
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name'       => ['required', 'string', 'unique:permissions,name'],
-            'group_name' => ['required', 'string'],
+            'name' => ['required', 'string', 'unique:permissions,name'],
         ]);
 
         $permission = $this->service->create($data);
 
-        return $this->success(
-            'Permission created',
-            [
-                'id'         => $permission->id,
-                'name'       => $permission->name,
-                'group_name' => $permission->group_name,
-            ]
-        );
+        return $this->success('Permission created', [
+            'id'   => $permission->id,
+            'name' => $permission->name,
+        ]);
     }
 
     public function update(Request $request, Permission $permission)
     {
         $data = $request->validate([
-            'name'       => ['required', 'string', 'unique:permissions,name,' . $permission->id],
-            'group_name' => ['required', 'string'],
+            'name' => ['required', 'string', 'unique:permissions,name,' . $permission->id],
         ]);
 
         $permission = $this->service->update($permission, $data);
 
-        return $this->success(
-            'Permission updated',
-            [
-                'id'         => $permission->id,
-                'name'       => $permission->name,
-                'group_name' => $permission->group_name,
-            ]
-        );
+        return $this->success('Permission updated', [
+            'id'   => $permission->id,
+            'name' => $permission->name,
+        ]);
     }
 
     public function destroy(Permission $permission)
     {
         $this->service->delete($permission);
 
-        return $this->success('Permission deleted');
+        return $this->success('Permission deleted', null);
     }
 }

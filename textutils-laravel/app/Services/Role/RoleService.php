@@ -5,107 +5,108 @@ namespace App\Services\Role;
 use App\Models\Role;
 use App\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
-use App\Services\Audit\AuditService;
 
 class RoleService
 {
+    /**
+     * 📄 List all roles
+     */
     public function list()
     {
-        return Role::with('parent')
-            ->withCount('permissions')
+        return Role::withCount('permissions')
             ->orderBy('name')
             ->get();
     }
 
+    /**
+     * ➕ Create new role
+     */
     public function create(array $data): Role
     {
         $role = Role::create([
             'name'       => $data['name'],
             'guard_name' => 'api',
-            'parent_id'  => $data['parent_id'] ?? null,
         ]);
 
-        RolePermissionResolver::clearAll();
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         return $role;
     }
 
+    /**
+     * ✏️ Update role
+     */
     public function update(Role $role, array $data): Role
     {
         if ($role->name === 'super-admin') {
-            abort(403, 'Super-admin cannot be modified');
-        }
-
-        if (
-            isset($data['parent_id']) &&
-            $this->createsCycle($role, $data['parent_id'])
-        ) {
-            abort(422, 'Circular role hierarchy detected');
+            abort(403, 'Super admin role cannot be modified');
         }
 
         $role->update([
-            'name'      => $data['name'],
-            'parent_id' => $data['parent_id'] ?? null,
+            'name' => $data['name'],
         ]);
 
-        RolePermissionResolver::clearAll();
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         return $role;
     }
 
-    protected function createsCycle(Role $role, ?int $parentId): bool
-    {
-        while ($parentId) {
-            if ($parentId === $role->id) {
-                return true;
-            }
-
-            $parent = Role::find($parentId);
-            $parentId = $parent?->parent_id;
-        }
-
-        return false;
-    }
-
-    public function syncPermissions(Role $role, array $permissions = []): void
+    /**
+     * ❌ Delete role
+     */
+    public function delete(Role $role): void
     {
         if ($role->name === 'super-admin') {
-            abort(403, 'Super-admin permissions cannot be modified');
+            abort(403, 'Super admin role cannot be deleted');
         }
 
-        $old = $role->permissions->pluck('name')->toArray();
+        $role->delete();
 
-        $role->syncPermissions($permissions);
-
-        AuditService::log(
-            'role-permissions-updated',
-            $role,
-            ['old' => $old, 'new' => $permissions]
-        );
-
-        RolePermissionResolver::clearAll();
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
+    /**
+     * 🔁 Enable / Disable role
+     */
+    public function toggle(Role $role): Role
+    {
+        if ($role->name === 'super-admin') {
+            abort(403, 'Super admin role cannot be disabled');
+        }
+
+        $role->update([
+            'is_active' => ! $role->is_active,
+        ]);
+
+        return $role;
+    }
+
+    /**
+     * 🔐 Assign permissions to role
+     */
+    public function syncPermissions(Role $role, array $permissions = []): void
+    {
+        if ($role->name === 'super-admin') {
+            abort(403, 'Super admin permissions cannot be modified');
+        }
+
+        $role->syncPermissions($permissions);
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    /**
+     * 📦 Permissions data for UI (checkbox modal)
+     */
     public function permissions(Role $role): array
     {
         return [
-            'role' => $role,
-            'permissions' => Permission::orderBy('group_name')
+            'role'        => $role,
+            'permissions' => Permission::select('id', 'name')
                 ->orderBy('name')
-                ->get()
-                ->groupBy('group_name')
-                ->map(fn ($items) =>
-                    $items->map(fn ($p) => [
-                        'id'   => $p->id,
-                        'name' => $p->name,
-                    ])
-                ),
-            'assigned' => $role->permissions->pluck('name')->values(),
-            'inherited' => RolePermissionResolver::forRole($role->parent)
-                ->diff($role->permissions->pluck('name'))
+                ->get(),
+            'assigned'    => $role->permissions
+                ->pluck('name')
                 ->values(),
         ];
     }

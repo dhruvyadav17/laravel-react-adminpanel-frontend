@@ -29,9 +29,6 @@ use App\Http\Controllers\Api\{
     RoleController,
     PermissionController
 };
-use App\Http\Controllers\Api\Profile\ChangePasswordController;
-use App\Http\Controllers\Api\Admin\AuditLogController;
-
 
 /*
 |--------------------------------------------------------------------------
@@ -44,13 +41,6 @@ Route::post('/forgot-password', ForgotPasswordController::class);
 Route::post('/reset-password', ResetPasswordController::class);
 Route::post('/refresh-token', RefreshTokenController::class);
 
-Route::patch(
-    'admin/users/{user}/toggle-status',
-    [UserController::class, 'toggleStatus']
-)->name('admin.users.toggle-status');
-
-Route::middleware(['auth:sanctum', 'permission:audit-view'])
-    ->get('/admin/audit-logs', [AuditLogController::class, 'index']);
 
 
 /*
@@ -58,16 +48,6 @@ Route::middleware(['auth:sanctum', 'permission:audit-view'])
 | AUTHENTICATED ROUTES
 |--------------------------------------------------------------------------
 */
-
-
-
-Route::middleware('auth:sanctum')->group(function () {
-    Route::post(
-        '/profile/change-password',
-        ChangePasswordController::class
-    );
-});
-
 Route::middleware('auth:sanctum')->group(function () {
 
     /* ================= AUTH ================= */

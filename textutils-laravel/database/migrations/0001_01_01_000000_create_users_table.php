@@ -22,8 +22,6 @@ return new class extends Migration {
             // 🔐 Account Control
             $table->boolean('is_active')->default(true);
             $table->boolean('force_password_reset')->default(false);
-            $table->timestamp('password_expires_at')
-              ->nullable();
 
             // 🕒 Login Info
             $table->timestamp('last_login_at')->nullable();

@@ -1,3 +1,5 @@
+// src/types/models.ts
+
 /* =====================================================
    COMMON
 ===================================================== */
@@ -54,19 +56,13 @@ export type Role = {
 };
 
 /* =====================================================
-   PERMISSION  ✅ FIXED
+   PERMISSION
 ===================================================== */
 
 export type Permission = {
   id: ID;
   name: string;
 
-  /* ✅ GROUP SUPPORT */
-  group_name: string;              // "User" | "Role" | "System"
-
-  /* ================= STATUS ================= */
   is_active?: boolean;
-
-  /* ================= SOFT DELETE ================= */
   deleted_at?: Timestamp | null;
 };

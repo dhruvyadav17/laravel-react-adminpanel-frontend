@@ -1,6 +1,5 @@
 import MenuRenderer from "../../components/MenuRenderer";
-import { useGetSidebarQuery } from "@/store/api";
-
+import { useGetSidebarQuery } from "../../store/api";
 import { useLogout } from "../../auth/hooks/useLogout";
 import { SidebarGroup } from "../../types/sidebar";
 

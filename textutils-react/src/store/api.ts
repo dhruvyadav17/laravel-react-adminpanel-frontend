@@ -1,9 +1,21 @@
-import { baseApi } from "./baseApi";
-import type { User, Role, Permission } from "@/types/models";
-import type { PaginationMeta } from "@/types/pagination";
-import { buildQueryParams } from "@/utils/buildQueryParams";
+// src/store/api.ts
 
-export const adminApi = baseApi.injectEndpoints({
+import { createApi } from "@reduxjs/toolkit/query/react";
+import type { User, Role, Permission } from "../types/models";
+import type { PaginationMeta } from "../types/pagination";
+import { baseQueryWithReauth } from "./baseQueryWithReauth";
+import { buildQueryParams } from "./apiHelpers";
+
+/* =====================================================
+   API SLICE – SINGLE SOURCE OF TRUTH
+===================================================== */
+
+export const api = createApi({
+  reducerPath: "api",
+  baseQuery: baseQueryWithReauth,
+
+  tagTypes: ["Users", "Roles", "Permissions", "Sidebar"],
+
   endpoints: (builder) => ({
     /* ================= USERS ================= */
 
@@ -53,22 +65,6 @@ export const adminApi = baseApi.injectEndpoints({
         url: `/admin/users/${id}/assign-role`,
         method: "POST",
         body: { roles },
-      }),
-      invalidatesTags: ["Users"],
-    }),
-
-    toggleUserStatus: builder.mutation<void, number>({
-      query: (id) => ({
-        url: `/admin/users/${id}/toggle-status`,
-        method: "PATCH",
-      }),
-      invalidatesTags: ["Users"],
-    }),
-
-    forceUserPasswordReset: builder.mutation<void, number>({
-      query: (id) => ({
-        url: `/admin/users/${id}/force-password-reset`,
-        method: "POST",
       }),
       invalidatesTags: ["Users"],
     }),
@@ -130,7 +126,7 @@ export const adminApi = baseApi.injectEndpoints({
       invalidatesTags: ["Roles"],
     }),
 
-    /* ================= ROLE → PERMISSIONS ================= */
+    /* ================= ROLE → PERMISSIONS  ✅ FIX ================= */
 
     getRolePermissions: builder.query<
       { permissions: Permission[]; assigned: string[] },
@@ -155,12 +151,8 @@ export const adminApi = baseApi.injectEndpoints({
 
     /* ================= PERMISSIONS ================= */
 
-    getPermissions: builder.query<
-      Permission[],
-      { flat?: boolean } | void
-    >({
-      query: (params) =>
-        `/admin/permissions${buildQueryParams(params)}`,
+    getPermissions: builder.query<Permission[], void>({
+      query: () => "/admin/permissions",
       transformResponse: (res: any) => res.data ?? [],
       providesTags: ["Permissions"],
     }),
@@ -201,54 +193,51 @@ export const adminApi = baseApi.injectEndpoints({
 
     /* ================= DASHBOARD ================= */
 
-    getDashboardStats: builder.query<{ total_users: number }, void>({
+    getDashboardStats: builder.query<
+      { total_users: number },
+      void
+    >({
       query: () => "/admin/dashboard/stats",
       transformResponse: (res: any) => res.data,
-    }),
-
-    /* ================= AUDIT LOGS ================= */
-
-    getAuditLogs: builder.query<
-      { data: any[]; meta: PaginationMeta },
-      { page?: number; action?: string } | void
-    >({
-      query: (params) =>
-        `/admin/audit-logs${buildQueryParams(params)}`,
-      transformResponse: (res: any) => ({
-        data: res.data ?? [],
-        meta: res.meta,
-      }),
-      providesTags: [{ type: "AuditLogs", id: "LIST" }],
     }),
   }),
 });
 
+/* =====================================================
+   EXPORT HOOKS  ✅ ALL REQUIRED
+===================================================== */
+
 export const {
+  // USERS
   useGetUsersQuery,
   useCreateUserMutation,
   useDeleteUserMutation,
   useRestoreUserMutation,
   useAssignUserRolesMutation,
-  useToggleUserStatusMutation,
-  useForceUserPasswordResetMutation,
 
+  // USER → PERMISSIONS
   useGetUserPermissionsQuery,
   useAssignUserPermissionsMutation,
 
+  // ROLES
   useGetRolesQuery,
   useCreateRoleMutation,
   useUpdateRoleMutation,
   useDeleteRoleMutation,
 
+  // ROLE → PERMISSIONS  ✅ FIX
   useGetRolePermissionsQuery,
   useAssignRolePermissionsMutation,
 
+  // PERMISSIONS
   useGetPermissionsQuery,
   useCreatePermissionMutation,
   useUpdatePermissionMutation,
   useDeletePermissionMutation,
 
+  // SIDEBAR
   useGetSidebarQuery,
+
+  // DASHBOARD
   useGetDashboardStatsQuery,
-  useGetAuditLogsQuery,
-} = adminApi;
+} = api;

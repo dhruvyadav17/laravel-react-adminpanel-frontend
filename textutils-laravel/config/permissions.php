@@ -2,7 +2,7 @@
 
 return [
 
-    'User' => [
+    'user' => [
         'user-view',
         'user-create',
         'user-update',
@@ -11,17 +11,16 @@ return [
         'user-assign-permission',
     ],
 
-    'Role' => [
+    'role' => [
         'role-manage',
     ],
 
-    'Permission' => [
+    'permission' => [
         'permission-manage',
     ],
 
-    'System' => [
+    'system' => [
         'admin-impersonate',
-        'audit-view',
     ],
 
 ];
