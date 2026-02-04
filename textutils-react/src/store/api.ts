@@ -40,7 +40,19 @@ export const api = createApi({
       }),
       invalidatesTags: ["Users"],
     }),
+    /* ================= ADMINS ================= */
 
+    createAdmin: builder.mutation<
+      { user: User; password?: string },
+      { name: string; email: string; role: string }
+    >({
+      query: (body) => ({
+        url: "/admin/admins",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Users"],
+    }),
     deleteUser: builder.mutation<void, number>({
       query: (id) => ({
         url: `/admin/users/${id}`,
@@ -214,6 +226,8 @@ export const {
   useDeleteUserMutation,
   useRestoreUserMutation,
   useAssignUserRolesMutation,
+  // ADMINS
+  useCreateAdminMutation,
 
   // USER → PERMISSIONS
   useGetUserPermissionsQuery,

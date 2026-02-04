@@ -7,10 +7,7 @@ export type ModalMap = {
 
   "user-role": User;
 
-  "user-permission": {
-    id: number;
-    name: string;
-  };
+  "user-permission": User;
 
   /* ================= ROLE ================= */
 

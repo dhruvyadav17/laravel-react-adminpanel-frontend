@@ -5,19 +5,24 @@ namespace App\Services\User;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Carbon\Carbon;
 use Spatie\Permission\PermissionRegistrar;
 
 class UserService
 {
+    /* ================= LIST ================= */
+
     public function paginate(Request $request): array
     {
         $users = User::withTrashed()
             ->with('roles')
             ->when(
                 $request->filled('search'),
-                fn($q) =>
-                $q->where('name', 'like', "%{$request->search}%")
-                    ->orWhere('email', 'like', "%{$request->search}%")
+                fn ($q) =>
+                    $q->where('name', 'like', "%{$request->search}%")
+                      ->orWhere('email', 'like', "%{$request->search}%")
             )
             ->latest()
             ->paginate(10);
@@ -33,14 +38,77 @@ class UserService
         ];
     }
 
+    /* ================= CORE CREATOR (INTERNAL) ================= */
+
+    protected function createBase(array $data): User
+    {
+        return User::create([
+            'name'                  => $data['name'],
+            'email'                 => $data['email'],
+            'password'              => Hash::make($data['password']),
+            'is_active'             => $data['is_active'] ?? true,
+            'force_password_reset'  => $data['force_password_reset'] ?? false,
+            //'password_expires_at'   => $data['password_expires_at'] ?? null,
+            'email_verified_at'     => $data['email_verified_at'] ?? null,
+        ]);
+    }
+
+    /* ================= ADMIN PANEL USER ================= */
+
     public function create(array $data): User
     {
-        if (isset($data['password'])) {
-            $data['password'] = Hash::make($data['password']);
-        }
-
-        return User::create($data);
+        return $this->createBase($data);
     }
+
+    /* ================= ADMIN CREATION ================= */
+
+    public function createAdmin(array $data): array
+    {
+        $password = Str::random(12);
+
+        $user = $this->createBase([
+            'name'              => $data['name'],
+            'email'             => $data['email'],
+            'password'          => $password,
+            'email_verified_at' => now(), // auto verified
+        ]);
+
+        $user->assignRole($data['role']);
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        Log::info('Admin created', ['id' => $user->id]);
+
+        return [
+            'user'     => $user,
+            'password' => $password, // shown once
+        ];
+    }
+
+    /* ================= PUBLIC REGISTER ================= */
+
+    public function register(array $data): User
+    {
+        $user = $this->createBase([
+            'name'  => $data['name'],
+            'email' => $data['email'],
+            'password' => $data['password'],
+            'password_expires_at' => config('features.password_expiry')
+                ? Carbon::now()->addDays(90)
+                : null,
+            'email_verified_at' => config('features.email_verification')
+                ? null
+                : now(),
+        ]);
+
+        $user->assignRole('user');
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        return $user;
+    }
+
+    /* ================= DELETE / RESTORE ================= */
 
     public function delete(User $user): void
     {
@@ -69,18 +137,5 @@ class UserService
         $user->syncPermissions($permissions);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
-    }
-
-    public function createAdmin(array $data): User
-    {
-        $user = User::create([
-            'name'     => $data['name'],
-            'email'    => $data['email'],
-            'password' => bcrypt($data['password']),
-        ]);
-
-        $user->assignRole($data['role']);
-
-        return $user;
     }
 }

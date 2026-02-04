@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
-use App\Models\User;
-use App\Models\Permission;
-use Illuminate\Http\Request;
-use App\Services\User\UserService;
-use App\Http\Resources\UserResource;
-use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Controllers\Api\BaseApiController;
+use App\Http\Requests\Admin\StoreUserRequest;
+use App\Http\Resources\UserResource;
+use App\Models\Permission;
+use App\Models\User;
+use App\Services\User\UserService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class UserController extends BaseApiController
 {
@@ -33,11 +34,20 @@ class UserController extends BaseApiController
 
     public function store(StoreUserRequest $request)
     {
-        $user = $this->service->create($request->validated());
+        $user = $this->service->create(
+            $request->validated()
+        );
+
+        Log::info('User created', [
+            'user_id' => $user->id,
+            'email'   => $user->email,
+        ]);
 
         return $this->success(
             'User created successfully',
-            new UserResource($user)
+            new UserResource($user),
+            [],
+            201
         );
     }
 
@@ -47,7 +57,10 @@ class UserController extends BaseApiController
     {
         $this->service->delete($user);
 
-        return $this->success('User archived successfully', null);
+        return $this->success(
+            'User archived successfully',
+            null
+        );
     }
 
     /* ================= RESTORE ================= */
@@ -56,7 +69,10 @@ class UserController extends BaseApiController
     {
         $this->service->restore($user);
 
-        return $this->success('User restored successfully', null);
+        return $this->success(
+            'User restored successfully',
+            null
+        );
     }
 
     /* ================= ROLES ================= */
@@ -68,7 +84,10 @@ class UserController extends BaseApiController
             'roles.*' => ['string', 'exists:roles,name'],
         ]);
 
-        $this->service->assignRoles($user, $data['roles'] ?? []);
+        $this->service->assignRoles(
+            $user,
+            $data['roles'] ?? []
+        );
 
         return $this->success(
             'Roles assigned successfully',
@@ -82,10 +101,20 @@ class UserController extends BaseApiController
 
     public function permissions(User $user)
     {
-        return $this->success('User permissions', [
-            'permissions' => Permission::select('id', 'name')->orderBy('name')->get(),
-            'assigned'    => $user->getAllPermissions()->pluck('name')->values(),
-        ]);
+        return $this->success(
+            'User permissions fetched',
+            [
+                'permissions' => Permission::query()
+                    ->select('id', 'name')
+                    ->orderBy('name')
+                    ->get(),
+
+                'assigned' => $user
+                    ->getAllPermissions()
+                    ->pluck('name')
+                    ->values(),
+            ]
+        );
     }
 
     public function assignPermissions(Request $request, User $user)
@@ -95,12 +124,18 @@ class UserController extends BaseApiController
             'permissions.*' => ['string', 'exists:permissions,name'],
         ]);
 
-        $this->service->assignPermissions($user, $data['permissions'] ?? []);
+        $this->service->assignPermissions(
+            $user,
+            $data['permissions'] ?? []
+        );
 
         return $this->success(
             'Permissions updated successfully',
             [
-                'assigned' => $user->getAllPermissions()->pluck('name')->values(),
+                'assigned' => $user
+                    ->getAllPermissions()
+                    ->pluck('name')
+                    ->values(),
             ]
         );
     }

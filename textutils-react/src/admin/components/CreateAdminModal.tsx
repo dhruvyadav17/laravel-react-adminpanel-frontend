@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { createAdminService } from "../features/users/user.api";
+import { useCreateAdminMutation } from "../../store/api";
+import { execute } from "../../utils/execute";
 
 export default function CreateAdminModal({
   onClose,
@@ -12,11 +13,22 @@ export default function CreateAdminModal({
     role: "admin",
   });
 
+  const [createAdmin, { isLoading }] = useCreateAdminMutation();
+
   const submit = async () => {
-    const res = await createAdminService(form);
-    alert(
-      `Admin created!\nEmail: ${res.data.data.email}\nPassword: ${res.data.data.password}`
+    const result = await execute(
+      () => createAdmin(form).unwrap(),
+      "Admin created successfully"
     );
+
+    if (!result) return;
+
+    const { email, password } = result;
+
+    alert(
+      `Admin created!\n\nEmail: ${email}\nPassword: ${password}\n\n⚠️ Please save this password now.`
+    );
+
     onClose();
   };
 
@@ -26,18 +38,22 @@ export default function CreateAdminModal({
 
       <input
         placeholder="Name"
+        value={form.name}
         onChange={(e) =>
           setForm({ ...form, name: e.target.value })
         }
       />
+
       <input
         placeholder="Email"
+        value={form.email}
         onChange={(e) =>
           setForm({ ...form, email: e.target.value })
         }
       />
 
       <select
+        value={form.role}
         onChange={(e) =>
           setForm({ ...form, role: e.target.value })
         }
@@ -46,7 +62,9 @@ export default function CreateAdminModal({
         <option value="manager">Manager</option>
       </select>
 
-      <button onClick={submit}>Create</button>
+      <button onClick={submit} disabled={isLoading}>
+        {isLoading ? "Creating..." : "Create"}
+      </button>
     </div>
   );
 }
