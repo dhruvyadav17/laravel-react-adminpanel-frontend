@@ -1,7 +1,7 @@
 import { Navigate, useNavigate } from "react-router-dom";
 import LoginForm from "../../auth/LoginForm";
 import { useAuth } from "../../auth/hooks/useAuth";
-import { resolveLoginRedirect } from "../../utils/resolveLoginRedirect";
+import { resolveLoginRedirect } from "../../utils/authRedirect";
 
 type Props = {
   admin?: boolean;
