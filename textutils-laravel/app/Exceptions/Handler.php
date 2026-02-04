@@ -2,104 +2,45 @@
 
 namespace App\Exceptions;
 
-use Throwable;
-use App\Traits\ApiResponse;
-use Illuminate\Auth\AuthenticationException;
-use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Validation\ValidationException;
-use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Throwable;
 
 class Handler extends ExceptionHandler
 {
-    use ApiResponse;
-
-    /**
-     * The list of the inputs that are never flashed to the session.
-     */
-    protected $dontFlash = [
-        'current_password',
-        'password',
-        'password_confirmation',
-    ];
-
-    /**
-     * Register the exception handling callbacks.
-     */
-    public function register(): void
+    public function render($request, Throwable $e)
     {
-        /**
-         * 🛑 AUTHORIZATION ERROR (403)
-         * -------------------------------------------------
-         * permission / policy / gate failures
-         */
-        $this->renderable(function ( AuthorizationException $e, $request ) {
-            if ($request->is('api/*')) {
-                return $this->error(
-                    'Forbidden',
-                    null,
-                    403
-                );
-            }
-        });
+        if ($request->expectsJson()) {
 
-        /**
-         * 🧨 HTTP EXCEPTIONS (custom abort())
-         * -------------------------------------------------
-         * abort(403), abort(404), abort(500) etc.
-         */
-        $this->renderable(function ( HttpExceptionInterface $e, $request ) {
-            if ($request->is('api/*')) {
-                return $this->error(
-                    $e->getMessage() ?: 'Server error',
-                    null,
-                    $e->getStatusCode()
-                );
+            /* ================= VALIDATION ERRORS ================= */
+            if ($e instanceof ValidationException) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors'  => $e->errors(),
+                ], 422);
             }
-        });
 
-        /**
-         * 🔥 FALLBACK (500)
-         * -------------------------------------------------
-         * Any unhandled exception
-         */
-        $this->renderable(function ( Throwable $e, $request ) {
-            if ($request->is('api/*')) {
-                return $this->error(
-                    'Internal server error',
-                    null,
-                    500
-                );
+            /* ================= HTTP EXCEPTIONS ================= */
+            if ($e instanceof HttpException) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage() ?: 'Request error',
+                    'data'    => (object) [],
+                ], $e->getStatusCode());
             }
-        });
-    }
 
-    /**
-     * 🔐 UNAUTHENTICATED (401)
-     * -------------------------------------------------
-     * Sanctum / auth middleware
-     */
-    protected function unauthenticated( $request,  AuthenticationException $exception ) {
-        if ($request->is('api/*')) {
-            return $this->error(
-                'Please login to continue',
-                null,
-                401
-            );
+            /* ================= FALLBACK ================= */
+            return response()->json([
+                'success' => false,
+                'message' => config('app.debug')
+                    ? $e->getMessage()
+                    : 'Server error',
+                'data' => (object) [],
+            ], 500);
         }
-        return redirect()->guest(route('login'));
-    }
 
-    /**
-     * ❌ VALIDATION ERROR (422)
-     * -------------------------------------------------
-     * FormRequest / Validator failures
-     */
-    protected function invalidJson( $request, ValidationException $exception ) {
-        return $this->error(
-            'Validation failed',
-            $exception->errors(),
-            422
-        );
+        return parent::render($request, $e);
     }
 }

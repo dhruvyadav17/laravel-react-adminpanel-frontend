@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers\Api\Auth;
 
-use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
-use App\Traits\ApiResponse;
 use App\Models\RefreshToken;
+// use App\Http\Controllers\Controller;
+// use App\Traits\ApiResponse;
+use Illuminate\Http\Request;
+use App\Http\Controllers\Api\BaseApiController;
 
-class LogoutController extends Controller
+class LogoutController extends BaseApiController
 {
-    use ApiResponse;
 
     public function __invoke(Request $request)
     {

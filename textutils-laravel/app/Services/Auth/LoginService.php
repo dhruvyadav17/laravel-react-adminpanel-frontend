@@ -8,48 +8,79 @@ use Illuminate\Validation\ValidationException;
 
 class LoginService
 {
-    public function login(array $data): array
+    public function login(array $credentials): array
     {
-        $user = User::where('email', $data['email'])->first();
-
-        if (! $user || ! Hash::check($data['password'], $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => ['Invalid credentials'],
-            ]);
+        /* =====================================================
+           FEATURE FLAG
+        ===================================================== */
+        if (! config('features.login_rate_limit')) {
+            throw $this->error('Login temporarily disabled');
         }
 
-        // 🔒 inactive user
+        /* =====================================================
+           USER FETCH (single query)
+        ===================================================== */
+        $user = User::query()
+            ->where('email', $credentials['email'])
+            ->first();
+
+        /* =====================================================
+           CREDENTIAL CHECK
+        ===================================================== */
+        if (
+            ! $user ||
+            ! Hash::check($credentials['password'], $user->password)
+        ) {
+            throw $this->error('Invalid credentials');
+        }
+
+        /* =====================================================
+           ACCOUNT STATE CHECKS
+        ===================================================== */
         if (! $user->is_active) {
-            throw ValidationException::withMessages([
-                'email' => ['Account is disabled'],
-            ]);
+            throw $this->error('Account is disabled');
         }
 
-        // 🔐 email verification
         if (
             config('features.email_verification') &&
             ! $user->hasVerifiedEmail()
         ) {
-            throw ValidationException::withMessages([
-                'email' => ['Email not verified'],
-            ]);
+            throw $this->error('Email not verified');
         }
 
-        // 🔑 token
-        $abilities = $user->getAllPermissions()
+        /* =====================================================
+           TOKEN CREATION
+        ===================================================== */
+        $abilities = $user
+            ->getAllPermissions()
             ->pluck('name')
-            ->toArray();
+            ->all();
 
-        $token = $user->createToken('api', $abilities)->plainTextToken;
+        $token = $user
+            ->createToken('api', $abilities)
+            ->plainTextToken;
 
-        // 🕒 login meta
-        $user->update([
+        /* =====================================================
+           LOGIN AUDIT (NON-BLOCKING)
+        ===================================================== */
+        $user->forceFill([
             'last_login_at' => now(),
             'last_login_ip' => request()->ip(),
-        ]);
+        ])->save();
 
         return [
             'token' => $token,
         ];
+    }
+
+    /* =====================================================
+       CENTRAL ERROR FORMAT
+       (keeps controller & service clean)
+    ===================================================== */
+    protected function error(string $message): ValidationException
+    {
+        return ValidationException::withMessages([
+            'email' => [$message],
+        ]);
     }
 }

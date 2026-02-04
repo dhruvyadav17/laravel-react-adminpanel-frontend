@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers\Api\Auth;
 
+use App\Http\Controllers\Api\BaseApiController;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
-use App\Traits\ApiResponse;
+// use App\Http\Controllers\Controller;
+// use App\Traits\ApiResponse;
 use Illuminate\Auth\Events\Verified;
 
-class EmailVerificationController extends Controller
+class EmailVerificationController extends BaseApiController
 {
-    use ApiResponse;
 
     public function verify(Request $request)
     {

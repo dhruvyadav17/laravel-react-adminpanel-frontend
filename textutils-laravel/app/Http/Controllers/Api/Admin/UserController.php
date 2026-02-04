@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Resources\UserResource;
-use App\Models\Permission;
+//use App\Models\Permission;
 use App\Models\User;
 use App\Services\User\UserService;
 use Illuminate\Http\Request;
