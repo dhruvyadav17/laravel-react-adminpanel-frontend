@@ -1,22 +1,34 @@
 import { createContext, useContext, useState } from "react";
-import { ModalType } from "../types/modal";
+import type { ModalMap } from "../types/modal";
 
-type AppModalContextType<T = any> = {
-  modalType: ModalType;
-  modalData: T | null;
-  openModal: (type: ModalType, data?: T) => void;
+type ModalType = keyof ModalMap;
+
+type ModalContextValue = {
+  modalType: ModalType | null;
+  modalData: any;
+  openModal: <K extends ModalType>(
+    type: K,
+    data: ModalMap[K]
+  ) => void;
   closeModal: () => void;
 };
 
-const AppModalContext = createContext<AppModalContextType | null>(null);
+const AppModalContext = createContext<ModalContextValue | null>(
+  null
+);
 
-export function AppModalProvider({ children }: { children: React.ReactNode }) {
-  const [modalType, setModalType] = useState<ModalType>(null);
+export function AppModalProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [modalType, setModalType] =
+    useState<ModalType | null>(null);
   const [modalData, setModalData] = useState<any>(null);
 
-  const openModal = (type: ModalType, data?: any) => {
+  const openModal = (type: ModalType, data: any) => {
     setModalType(type);
-    setModalData(data ?? null);
+    setModalData(data);
   };
 
   const closeModal = () => {
@@ -26,12 +38,7 @@ export function AppModalProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AppModalContext.Provider
-      value={{
-        modalType,
-        modalData,
-        openModal,
-        closeModal,
-      }}
+      value={{ modalType, modalData, openModal, closeModal }}
     >
       {children}
     </AppModalContext.Provider>
@@ -41,7 +48,9 @@ export function AppModalProvider({ children }: { children: React.ReactNode }) {
 export function useAppModal<T = any>() {
   const ctx = useContext(AppModalContext);
   if (!ctx) {
-    throw new Error("useAppModal must be used inside AppModalProvider");
+    throw new Error(
+      "useAppModal must be used inside AppModalProvider"
+    );
   }
-  return ctx as AppModalContextType<T>;
+  return ctx;
 }

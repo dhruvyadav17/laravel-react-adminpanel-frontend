@@ -2,70 +2,45 @@
 
 namespace App\Exceptions;
 
-use Throwable;
-use App\Traits\ApiResponse;
-use Illuminate\Auth\AuthenticationException;
-use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Throwable;
 
 class Handler extends ExceptionHandler
 {
-    use ApiResponse;
+    public function render($request, Throwable $e)
+    {
+        if ($request->expectsJson()) {
 
-    protected $dontFlash = [
-        'current_password',
-        'password',
-        'password_confirmation',
-    ];
+            /* ================= VALIDATION ERRORS ================= */
+            if ($e instanceof ValidationException) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors'  => $e->errors(),
+                ], 422);
+            }
 
-public function register(): void
-{
-    $this->renderable(function (
-        \Illuminate\Auth\Access\AuthorizationException $e,
-        $request
-    ) {
-        if ($request->is('api/*')) {
-            return $this->error(
-                $e->getMessage() ?: 'You are not authorized',
-                null,
-                403
-            );
+            /* ================= HTTP EXCEPTIONS ================= */
+            if ($e instanceof HttpException) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage() ?: 'Request error',
+                    'data'    => (object) [],
+                ], $e->getStatusCode());
+            }
+
+            /* ================= FALLBACK ================= */
+            return response()->json([
+                'success' => false,
+                'message' => config('app.debug')
+                    ? $e->getMessage()
+                    : 'Server error',
+                'data' => (object) [],
+            ], 500);
         }
-    });
-}
 
-
-    /**
-     * 🔐 UNAUTHENTICATED (401)
-     * Sanctum / Auth middleware
-     */
-protected function unauthenticated(
-    $request,
-    AuthenticationException $exception
-) {
-    if ($request->is('api/*')) {
-        return $this->error(
-            'Please login to continue',
-            null,
-            401
-        );
-    }
-
-    return redirect()->guest(route('login'));
-}
-
-    /**
-     * ❌ VALIDATION ERROR (422)
-     */
-    protected function invalidJson(
-        $request,
-        ValidationException $exception
-    ) {
-        return $this->error(
-            'Validation error',
-            $exception->errors(),
-            422
-        );
+        return parent::render($request, $e);
     }
 }

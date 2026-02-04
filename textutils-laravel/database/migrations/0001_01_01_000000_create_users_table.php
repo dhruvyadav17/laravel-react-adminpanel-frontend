@@ -10,16 +10,31 @@ return new class extends Migration {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
 
+            // 🧑 Basic Info
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
-            $table
-                ->boolean('is_active')
-                ->default(true);
-            $table->string('password');
-            $table->string('role')->default('user'); // admin | user
 
+            // 🔐 Auth
+            $table->string('password');
             $table->rememberToken();
+
+            // 🔐 Account Control
+            $table->boolean('is_active')->default(true);
+            $table->boolean('force_password_reset')->default(false);
+
+            // 🕒 Login Info
+            $table->timestamp('last_login_at')->nullable();
+            $table->string('last_login_ip', 45)->nullable();
+
+            // 🚫 Brute-force Protection
+            $table->unsignedTinyInteger('failed_login_attempts')->default(0);
+            $table->timestamp('locked_until')->nullable();
+
+            // 🔁 Password Policy
+            $table->timestamp('password_changed_at')->nullable();
+
+            // 🗑 Meta
             $table->softDeletes();
             $table->timestamps();
         });

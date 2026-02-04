@@ -2,102 +2,125 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Traits\ApiResponse;
-use Illuminate\Http\Request;
-// use Spatie\Permission\Models\Role;
-// use Spatie\Permission\Models\Permission;
 use App\Models\Role;
-use App\Models\Permission;
+use Illuminate\Http\Request;
+use App\Services\Role\RoleService;
+use App\Http\Resources\RoleResource;
+use App\Http\Resources\PermissionResource;
+use App\Http\Controllers\Api\BaseApiController;
 
-class RoleController extends Controller
+class RoleController extends BaseApiController
 {
-    use ApiResponse;
+    public function __construct(
+        protected RoleService $service
+    ) {}
 
+    /**
+     * 📄 GET /api/v1/admin/roles
+     */
     public function index()
     {
+        $roles = $this->service->list();
+
         return $this->success(
-            'Roles fetched',
-            Role::withCount('permissions')->get()
+            'Roles fetched successfully',
+            RoleResource::collection($roles)
         );
     }
 
-    public function show(Role $role)
-    {
-        return $this->success(
-            'Role details',
-            $role->load('permissions')
-        );
-    }
-
+    /**
+     * ➕ POST /api/v1/admin/roles
+     */
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name' => 'required|unique:roles,name',
+            'name' => ['required', 'string', 'max:100', 'unique:roles,name'],
         ]);
 
-        $role = Role::create([
-            'name' => $data['name'],
-            'guard_name' => 'api',
-        ]);
+        $role = $this->service->create($data);
 
-        return $this->success('Role created', $role, 201);
+        return $this->success(
+            'Role created successfully',
+            RoleResource::make($role),
+            [],
+            201
+        );
     }
 
+    /**
+     * ✏️ PUT /api/v1/admin/roles/{role}
+     */
     public function update(Request $request, Role $role)
     {
         $data = $request->validate([
-            'name' => 'required|unique:roles,name,' . $role->id,
+            'name' => [
+                'required',
+                'string',
+                'max:100',
+                'unique:roles,name,' . $role->id,
+            ],
         ]);
 
-        $role->update($data);
+        $updated = $this->service->update($role, $data);
 
-        return $this->success('Role updated', $role);
+        return $this->success(
+            'Role updated successfully',
+            RoleResource::make($updated)
+        );
     }
 
+    /**
+     * ❌ DELETE /api/v1/admin/roles/{role}
+     */
     public function destroy(Role $role)
     {
-        if ($role->name === 'super-admin') {
-            return $this->error('Super admin role cannot be deleted', null, 403);
-        }
+        $this->service->delete($role);
 
-        $role->delete();
-        return $this->success('Role deleted');
+        return $this->success('Role deleted successfully');
     }
 
-    // enable / disable
+    /**
+     * 🔁 PATCH /api/v1/admin/roles/{role}/toggle
+     */
     public function toggle(Role $role)
     {
-        if ($role->name === 'super-admin') {
-            return $this->error('Super admin role cannot be disabled', null, 403);
-        }
+        $role = $this->service->toggle($role);
 
-        $role->update([
-            'is_active' => !$role->is_active
-        ]);
-
-        return $this->success('Role status updated', $role);
+        return $this->success(
+            'Role status updated',
+            RoleResource::make($role)
+        );
     }
 
-    // all permissions + assigned
+    /**
+     * 🔐 GET /api/v1/admin/roles/{role}/permissions
+     */
     public function permissions(Role $role)
     {
-        return $this->success('Role permissions', [
-            'role' => $role,
-            'permissions' => Permission::all(),
-            'assigned' => $role->permissions->pluck('name'),
+        $data = $this->service->permissions($role);
+
+        return $this->success('Role permissions fetched', [
+            'role'        => RoleResource::make($data['role']),
+            'permissions' => PermissionResource::collection($data['permissions']),
+            'assigned'    => $data['assigned'],
         ]);
     }
 
+    /**
+     * 🔄 POST /api/v1/admin/roles/{role}/permissions
+     */
     public function assignPermissions(Request $request, Role $role)
     {
         $data = $request->validate([
-            'permissions' => 'array',
-            'permissions.*' => 'exists:permissions,name',
+            'permissions'   => ['array'],
+            'permissions.*' => ['string', 'exists:permissions,name'],
         ]);
 
-        $role->syncPermissions($data['permissions'] ?? []);
+        $this->service->syncPermissions(
+            $role,
+            $data['permissions'] ?? []
+        );
 
-        return $this->success('Permissions updated');
+        return $this->success('Permissions updated successfully');
     }
 }

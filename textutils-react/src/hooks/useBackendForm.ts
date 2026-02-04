@@ -1,5 +1,14 @@
+// src/hooks/useBackendForm.ts
+
 import { useState } from "react";
 
+/**
+ * Backend validation errors
+ * Format:
+ * {
+ *   field: ["error message"]
+ * }
+ */
 type Errors<T> = Partial<Record<keyof T, string[]>>;
 
 export function useBackendForm<T extends Record<string, any>>(
@@ -9,17 +18,25 @@ export function useBackendForm<T extends Record<string, any>>(
   const [errors, setErrors] = useState<Errors<T>>({});
   const [loading, setLoading] = useState(false);
 
-  const setField = <K extends keyof T>(key: K, value: T[K]) => {
+  /* ================= FIELD UPDATE ================= */
+
+  const setField = <K extends keyof T>(
+    key: K,
+    value: T[K]
+  ) => {
     setValues((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => ({ ...prev, [key]: undefined }));
   };
 
+  /* ================= BACKEND ERROR HANDLER ================= */
+
   const handleError = (error: any) => {
-    // Laravel validation error structure
     if (error?.response?.status === 422) {
-      setErrors(error.response.data.errors || {});
+      setErrors(error.response.data?.errors || {});
     }
   };
+
+  /* ================= RESET ================= */
 
   const reset = () => {
     setValues(initialValues);
@@ -30,8 +47,12 @@ export function useBackendForm<T extends Record<string, any>>(
     values,
     errors,
     loading,
-    setLoading,
+
+    // setters
     setField,
+    setLoading,
+
+    // helpers
     handleError,
     reset,
   };
