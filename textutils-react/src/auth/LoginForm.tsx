@@ -1,9 +1,15 @@
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
-import { loginThunk } from "../store/authSlice";
+import {
+  loginThunk,
+  fetchProfileThunk,
+} from "../store/authSlice";
+
 import type { RootState, AppDispatch } from "../store";
+import { handleApiError } from "../utils/toastHelper";
+import { resolveLoginRedirect } from "../utils/authRedirect";
 
 type Props = {
   title: string;
@@ -12,7 +18,7 @@ type Props = {
 
 export default function LoginForm({
   title,
-  redirectAdmin,
+  redirectAdmin = false,
 }: Props) {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
@@ -27,24 +33,25 @@ export default function LoginForm({
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const res = await dispatch(
+    const loginRes = await dispatch(
       loginThunk({ email, password })
     );
 
-    if (loginThunk.fulfilled.match(res)) {
-      const roles = res.payload.user.roles || [];
-
-      const isAdmin =
-        roles.includes("admin") ||
-        roles.includes("super-admin");
-
-      navigate(
-        redirectAdmin || isAdmin
-          ? "/admin/dashboard"
-          : "/profile",
-        { replace: true }
-      );
+    if (loginThunk.rejected.match(loginRes)) {
+      handleApiError(loginRes.payload || loginRes.error);
+      return;
     }
+
+    const profileRes = await dispatch(
+      fetchProfileThunk()
+    );
+
+    const redirectTo = resolveLoginRedirect(
+      profileRes.payload?.user ?? null,
+      redirectAdmin
+    );
+
+    navigate(redirectTo, { replace: true });
   };
 
   return (
@@ -76,6 +83,10 @@ export default function LoginForm({
         >
           {loading ? "Logging in..." : "Login"}
         </button>
+
+        <Link to="/forgot-password" className="d-block mt-2">
+          Forgot password?
+        </Link>
       </form>
     </div>
   );

@@ -1,23 +1,74 @@
+// src/services/authService.ts
+
 import api from "../api/axios";
 
-export const loginService = async (
+/* =====================================================
+   AUTH SERVICES
+   -----------------------------------------------------
+   RULES:
+   - ONLY authentication related endpoints
+   - No token mutation here
+   - No refresh-token logic here
+   - No admin APIs here
+===================================================== */
+
+/* ================= LOGIN ================= */
+/**
+ * POST /login
+ *
+ * Returns:
+ * {
+ *   token: string
+ *   refresh_token?: string
+ * }
+ */
+export const loginService = (
   email: string,
   password: string
 ) => {
-  const res = await api.post("/login", { email, password });
-
-  // 🔥 normalize user.roles → string[]
-  const data = res.data.data;
-
-  data.user.roles = Array.isArray(data.user.roles)
-    ? data.user.roles.map((r: any) =>
-        typeof r === "string" ? r : r.name
-      )
-    : [];
-
-  return res;
+  return api.post("/login", {
+    email,
+    password,
+  });
 };
 
-export const profileService = () => api.get("/profile");
+/* ================= PROFILE ================= */
+/**
+ * GET /profile
+ *
+ * SINGLE SOURCE OF TRUTH
+ * {
+ *   user: User
+ *   permissions: string[]
+ * }
+ */
+export const profileService = () => {
+  return api.get("/profile");
+};
 
-export const logoutService = () => api.post("/logout");
+/* ================= LOGOUT ================= */
+/**
+ * POST /logout
+ *
+ * Best-effort backend logout
+ * (frontend state already cleared)
+ */
+export const logoutService = () => {
+  return api.post("/logout");
+};
+
+/* ================= REGISTER ================= */
+/**
+ * POST /register
+ *
+ * USER registration only
+ * ❌ Admin creation NOT allowed here
+ */
+export const registerService = (data: {
+  name: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}) => {
+  return api.post("/register", data);
+};

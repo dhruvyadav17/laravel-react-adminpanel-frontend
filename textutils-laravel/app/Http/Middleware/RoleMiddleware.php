@@ -3,33 +3,19 @@
 namespace App\Http\Middleware;
 
 use Closure;
-use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
 use App\Traits\ApiResponse;
 
 class RoleMiddleware
 {
     use ApiResponse;
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
-    public function handle($request, \Closure $next, ...$roles)
-    {
-        //if (!auth()->check() || !auth()->user()->hasAnyRole($roles)) {
-        // return response()->json([
-        //     'status' => false,
-        //     'message' => 'Forbidden'
-        // ], 403);
-        if (!auth()->check() || !auth()->user()->hasRole($roles)) {
-            return $this->error(
-                'Forbidden',
-                null,
-                403
-            );
-        }
 
+    public function handle($request, Closure $next, ...$roles)
+    {
+        $user = $request->user();
+
+        if (! $user || ! $user->hasAnyRole($roles)) {
+            return $this->error('Forbidden', null, 403);
+        }
 
         return $next($request);
     }

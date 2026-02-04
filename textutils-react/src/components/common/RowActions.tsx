@@ -1,54 +1,44 @@
 import Button from "./Button";
 
-type Action = {
+export type RowAction = {
+  key: string; // 🔒 REQUIRED & UNIQUE
   label: string;
   onClick: () => void;
-  variant?: "primary" | "secondary" | "warning" | "danger";
+  variant?: "primary" | "secondary" | "warning" | "danger" | "success";
   show?: boolean;
   disabled?: boolean;
-  icon?: React.ReactNode;
+  icon?: string;
+  title?: string;
+  className?: string;
 };
 
 type Props = {
-  actions: Action[];
-
-  /** layout control */
-  align?: "start" | "center" | "end";
-  gap?: number; // bootstrap gap-1, gap-2 etc
-  vertical?: boolean;
+  actions: RowAction[];
 };
 
-export default function RowActions({
-  actions,
-  align = "end",
-  gap = 1,
-  vertical = false,
-}: Props) {
-  const justify =
-    align === "start"
-      ? "justify-content-start"
-      : align === "center"
-      ? "justify-content-center"
-      : "justify-content-end";
+export default function RowActions({ actions }: Props) {
+  const visibleActions = actions.filter((a) => a.show !== false);
+
+  if (visibleActions.length === 0) return null;
 
   return (
-    <div
-      className={`d-flex ${
-        vertical ? "flex-column" : ""
-      } ${justify} gap-${gap}`}
-    >
-      {actions
-        .filter((a) => a.show !== false)
-        .map((a, i) => (
-          <Button
-            key={i}
-            label={a.label}
-            variant={a.variant}
-            onClick={a.onClick}
-            disabled={a.disabled}
-            icon={a.icon}
-          />
-        ))}
-    </div>
+<div className="d-flex justify-content-end">
+  {visibleActions.map((action, index) => (
+    <Button
+      key={action.key}
+      label={action.label}
+      variant={action.variant}
+      onClick={action.onClick}
+      disabled={action.disabled}
+      icon={action.icon}
+      size="sm"
+      title={action.title}
+      className={`${!action.label ? "px-2" : ""} ${
+        index !== visibleActions.length - 1 ? "mr-2" : ""
+      }`}
+    />
+  ))}
+</div>
+
   );
 }

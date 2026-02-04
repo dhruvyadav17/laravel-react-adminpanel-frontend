@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers\Api\Password;
 
+use App\Http\Controllers\Api\BaseApiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
-use App\Http\Controllers\Controller;
-use App\Traits\ApiResponse;
+// use App\Http\Controllers\Controller;
+// use App\Traits\ApiResponse;
 
-class ResetPasswordController extends Controller
+class ResetPasswordController extends BaseApiController
 {
-    use ApiResponse;
 
     /**
      * POST /api/reset-password

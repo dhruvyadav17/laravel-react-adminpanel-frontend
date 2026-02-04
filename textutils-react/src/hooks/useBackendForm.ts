@@ -1,8 +1,13 @@
+// src/hooks/useBackendForm.ts
+
 import { useState } from "react";
 
 /**
  * Backend validation errors
- * { field: ["error1", "error2"] }
+ * Format:
+ * {
+ *   field: ["error message"]
+ * }
  */
 type Errors<T> = Partial<Record<keyof T, string[]>>;
 
@@ -11,11 +16,10 @@ export function useBackendForm<T extends Record<string, any>>(
 ) {
   const [values, setValues] = useState<T>(initialValues);
   const [errors, setErrors] = useState<Errors<T>>({});
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState(false);
 
-  /**
-   * Update single field & clear its error
-   */
+  /* ================= FIELD UPDATE ================= */
+
   const setField = <K extends keyof T>(
     key: K,
     value: T[K]
@@ -24,18 +28,16 @@ export function useBackendForm<T extends Record<string, any>>(
     setErrors((prev) => ({ ...prev, [key]: undefined }));
   };
 
-  /**
-   * Handle Laravel validation errors (422)
-   */
+  /* ================= BACKEND ERROR HANDLER ================= */
+
   const handleError = (error: any) => {
     if (error?.response?.status === 422) {
       setErrors(error.response.data?.errors || {});
     }
   };
 
-  /**
-   * Reset form to initial state
-   */
+  /* ================= RESET ================= */
+
   const reset = () => {
     setValues(initialValues);
     setErrors({});
@@ -47,8 +49,8 @@ export function useBackendForm<T extends Record<string, any>>(
     loading,
 
     // setters
-    setLoading,
     setField,
+    setLoading,
 
     // helpers
     handleError,

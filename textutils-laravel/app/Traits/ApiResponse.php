@@ -3,30 +3,33 @@
 namespace App\Traits;
 
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
 
 trait ApiResponse
 {
     protected function success(
-        string $message = 'Success',
-        $data = null,
-        int $statusCode = 200
+        string $message = 'Action successful',
+        mixed $data = null,
+        array $meta = [],
+        int $status = Response::HTTP_OK
     ): JsonResponse {
         return response()->json([
-            'status' => true,
+            'success' => true,
             'message' => $message,
-            'data' => $data
-        ], $statusCode);
+            'data'    => $data ?? (object) [],
+            'meta'    => (object) $meta,
+        ], $status);
     }
 
     protected function error(
-        string $message = 'Error',
-        $errors = null,
-        int $statusCode = 400
+        string $message = 'Something went wrong',
+        mixed $data = null,
+        int $status = Response::HTTP_BAD_REQUEST
     ): JsonResponse {
         return response()->json([
-            'status' => false,
+            'success' => false,
             'message' => $message,
-            'errors' => $errors
-        ], $statusCode);
+            'data'    => $data ?? (object) [],
+        ], $status);
     }
 }

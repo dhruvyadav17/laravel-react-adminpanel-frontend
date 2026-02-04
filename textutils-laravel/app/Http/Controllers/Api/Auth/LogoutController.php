@@ -2,18 +2,26 @@
 
 namespace App\Http\Controllers\Api\Auth;
 
+use App\Models\RefreshToken;
+// use App\Http\Controllers\Controller;
+// use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
-use App\Traits\ApiResponse;
+use App\Http\Controllers\Api\BaseApiController;
 
-class LogoutController extends Controller
+class LogoutController extends BaseApiController
 {
-    use ApiResponse;
 
     public function __invoke(Request $request)
     {
-        // Revoke current access token
-        $request->user()->currentAccessToken()->delete();
+        if ($token = $request->user()->currentAccessToken()) {
+            $token->delete();
+        }
+
+        if (config('features.refresh_token')) {
+            RefreshToken::where('user_id', $request->user()->id)
+                ->whereNull('revoked_at')
+                ->update(['revoked_at' => now()]);
+        }
 
         return $this->success('Logged out successfully');
     }

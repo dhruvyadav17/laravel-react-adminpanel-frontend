@@ -1,17 +1,18 @@
 import { useState } from "react";
 import Modal from "./Modal";
-import { handleApiError } from "../../utils/toastHelper";
 
 type Props = {
-  message: string;
-  onConfirm: () => Promise<void>;
+  message: string;                 // 🔥 one-line message only
+  onConfirm: () => Promise<void>;  // async safe
   onClose: () => void;
+  confirmLabel?: string;
 };
 
 export default function ConfirmDeleteModal({
   message,
   onConfirm,
   onClose,
+  confirmLabel = "Delete", // default
 }: Props) {
   const [loading, setLoading] = useState(false);
 
@@ -19,9 +20,7 @@ export default function ConfirmDeleteModal({
     try {
       setLoading(true);
       await onConfirm();
-      onClose(); // ✅ close ONLY on success
-    } catch (e) {
-      handleApiError(e); // ❌ modal stays open
+      onClose();
     } finally {
       setLoading(false);
     }
@@ -29,14 +28,20 @@ export default function ConfirmDeleteModal({
 
   return (
     <Modal
-      title="Confirm Delete"
+      title="Confirm Action"
       onClose={onClose}
       onSave={handleConfirm}
       saveDisabled={loading}
-      button_name={loading ? "Deleting..." : "Delete"}
+      saveText="Delete"
+      button_name={loading ? "Deleting..." : "Yes, Delete"}
+      saveVariant="danger" 
+      dialogClassName="modal-sm"
       disableClose={loading}
     >
-      <p className="text-danger mb-0">{message}</p>
+      {/* 🔥 RULE: ONE SENTENCE, CLEAR CONSEQUENCE */}
+      <p className="text-danger mb-0">
+        {message}
+      </p>
     </Modal>
   );
 }

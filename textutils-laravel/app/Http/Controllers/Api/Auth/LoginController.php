@@ -2,17 +2,16 @@
 
 namespace App\Http\Controllers\Api\Auth;
 
-use App\Http\Controllers\Controller;
-use App\Http\Requests\Auth\LoginRequest;
 use App\Services\Auth\LoginService;
-use App\Traits\ApiResponse;
+use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Controllers\Api\BaseApiController;
 
-class LoginController extends Controller
+class LoginController extends BaseApiController
 {
-    use ApiResponse;
-
-    public function __invoke(LoginRequest $request, LoginService $service)
-    {
+    public function __invoke(
+        LoginRequest $request,
+        LoginService $service
+    ) {
         return $this->success(
             'Login successful',
             $service->login($request->validated())

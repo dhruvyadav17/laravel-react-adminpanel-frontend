@@ -1,43 +1,34 @@
 import { createContext, useContext, useState } from "react";
-import type { ModalMap } from "../types/modalMap";
+import type { ModalMap } from "../types/modal";
 
-/* ================= TYPES ================= */
+type ModalType = keyof ModalMap;
 
-type ModalType = keyof ModalMap | null;
-
-type AppModalContextType = {
-  modalType: ModalType;
-  modalData: ModalMap[keyof ModalMap] | null;
-
-  openModal: <K extends keyof ModalMap>(
+type ModalContextValue = {
+  modalType: ModalType | null;
+  modalData: any;
+  openModal: <K extends ModalType>(
     type: K,
-    data?: ModalMap[K]
+    data: ModalMap[K]
   ) => void;
-
   closeModal: () => void;
 };
 
-/* ================= CONTEXT ================= */
-
-const AppModalContext = createContext<AppModalContextType | null>(null);
-
-/* ================= PROVIDER ================= */
+const AppModalContext = createContext<ModalContextValue | null>(
+  null
+);
 
 export function AppModalProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [modalType, setModalType] = useState<ModalType>(null);
-  const [modalData, setModalData] =
-    useState<ModalMap[keyof ModalMap] | null>(null);
+  const [modalType, setModalType] =
+    useState<ModalType | null>(null);
+  const [modalData, setModalData] = useState<any>(null);
 
-  const openModal = <K extends keyof ModalMap>(
-    type: K,
-    data?: ModalMap[K]
-  ) => {
+  const openModal = (type: ModalType, data: any) => {
     setModalType(type);
-    setModalData(data ?? null);
+    setModalData(data);
   };
 
   const closeModal = () => {
@@ -47,28 +38,19 @@ export function AppModalProvider({
 
   return (
     <AppModalContext.Provider
-      value={{
-        modalType,
-        modalData,
-        openModal,
-        closeModal,
-      }}
+      value={{ modalType, modalData, openModal, closeModal }}
     >
       {children}
     </AppModalContext.Provider>
   );
 }
 
-/* ================= HOOK ================= */
-
-export function useAppModal() {
+export function useAppModal<T = any>() {
   const ctx = useContext(AppModalContext);
-
   if (!ctx) {
     throw new Error(
       "useAppModal must be used inside AppModalProvider"
     );
   }
-
   return ctx;
 }

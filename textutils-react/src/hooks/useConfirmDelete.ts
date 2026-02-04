@@ -1,17 +1,23 @@
-import { useAppModal } from "../context/AppModalContext";
+import { useConfirmAction } from "./useConfirmAction";
 
-type ConfirmPayload = {
-  message: string;
-  onConfirm: () => Promise<void>;
-};
-
+/**
+ * @deprecated
+ * Use `useConfirmAction` instead.
+ *
+ * Kept for backward compatibility.
+ */
 export function useConfirmDelete() {
-  const { openModal } = useAppModal();
+  const confirm = useConfirmAction();
 
-  return (message: string, onConfirm: () => Promise<void>) => {
-    openModal("confirm-delete", {
+  return (
+    message: string,
+    onConfirm: () => Promise<void>,
+    confirmLabel?: string
+  ) => {
+    confirm({
       message,
       onConfirm,
-    } as ConfirmPayload);
+      confirmLabel,
+    });
   };
 }

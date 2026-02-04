@@ -2,105 +2,60 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-// use Spatie\Permission\Models\Role;
-// use Spatie\Permission\Models\Permission;
 use App\Models\Permission;
-use App\Traits\ApiResponse;
+use Illuminate\Http\Request;
+use App\Services\Permission\PermissionService;
+use App\Http\Controllers\Api\BaseApiController;
 
-class PermissionController extends Controller
+class PermissionController extends BaseApiController
 {
-    use ApiResponse;
+    public function __construct(
+        protected PermissionService $service
+    ) {}
 
-    /**
-     * GET /api/admin/permissions
-     */
     public function index()
     {
-
-        $permissions = Permission::all();
-        
         return $this->success(
-            'Permissions list fetched successfully',
-            $permissions
+            'Permissions fetched',
+            $this->service->list()->map(fn ($p) => [
+                'id'   => $p->id,
+                'name' => $p->name,
+            ])
         );
     }
 
-    /**
-     * POST /api/admin/permissions
-     */
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name' => 'required|string|unique:permissions,name',
+            'name' => ['required', 'string', 'unique:permissions,name'],
         ]);
 
-        $permission = Permission::create([
-            'name'       => $data['name'],
-            'guard_name' => 'api', // 🔥 IMPORTANT
-        ]);
+        $permission = $this->service->create($data);
 
-        return $this->success(
-            'Permission created successfully',
-            $permission,
-            201
-        );
+        return $this->success('Permission created', [
+            'id'   => $permission->id,
+            'name' => $permission->name,
+        ]);
     }
 
-    /**
-     * PUT /api/admin/permissions/{id}
-     */
-    public function update(Request $request, $id)
+    public function update(Request $request, Permission $permission)
     {
-        $permission = Permission::findOrFail($id);
-
         $data = $request->validate([
-            'name' => 'required|string|unique:permissions,name,' . $permission->id,
+            'name' => ['required', 'string', 'unique:permissions,name,' . $permission->id],
         ]);
 
-        $permission->update([
-            'name' => $data['name'],
+        $permission = $this->service->update($permission, $data);
+
+        return $this->success('Permission updated', [
+            'id'   => $permission->id,
+            'name' => $permission->name,
         ]);
-
-        return $this->success(
-            'Permission updated successfully',
-            $permission
-        );
     }
 
-    /**
-     * DELETE /api/admin/permissions/{id}
-     */
-    public function destroy($id)
+    public function destroy(Permission $permission)
     {
-        $permission = Permission::findOrFail($id);
+        $this->service->delete($permission);
 
-        $permission->delete();
-
-        return $this->success(
-            'Permission deleted successfully'
-        );
-    }
-
-    public function show(Permission $permission)
-    {
-        return $this->success(
-            'Permission detail',
-            $permission
-        );
-    }
-
-    // Enable / Disable
-    public function toggle(Permission $permission)
-    {
-        $permission->update([
-            'is_active' => !$permission->is_active
-        ]);
-
-        return $this->success(
-            'Permission status updated',
-            $permission
-        );
+        return $this->success('Permission deleted', null);
     }
 }

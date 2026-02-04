@@ -4,34 +4,55 @@ namespace App\Services\Role;
 
 use App\Models\Role;
 use App\Models\Permission;
+use Spatie\Permission\PermissionRegistrar;
 
 class RoleService
 {
     /**
-     * Create new role
+     * 📄 List all roles
      */
-    public function create(array $data): Role
+    public function list()
     {
-        return Role::create([
-            'name'       => $data['name'],
-            'guard_name' => 'api',
-        ]);
+        return Role::withCount('permissions')
+            ->orderBy('name')
+            ->get();
     }
 
     /**
-     * Update role
+     * ➕ Create new role
      */
-    public function update(Role $role, array $data): Role
+    public function create(array $data): Role
     {
-        $role->update([
-            'name' => $data['name'],
+        $role = Role::create([
+            'name'       => $data['name'],
+            'guard_name' => 'api',
         ]);
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         return $role;
     }
 
     /**
-     * Delete role (with protection)
+     * ✏️ Update role
+     */
+    public function update(Role $role, array $data): Role
+    {
+        if ($role->name === 'super-admin') {
+            abort(403, 'Super admin role cannot be modified');
+        }
+
+        $role->update([
+            'name' => $data['name'],
+        ]);
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        return $role;
+    }
+
+    /**
+     * ❌ Delete role
      */
     public function delete(Role $role): void
     {
@@ -40,10 +61,12 @@ class RoleService
         }
 
         $role->delete();
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
     /**
-     * Enable / Disable role
+     * 🔁 Enable / Disable role
      */
     public function toggle(Role $role): Role
     {
@@ -52,29 +75,39 @@ class RoleService
         }
 
         $role->update([
-            'is_active' => ! $role->is_active
+            'is_active' => ! $role->is_active,
         ]);
 
         return $role;
     }
 
     /**
-     * Assign permissions to role
+     * 🔐 Assign permissions to role
      */
     public function syncPermissions(Role $role, array $permissions = []): void
     {
+        if ($role->name === 'super-admin') {
+            abort(403, 'Super admin permissions cannot be modified');
+        }
+
         $role->syncPermissions($permissions);
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
     /**
-     * Role permissions data (UI helper)
+     * 📦 Permissions data for UI (checkbox modal)
      */
     public function permissions(Role $role): array
     {
         return [
             'role'        => $role,
-            'permissions' => Permission::all(),
-            'assigned'    => $role->permissions->pluck('name'),
+            'permissions' => Permission::select('id', 'name')
+                ->orderBy('name')
+                ->get(),
+            'assigned'    => $role->permissions
+                ->pluck('name')
+                ->values(),
         ];
     }
 }

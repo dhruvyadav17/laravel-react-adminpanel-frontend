@@ -2,113 +2,113 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
-use App\Models\User;
-use App\Traits\ApiResponse;
-use Illuminate\Http\Request;
-use App\Services\User\UserService;
-use App\Http\Controllers\Controller;
-use Spatie\Permission\Models\Permission;
+use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Admin\StoreUserRequest;
-use App\Http\Requests\Admin\UpdateUserRequest;
+use App\Http\Resources\UserResource;
+use App\Models\User;
+use App\Models\Permission; // ✅ FIX: REQUIRED IMPORT
+use App\Services\User\UserService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
-class UserController extends Controller
+class UserController extends BaseApiController
 {
-    use ApiResponse;
+    public function __construct(
+        protected UserService $service
+    ) {}
 
-    // ✅ LIST USERS
-    public function index()
+    /* ================= LIST ================= */
+
+    public function index(Request $request)
     {
+        $result = $this->service->paginate($request);
+
         return $this->success(
-            'Users list',
-            User::with('roles')->latest()->get()
+            'Users fetched successfully',
+            UserResource::collection($result['data']),
+            $result['meta']
         );
     }
 
-    // ✅ ADD USER
-    public function store(StoreUserRequest $request, UserService $service)
+    /* ================= CREATE ================= */
+
+    public function store(StoreUserRequest $request)
     {
+        $user = $this->service->create(
+            $request->validated()
+        );
+
+        Log::info('User created', [
+            'user_id' => $user->id,
+            'email'   => $user->email,
+        ]);
+
         return $this->success(
-            'User created',
-            $service->create($request->validated()),
+            'User created successfully',
+            new UserResource($user),
+            [],
             201
         );
     }
 
-    public function update(UpdateUserRequest $request, User $user, UserService $service)
-    {
-        return $this->success(
-            'User updated',
-            $service->update($user, $request->validated())
-        );
-    }
+    /* ================= ARCHIVE ================= */
 
-    // ✅ SOFT DELETE USER
     public function destroy(User $user)
     {
-        $user->delete();
+        $this->service->delete($user);
 
         return $this->success(
-            'User deleted successfully'
+            'User archived successfully',
+            null
         );
     }
+
+    /* ================= RESTORE ================= */
+
+    public function restore(User $user)
+    {
+        $this->service->restore($user);
+
+        return $this->success(
+            'User restored successfully',
+            null
+        );
+    }
+
+    /* ================= ROLES ================= */
 
     public function assignRole(Request $request, User $user)
     {
         $data = $request->validate([
-            'roles'   => 'array',
-            'roles.*' => 'exists:roles,name',
+            'roles'   => ['array'],
+            'roles.*' => ['string', 'exists:roles,name'],
         ]);
 
-        $roles = $data['roles'] ?? [];
-
-        /**
-         * 🔒 RULE:
-         * super-admin role ko assign / remove nahi kar sakte
-         */
-        // if (
-        //     in_array('super-admin', $roles) ||
-        //     $user->hasRole('super-admin')
-        // ) {
-        //     return $this->error(
-        //         'Super admin role cannot be assigned or removed',
-        //         null,
-        //         403
-        //     );
-        // }
-
-        // ✅ baaki roles freely sync honge
-        $user->syncRoles($roles);
+        $this->service->assignRoles(
+            $user,
+            $data['roles'] ?? []
+        );
 
         return $this->success(
-            'Roles updated successfully',
-            $user->load('roles')
+            'Roles assigned successfully',
+            [
+                'roles' => $user->getRoleNames()->values(),
+            ]
         );
     }
 
+    /* ================= PERMISSIONS ================= */
 
-    public function roles(User $user)
+    public function permissions(User $user)
     {
-        return $this->success(
-            'User roles fetched',
-            $user->roles->pluck('name')
-        );
-    }
-
-    public function permissions($id)
-    {
-        $user = User::findOrFail($id);
-
         return $this->success(
             'User permissions fetched',
             [
-                'user_id' => $user->id,
-
-                // ✅ ALL permissions (for checkbox list)
-                'permissions' => Permission::select('id', 'name')
+                'permissions' => Permission::query()
+                    ->select('id', 'name')
                     ->orderBy('name')
                     ->get(),
 
-                // ✅ User ke assigned permissions (role + direct)
                 'assigned' => $user
                     ->getAllPermissions()
                     ->pluck('name')
@@ -117,18 +117,26 @@ class UserController extends Controller
         );
     }
 
-    public function assignPermissions(Request $request, $id)
+    public function assignPermissions(Request $request, User $user)
     {
-        $request->validate([
-            'permissions' => ['array'],
+        $data = $request->validate([
+            'permissions'   => ['array'],
             'permissions.*' => ['string', 'exists:permissions,name'],
         ]);
 
-        $user = User::findOrFail($id);
+        $this->service->assignPermissions(
+            $user,
+            $data['permissions'] ?? []
+        );
 
-        // direct permissions sync (roles untouched)
-        $user->syncPermissions($request->permissions ?? []);
-
-        return $this->success('Permissions updated');
+        return $this->success(
+            'Permissions updated successfully',
+            [
+                'assigned' => $user
+                    ->getAllPermissions()
+                    ->pluck('name')
+                    ->values(),
+            ]
+        );
     }
 }
