@@ -1,32 +1,38 @@
 import type { User, Role } from "./models";
 
-export type ModalMap = {
-  /* ================= USER ================= */
+/* ================= ASSIGN ================= */
 
+export type AssignMode =
+  | "user-role"
+  | "user-permission"
+  | "role-permission";
+
+/* ================= MODAL MAP ================= */
+
+export type ModalMap = {
+  /* USER */
   "user-form": null;
 
-  "user-role": User;
+  /* GENERIC ASSIGN */
+  "assign": {
+    mode: AssignMode;
+    entity: User | Role;
+  };
 
-  "user-permission": User;
-
-  /* ================= ROLE ================= */
-
+  /* ROLE */
   "role-add": null;
-
   "role-edit": Role;
 
-  /* ================= PERMISSION ================= */
-
+  /* PERMISSION CRUD */
   "permission": {
     id?: number;
     name?: string;
-  };
+  } | null;
 
-  /* ================= GLOBAL ================= */
-
+  /* GLOBAL */
   "confirm-delete": {
     message: string;
     onConfirm: () => Promise<void>;
-    confirmLabel?: string; 
+    confirmLabel?: string;
   };
 };

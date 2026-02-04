@@ -1,19 +1,20 @@
 import { memo } from "react";
-import Modal from "../../../components/common/Modal";
-import RolePermissionModal from "../../../components/RolePermissionModal";
-import RowActions from "../../../components/common/RowActions";
-import Button from "../../../components/common/Button";
-import PageHeader from "../../../components/common/PageHeader";
-import DataTable from "../../../components/common/DataTable";
-
-import Card from "../../../ui/Card";
-import CardHeader from "../../../ui/CardHeader";
-import CardBody from "../../../ui/CardBody";
-
 import { useAppModal } from "../../../context/AppModalContext";
 import { useBackendForm } from "../../../hooks/useBackendForm";
 import { useConfirmDelete } from "../../../hooks/useConfirmDelete";
 import { useAuth } from "../../../auth/hooks/useAuth";
+
+import PageHeader from "../../../components/common/PageHeader";
+import DataTable from "../../../components/common/DataTable";
+import RowActions from "../../../components/common/RowActions";
+import Button from "../../../components/common/Button";
+import Can from "../../../components/common/Can";
+import Modal from "../../../components/common/Modal";
+import AssignModal from "../../../components/common/AssignModal";
+
+import Card from "../../../ui/Card";
+import CardHeader from "../../../ui/CardHeader";
+import CardBody from "../../../ui/CardBody";
 
 import {
   useGetRolesQuery,
@@ -25,15 +26,15 @@ import {
 import { execute } from "../../../utils/execute";
 import type { Role } from "../../../types/models";
 
-import Can from "../../../components/common/Can";
 import { PERMISSIONS } from "../../../constants/permissions";
 import { ICONS } from "../../../constants/icons";
 
 function RolesPage() {
   const confirmDelete = useConfirmDelete();
 
+  // 🔥 FIX: generic modal data
   const { modalType, modalData, openModal, closeModal } =
-    useAppModal<Role>();
+    useAppModal<any>();
 
   const { data: roles = [], isLoading } = useGetRolesQuery();
 
@@ -61,13 +62,15 @@ function RolesPage() {
 
       await execute(
         () =>
-          modalData?.id
+          modalType === "role-edit" && modalData?.id
             ? updateRole({
                 id: modalData.id,
                 name: values.name,
               }).unwrap()
             : createRole(values).unwrap(),
-        modalData?.id ? "Role updated" : "Role created"
+        modalType === "role-edit"
+          ? "Role updated"
+          : "Role created"
       );
 
       closeModal();
@@ -94,37 +97,37 @@ function RolesPage() {
 
   /* ================= ROW ACTIONS ================= */
 
-const getRowActions = (role: Role) => [
-  {
-    key: "permissions",
-    label: "", // ❌ text removed
-    icon: ICONS.PERMISSION,
-    title: "Assign Permissions",
-    show: can(PERMISSIONS.ROLE.MANAGE),
-    onClick: () => openModal("permission", role),
-  },
-  {
-    key: "edit",
-    label: "",
-    icon: ICONS.EDIT,
-    title: "Edit Role",
-    show: can(PERMISSIONS.ROLE.MANAGE),
-    onClick: () => {
-      setField("name", role.name);
-      openModal("role-edit", role);
+  const getRowActions = (role: Role) => [
+    {
+      key: "permissions",
+      icon: ICONS.PERMISSION,
+      title: "Assign Permissions",
+      show: can(PERMISSIONS.ROLE.MANAGE),
+      onClick: () =>
+        openModal("assign", {
+          mode: "role-permission",
+          entity: role,
+        }),
     },
-  },
-  {
-    key: "delete",
-    label: "",
-    icon: ICONS.DELETE,
-    title: "Delete Role",
-    variant: "danger" as const,
-    show: can(PERMISSIONS.ROLE.MANAGE),
-    onClick: () => handleDelete(role),
-  },
-];
-
+    {
+      key: "edit",
+      icon: ICONS.EDIT,
+      title: "Edit Role",
+      show: can(PERMISSIONS.ROLE.MANAGE),
+      onClick: () => {
+        setField("name", role.name);
+        openModal("role-edit", role);
+      },
+    },
+    {
+      key: "delete",
+      icon: ICONS.DELETE,
+      title: "Delete Role",
+      variant: "danger" as const,
+      show: can(PERMISSIONS.ROLE.MANAGE),
+      onClick: () => handleDelete(role),
+    },
+  ];
 
   /* ================= VIEW ================= */
 
@@ -156,7 +159,10 @@ const getRowActions = (role: Role) => [
               columns={
                 <tr>
                   <th>Name</th>
-                  <th className="text-right" style={{ width: 260 }}>
+                  <th
+                    className="text-right"
+                    style={{ width: 220 }}
+                  >
                     Actions
                   </th>
                 </tr>
@@ -174,22 +180,32 @@ const getRowActions = (role: Role) => [
           </CardBody>
         </Card>
 
-        {(modalType === "role-add" || modalType === "role-edit") && (
+        {/* ADD / EDIT ROLE MODAL */}
+        {(modalType === "role-add" ||
+          modalType === "role-edit") && (
           <Modal
             title={
-              modalType === "role-edit" ? "Edit Role" : "Add Role"
+              modalType === "role-edit"
+                ? "Edit Role"
+                : "Add Role"
             }
             onClose={closeModal}
             onSave={save}
             saveDisabled={loading}
-            saveText={modalType === "role-edit" ? "Update" : "Save"}
+            saveText={
+              modalType === "role-edit"
+                ? "Update"
+                : "Save"
+            }
           >
             <input
               className={`form-control ${
                 errors.name ? "is-invalid" : ""
               }`}
               value={values.name}
-              onChange={(e) => setField("name", e.target.value)}
+              onChange={(e) =>
+                setField("name", e.target.value)
+              }
               disabled={loading}
               placeholder="Role name"
             />
@@ -202,9 +218,11 @@ const getRowActions = (role: Role) => [
           </Modal>
         )}
 
-        {modalType === "permission" && modalData && (
-          <RolePermissionModal
-            role={modalData}
+        {/* ✅ GENERIC ASSIGN MODAL */}
+        {modalType === "assign" && modalData && (
+          <AssignModal
+            mode={modalData.mode}
+            entity={modalData.entity}
             onClose={closeModal}
           />
         )}

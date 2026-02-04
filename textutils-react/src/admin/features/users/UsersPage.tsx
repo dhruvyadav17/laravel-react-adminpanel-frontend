@@ -8,14 +8,13 @@ import DataTable from "../../../components/common/DataTable";
 import RowActions from "../../../components/common/RowActions";
 import Button from "../../../components/common/Button";
 import Can from "../../../components/common/Can";
+import AssignModal from "../../../components/common/AssignModal";
 
 import Card from "../../../ui/Card";
 import CardHeader from "../../../ui/CardHeader";
 import CardBody from "../../../ui/CardBody";
 
 import UserFormModal from "./UserFormModal";
-import UserRoleModal from "./UserRoleModal";
-import UserPermissionModal from "./UserPermissionModal";
 import Pagination from "../../../components/common/Pagination";
 import { usePagination } from "../../../hooks/usePagination";
 
@@ -34,7 +33,7 @@ import type { User } from "../../../types/models";
 function UsersPage() {
   const confirmDelete = useConfirmDelete();
   const { modalType, modalData, openModal, closeModal } =
-    useAppModal<User | null>();
+    useAppModal<any>();
 
   const { page, setPage, search, setSearch } = usePagination();
 
@@ -49,7 +48,6 @@ function UsersPage() {
   const [deleteUser] = useDeleteUserMutation();
   const [restoreUser] = useRestoreUserMutation();
 
-  // ✅ ONLY permission logic (no role checks)
   const { can } = useAuth();
 
   /* ================= ACTION HANDLERS ================= */
@@ -75,13 +73,12 @@ function UsersPage() {
   /* ================= ROW ACTIONS ================= */
 
   const getRowActions = (user: User) => {
-    // Archived user → only restore (permission assumed backend-side)
     if (user.deleted_at) {
       return [
         {
           key: "restore",
-          label: "Restore",
           icon: ICONS.RESTORE,
+          title: "Restore User",
           variant: "success" as const,
           onClick: () => handleRestore(user),
         },
@@ -91,28 +88,33 @@ function UsersPage() {
     return [
       {
         key: "roles",
-        label: "",
         icon: ICONS.ROLE,
+        title: "Assign Roles",
         show: can(PERMISSIONS.USER.ASSIGN_ROLE),
-        onClick: () => openModal("user-role", user),
-        title: "Assign Role", 
+        onClick: () =>
+          openModal("assign", {
+            mode: "user-role",
+            entity: user,
+          }),
       },
       {
         key: "permissions",
-        label: "",
         icon: ICONS.PERMISSION,
+        title: "Assign Permissions",
         show: can(PERMISSIONS.USER.ASSIGN_PERMISSION),
-        onClick: () => openModal("user-permission", user),
-        title: "Assign Permissions"
+        onClick: () =>
+          openModal("assign", {
+            mode: "user-permission",
+            entity: user,
+          }),
       },
       {
         key: "archive",
-        label: "",
         icon: ICONS.DELETE,
+        title: "Archive User",
         variant: "danger" as const,
         show: can(PERMISSIONS.USER.DELETE),
         onClick: () => handleArchive(user),
-        title: "Archive"
       },
     ];
   };
@@ -166,7 +168,7 @@ function UsersPage() {
                 <tr key={user.id}>
                   <td>{user.name}</td>
                   <td>{user.email}</td>
-                  <td>{user.roles.join(", ") || "—"}</td>
+                  <td>{user.roles?.join(", ") || "—"}</td>
                   <td>
                     {user.deleted_at ? (
                       <span className="badge badge-warning">
@@ -192,6 +194,7 @@ function UsersPage() {
         )}
 
         {/* MODALS */}
+
         {modalType === "user-form" && (
           <UserFormModal
             onClose={closeModal}
@@ -199,17 +202,10 @@ function UsersPage() {
           />
         )}
 
-        {modalType === "user-role" && modalData && (
-          <UserRoleModal
-            user={modalData}
-            onClose={closeModal}
-            onSaved={closeModal}
-          />
-        )}
-
-        {modalType === "user-permission" && modalData && (
-          <UserPermissionModal
-            user={modalData}
+        {modalType === "assign" && modalData && (
+          <AssignModal
+            mode={modalData.mode}
+            entity={modalData.entity}
             onClose={closeModal}
           />
         )}
