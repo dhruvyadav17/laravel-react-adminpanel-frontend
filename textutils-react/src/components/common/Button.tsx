@@ -8,6 +8,7 @@ type Props = {
   size?: "sm" | "md" | "lg";
   className?: string;
   type?: "button" | "submit" | "reset";
+  title?: string;                // ✅ ADD (tooltip text)
 };
 
 export default function Button({
@@ -20,6 +21,7 @@ export default function Button({
   size = "md",
   className = "",
   type = "button",
+  title,                          // ✅ ADD
 }: Props) {
   const sizeClass =
     size === "sm" ? "btn-sm" : size === "lg" ? "btn-lg" : "";
@@ -30,6 +32,7 @@ export default function Button({
       className={`btn btn-${variant} ${sizeClass} ${className}`}
       onClick={onClick}
       disabled={disabled || loading}
+      title={title}               // ✅ HTML tooltip
     >
       {loading && (
         <span className="spinner-border spinner-border-sm mr-2" />

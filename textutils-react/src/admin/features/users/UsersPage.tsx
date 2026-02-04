@@ -91,25 +91,28 @@ function UsersPage() {
     return [
       {
         key: "roles",
-        label: "Roles",
+        label: "",
         icon: ICONS.ROLE,
         show: can(PERMISSIONS.USER.ASSIGN_ROLE),
         onClick: () => openModal("user-role", user),
+        title: "Assign Role", 
       },
       {
         key: "permissions",
-        label: "Permissions",
+        label: "",
         icon: ICONS.PERMISSION,
         show: can(PERMISSIONS.USER.ASSIGN_PERMISSION),
         onClick: () => openModal("user-permission", user),
+        title: "Assign Permissions"
       },
       {
         key: "archive",
-        label: "Archive",
+        label: "",
         icon: ICONS.DELETE,
         variant: "danger" as const,
         show: can(PERMISSIONS.USER.DELETE),
         onClick: () => handleArchive(user),
+        title: "Archive"
       },
     ];
   };

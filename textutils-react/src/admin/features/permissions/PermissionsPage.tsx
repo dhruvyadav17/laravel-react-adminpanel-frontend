@@ -13,6 +13,7 @@ import { useAppModal } from "../../../context/AppModalContext";
 import { useBackendForm } from "../../../hooks/useBackendForm";
 import { useConfirmDelete } from "../../../hooks/useConfirmDelete";
 import { useAuth } from "../../../auth/hooks/useAuth";
+import { ICONS } from "../../../constants/icons";
 
 import {
   useGetPermissionsQuery,
@@ -26,6 +27,7 @@ import type { Permission } from "../../../types/models";
 
 import Can from "../../../components/common/Can";
 import { PERMISSIONS } from "../../../constants/permissions";
+import { title } from "process";
 
 function PermissionsPage() {
   const confirmDelete = useConfirmDelete();
@@ -98,7 +100,9 @@ function PermissionsPage() {
   const getRowActions = (permission: Permission) => [
     {
       key: "edit",
-      label: "Edit",
+      label: "",
+      icon: ICONS.EDIT,
+      title: "Edit Permission",
       show: can(PERMISSIONS.PERMISSION.MANAGE),
       onClick: () => {
         setField("name", permission.name);
@@ -107,7 +111,9 @@ function PermissionsPage() {
     },
     {
       key: "delete",
-      label: "Delete",
+      label: "",
+      icon: ICONS.DELETE,
+      title: "Delete Permission",
       variant: "danger" as const,
       show: can(PERMISSIONS.PERMISSION.MANAGE),
       onClick: () => handleDelete(permission),
