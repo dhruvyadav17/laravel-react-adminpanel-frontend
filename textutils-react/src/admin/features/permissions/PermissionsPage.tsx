@@ -1,5 +1,6 @@
 import { memo } from "react";
 import Modal from "../../../components/common/Modal";
+import FormInput from "../../../components/common/FormInput";
 import RowActions from "../../../components/common/RowActions";
 import Button from "../../../components/common/Button";
 import PageHeader from "../../../components/common/PageHeader";
@@ -27,11 +28,9 @@ import type { Permission } from "../../../types/models";
 
 import Can from "../../../components/common/Can";
 import { PERMISSIONS } from "../../../constants/permissions";
-import { title } from "process";
 
 function PermissionsPage() {
   const confirmDelete = useConfirmDelete();
-
   const { modalType, modalData, openModal, closeModal } =
     useAppModal<Permission>();
 
@@ -53,8 +52,6 @@ function PermissionsPage() {
   } = useBackendForm({ name: "" });
 
   const { can } = useAuth();
-
-  /* ================= SAVE ================= */
 
   const save = async () => {
     try {
@@ -82,8 +79,6 @@ function PermissionsPage() {
     }
   };
 
-  /* ================= DELETE ================= */
-
   const handleDelete = (permission: Permission) =>
     confirmDelete(
       "Are you sure you want to delete this permission?",
@@ -95,12 +90,9 @@ function PermissionsPage() {
       }
     );
 
-  /* ================= ROW ACTIONS ================= */
-
   const getRowActions = (permission: Permission) => [
     {
       key: "edit",
-      label: "",
       icon: ICONS.EDIT,
       title: "Edit Permission",
       show: can(PERMISSIONS.PERMISSION.MANAGE),
@@ -111,7 +103,6 @@ function PermissionsPage() {
     },
     {
       key: "delete",
-      label: "",
       icon: ICONS.DELETE,
       title: "Delete Permission",
       variant: "danger" as const,
@@ -119,8 +110,6 @@ function PermissionsPage() {
       onClick: () => handleDelete(permission),
     },
   ];
-
-  /* ================= VIEW ================= */
 
   return (
     <section className="content pt-3">
@@ -150,12 +139,7 @@ function PermissionsPage() {
               columns={
                 <tr>
                   <th>Name</th>
-                  <th
-                    className="text-right"
-                    style={{ width: 180 }}
-                  >
-                    Actions
-                  </th>
+                  <th className="text-right">Actions</th>
                 </tr>
               }
             >
@@ -176,30 +160,23 @@ function PermissionsPage() {
         {modalType === "permission" && (
           <Modal
             title={
-              modalData?.id ? "Edit Permission" : "Add Permission"
+              modalData?.id
+                ? "Edit Permission"
+                : "Add Permission"
             }
             onClose={closeModal}
             onSave={save}
             saveDisabled={loading}
             saveText={modalData?.id ? "Update" : "Save"}
           >
-            <input
-              className={`form-control ${
-                errors.name ? "is-invalid" : ""
-              }`}
+            <FormInput
+              label="Permission Name"
               value={values.name}
-              onChange={(e) =>
-                setField("name", e.target.value)
-              }
+              error={errors.name?.[0]}
+              onChange={(v) => setField("name", v)}
               disabled={loading}
-              placeholder="Permission name"
+              required
             />
-
-            {errors.name && (
-              <div className="invalid-feedback">
-                {errors.name[0]}
-              </div>
-            )}
           </Modal>
         )}
       </div>

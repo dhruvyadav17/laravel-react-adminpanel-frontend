@@ -1,4 +1,5 @@
 import { memo } from "react";
+import FormInput from "../../../components/common/FormInput";
 import { useAppModal } from "../../../context/AppModalContext";
 import { useBackendForm } from "../../../hooks/useBackendForm";
 import { useConfirmDelete } from "../../../hooks/useConfirmDelete";
@@ -31,8 +32,6 @@ import { ICONS } from "../../../constants/icons";
 
 function RolesPage() {
   const confirmDelete = useConfirmDelete();
-
-  // 🔥 FIX: generic modal data
   const { modalType, modalData, openModal, closeModal } =
     useAppModal<any>();
 
@@ -54,15 +53,13 @@ function RolesPage() {
 
   const { can } = useAuth();
 
-  /* ================= SAVE ================= */
-
   const save = async () => {
     try {
       setLoading(true);
 
       await execute(
         () =>
-          modalType === "role-edit" && modalData?.id
+          modalType === "role-edit"
             ? updateRole({
                 id: modalData.id,
                 name: values.name,
@@ -82,8 +79,6 @@ function RolesPage() {
     }
   };
 
-  /* ================= DELETE ================= */
-
   const handleDelete = (role: Role) =>
     confirmDelete(
       "Are you sure you want to delete this role?",
@@ -94,8 +89,6 @@ function RolesPage() {
         );
       }
     );
-
-  /* ================= ROW ACTIONS ================= */
 
   const getRowActions = (role: Role) => [
     {
@@ -129,8 +122,6 @@ function RolesPage() {
     },
   ];
 
-  /* ================= VIEW ================= */
-
   return (
     <section className="content pt-3">
       <div className="container-fluid">
@@ -159,12 +150,7 @@ function RolesPage() {
               columns={
                 <tr>
                   <th>Name</th>
-                  <th
-                    className="text-right"
-                    style={{ width: 220 }}
-                  >
-                    Actions
-                  </th>
+                  <th className="text-right">Actions</th>
                 </tr>
               }
             >
@@ -180,7 +166,6 @@ function RolesPage() {
           </CardBody>
         </Card>
 
-        {/* ADD / EDIT ROLE MODAL */}
         {(modalType === "role-add" ||
           modalType === "role-edit") && (
           <Modal
@@ -198,27 +183,17 @@ function RolesPage() {
                 : "Save"
             }
           >
-            <input
-              className={`form-control ${
-                errors.name ? "is-invalid" : ""
-              }`}
+            <FormInput
+              label="Role Name"
               value={values.name}
-              onChange={(e) =>
-                setField("name", e.target.value)
-              }
+              error={errors.name?.[0]}
+              onChange={(v) => setField("name", v)}
               disabled={loading}
-              placeholder="Role name"
+              required
             />
-
-            {errors.name && (
-              <div className="invalid-feedback">
-                {errors.name[0]}
-              </div>
-            )}
           </Modal>
         )}
 
-        {/* ✅ GENERIC ASSIGN MODAL */}
         {modalType === "assign" && modalData && (
           <AssignModal
             mode={modalData.mode}
