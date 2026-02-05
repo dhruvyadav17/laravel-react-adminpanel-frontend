@@ -3,13 +3,21 @@ import FormInput from "../../../components/common/FormInput";
 import { useBackendForm } from "../../../hooks/useBackendForm";
 import { useCreateUserMutation } from "../../../store/api";
 import { execute } from "../../../utils/execute";
+import { getModalTitle } from "../../../utils/modalTitle";
+
+import type { User } from "../../../types/models";
 
 type Props = {
   onClose: () => void;
   onSaved: () => void;
+  user?: User | null; // 👈 future-proof
 };
 
-export default function UserFormModal({ onClose, onSaved }: Props) {
+export default function UserFormModal({
+  onClose,
+  onSaved,
+  user,
+}: Props) {
   const {
     values,
     errors,
@@ -18,8 +26,8 @@ export default function UserFormModal({ onClose, onSaved }: Props) {
     handleError,
     reset,
   } = useBackendForm({
-    name: "",
-    email: "",
+    name: user?.name ?? "",
+    email: user?.email ?? "",
     password: "",
     password_confirmation: "",
   });
@@ -42,7 +50,7 @@ export default function UserFormModal({ onClose, onSaved }: Props) {
 
   return (
     <Modal
-      title="Add User"
+      title={getModalTitle("User", user)}
       onClose={onClose}
       onSave={save}
       saveDisabled={loading}
@@ -74,7 +82,7 @@ export default function UserFormModal({ onClose, onSaved }: Props) {
         error={errors.password?.[0]}
         onChange={(v) => setField("password", v)}
         disabled={loading}
-        required
+        required={!user} // future: optional on edit
       />
 
       <FormInput
@@ -86,7 +94,7 @@ export default function UserFormModal({ onClose, onSaved }: Props) {
           setField("password_confirmation", v)
         }
         disabled={loading}
-        required
+        required={!user}
       />
     </Modal>
   );

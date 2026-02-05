@@ -1,15 +1,14 @@
 import { memo } from "react";
 import FormInput from "../../../components/common/FormInput";
+import { useModalForm } from "../../../hooks/useModalForm";
 import { useAppModal } from "../../../context/AppModalContext";
-import { useBackendForm } from "../../../hooks/useBackendForm";
-import { useConfirmDelete } from "../../../hooks/useConfirmDelete";
 import { useAuth } from "../../../auth/hooks/useAuth";
 
-import PageHeader from "../../../components/common/PageHeader";
+// import PageHeader from "../../../components/common/PageHeader";
 import DataTable from "../../../components/common/DataTable";
 import RowActions from "../../../components/common/RowActions";
-import Button from "../../../components/common/Button";
-import Can from "../../../components/common/Can";
+// import Button from "../../../components/common/Button";
+// import Can from "../../../components/common/Can";
 import Modal from "../../../components/common/Modal";
 import AssignModal from "../../../components/common/AssignModal";
 
@@ -24,79 +23,55 @@ import {
   useDeleteRoleMutation,
 } from "../../../store/api";
 
-import { execute } from "../../../utils/execute";
 import type { Role } from "../../../types/models";
-
 import { PERMISSIONS } from "../../../constants/permissions";
 import { ICONS } from "../../../constants/icons";
 import { useTableActions } from "../../../components/common/useTableActions";
+import { useConfirmAction } from "../../../hooks/useConfirmAction";
+import PageActions from "../../../components/common/PageActions";
+import { getModalTitle } from "../../../utils/modalTitle";
 
 function RolesPage() {
-  const confirmDelete = useConfirmDelete();
+  const confirmAction = useConfirmAction();
   const { modalType, modalData, openModal, closeModal } =
     useAppModal<any>();
 
   const { data: roles = [], isLoading } = useGetRolesQuery();
-
   const [createRole] = useCreateRoleMutation();
   const [updateRole] = useUpdateRoleMutation();
   const [deleteRole] = useDeleteRoleMutation();
 
-  const {
-    values,
-    errors,
-    loading,
-    setLoading,
-    setField,
-    handleError,
-    reset,
-  } = useBackendForm({ name: "" });
-
   const { can } = useAuth();
 
-  const save = async () => {
-    try {
-      setLoading(true);
-
-      await execute(
-        () =>
-          modalType === "role-edit"
-            ? updateRole({
-                id: modalData.id,
-                name: values.name,
-              }).unwrap()
-            : createRole(values).unwrap(),
+  const form = useModalForm(
+    { name: "" },
+    {
+      onSubmit: (values) =>
         modalType === "role-edit"
-          ? "Role updated"
-          : "Role created"
-      );
-
-      closeModal();
-      reset();
-    } catch (e) {
-      handleError(e);
-    } finally {
-      setLoading(false);
+          ? updateRole({
+              id: modalData.id,
+              name: values.name,
+            }).unwrap()
+          : createRole(values).unwrap(),
+      onSuccess: closeModal,
     }
-  };
+  );
 
   const handleDelete = (role: Role) =>
-    confirmDelete(
-      "Are you sure you want to delete this role?",
-      async () => {
-        await execute(
-          () => deleteRole(role.id).unwrap(),
-          "Role deleted"
-        );
-      }
-    );
+    confirmAction({
+      message: "Are you sure you want to delete this role?",
+      confirmLabel: "Delete Role",
+      onConfirm: async () => {
+        await deleteRole(role.id).unwrap();
+      },
+    });
 
   const getRowActions = useTableActions<Role>({
     canEdit: can(PERMISSIONS.ROLE.MANAGE),
     canDelete: can(PERMISSIONS.ROLE.MANAGE),
 
     onEdit: (role) => {
-      setField("name", role.name);
+      form.setField("name", role.name);
       openModal("role-edit", role);
     },
 
@@ -117,23 +92,17 @@ function RolesPage() {
     ],
   });
 
-
   return (
     <section className="content pt-3">
       <div className="container-fluid">
-        <PageHeader
+        <PageActions
           title="Roles"
-          action={
-            <Can permission={PERMISSIONS.ROLE.MANAGE}>
-              <Button
-                label="+ Add Role"
-                onClick={() => {
-                  reset();
-                  openModal("role-add");
-                }}
-              />
-            </Can>
-          }
+          permission={PERMISSIONS.ROLE.MANAGE}
+          buttonLabel="+ Add Role"
+          onClick={() => {
+            form.reset();
+            openModal("role-add");
+          }}
         />
 
         <Card>
@@ -165,14 +134,10 @@ function RolesPage() {
         {(modalType === "role-add" ||
           modalType === "role-edit") && (
           <Modal
-            title={
-              modalType === "role-edit"
-                ? "Edit Role"
-                : "Add Role"
-            }
+            title={getModalTitle("Role", modalData)}
             onClose={closeModal}
-            onSave={save}
-            saveDisabled={loading}
+            onSave={form.submit}
+            saveDisabled={form.loading}
             saveText={
               modalType === "role-edit"
                 ? "Update"
@@ -181,10 +146,10 @@ function RolesPage() {
           >
             <FormInput
               label="Role Name"
-              value={values.name}
-              error={errors.name?.[0]}
-              onChange={(v) => setField("name", v)}
-              disabled={loading}
+              value={form.values.name}
+              error={form.errors.name?.[0]}
+              onChange={(v) => form.setField("name", v)}
+              disabled={form.loading}
               required
             />
           </Modal>

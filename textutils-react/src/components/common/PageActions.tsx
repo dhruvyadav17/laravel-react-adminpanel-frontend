@@ -1,0 +1,38 @@
+import PageHeader from "./PageHeader";
+import Button from "./Button";
+import Can from "./Can";
+
+type Props = {
+  title: string;
+
+  permission?: string;
+
+  buttonLabel?: string;
+  icon?: string;
+  onClick?: () => void;
+};
+
+export default function PageActions({
+  title,
+  permission,
+  buttonLabel,
+  icon,
+  onClick,
+}: Props) {
+  return (
+    <PageHeader
+      title={title}
+      action={
+        permission && buttonLabel && onClick ? (
+          <Can permission={permission}>
+            <Button
+              label={buttonLabel}
+              icon={icon}
+              onClick={onClick}
+            />
+          </Can>
+        ) : null
+      }
+    />
+  );
+}
