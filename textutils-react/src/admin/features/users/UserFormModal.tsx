@@ -1,8 +1,10 @@
 import Modal from "../../../components/common/Modal";
 import FormInput from "../../../components/common/FormInput";
-import { useBackendForm } from "../../../hooks/useBackendForm";
-import { useCreateUserMutation } from "../../../store/api";
-import { execute } from "../../../utils/execute";
+import { useModalForm } from "../../../hooks/useModalForm";
+import {
+  useCreateUserMutation,
+  useUpdateUserMutation,
+} from "../../../store/api";
 import { getModalTitle } from "../../../utils/modalTitle";
 
 import type { User } from "../../../types/models";
@@ -10,7 +12,7 @@ import type { User } from "../../../types/models";
 type Props = {
   onClose: () => void;
   onSaved: () => void;
-  user?: User | null; // 👈 future-proof
+  user?: User | null;
 };
 
 export default function UserFormModal({
@@ -18,82 +20,77 @@ export default function UserFormModal({
   onSaved,
   user,
 }: Props) {
-  const {
-    values,
-    errors,
-    loading,
-    setField,
-    handleError,
-    reset,
-  } = useBackendForm({
-    name: user?.name ?? "",
-    email: user?.email ?? "",
-    password: "",
-    password_confirmation: "",
-  });
-
   const [createUser] = useCreateUserMutation();
+  const [updateUser] = useUpdateUserMutation();
 
-  const save = async () => {
-    try {
-      await execute(
-        () => createUser(values).unwrap(),
-        "User created successfully"
-      );
+  const form = useModalForm(
+    {
+      name: user?.name ?? "",
+      email: user?.email ?? "",
+      password: "",
+      password_confirmation: "",
+    },
+    {
+      onSubmit: (values) => {
+        if (user?.id) {
+          return updateUser({
+            id: user.id,
+            data: values,
+          }).unwrap();
+        }
 
-      reset();
-      onSaved();
-    } catch (e) {
-      handleError(e);
+        return createUser(values).unwrap();
+      },
+      onSuccess: onSaved,
     }
-  };
+  );
 
   return (
     <Modal
       title={getModalTitle("User", user)}
       onClose={onClose}
-      onSave={save}
-      saveDisabled={loading}
-      saveText={loading ? "Saving..." : "Save"}
+      onSave={form.submit}
+      saveDisabled={form.loading}
+      saveText={form.loading ? "Saving..." : "Save"}
     >
       <FormInput
         label="Name"
-        value={values.name}
-        error={errors.name?.[0]}
-        onChange={(v) => setField("name", v)}
-        disabled={loading}
+        value={form.values.name}
+        error={form.errors.name?.[0]}
+        onChange={(v) => form.setField("name", v)}
+        disabled={form.loading}
         required
       />
 
       <FormInput
         label="Email"
         type="email"
-        value={values.email}
-        error={errors.email?.[0]}
-        onChange={(v) => setField("email", v)}
-        disabled={loading}
+        value={form.values.email}
+        error={form.errors.email?.[0]}
+        onChange={(v) => form.setField("email", v)}
+        disabled={form.loading}
         required
       />
 
       <FormInput
         label="Password"
         type="password"
-        value={values.password}
-        error={errors.password?.[0]}
-        onChange={(v) => setField("password", v)}
-        disabled={loading}
-        required={!user} // future: optional on edit
+        value={form.values.password}
+        error={form.errors.password?.[0]}
+        onChange={(v) => form.setField("password", v)}
+        disabled={form.loading}
+        required={!user}
       />
 
       <FormInput
         label="Confirm Password"
         type="password"
-        value={values.password_confirmation}
-        error={errors.password_confirmation?.[0]}
+        value={form.values.password_confirmation}
+        error={form.errors.password_confirmation?.[0]}
         onChange={(v) =>
-          setField("password_confirmation", v)
+          form.setField("password_confirmation", v)
         }
-        disabled={loading}
+        disabled={form.loading}
         required={!user}
       />
     </Modal>
