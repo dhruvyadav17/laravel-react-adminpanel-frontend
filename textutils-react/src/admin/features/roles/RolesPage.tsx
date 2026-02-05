@@ -29,6 +29,7 @@ import type { Role } from "../../../types/models";
 
 import { PERMISSIONS } from "../../../constants/permissions";
 import { ICONS } from "../../../constants/icons";
+import { useTableActions } from "../../../components/common/useTableActions";
 
 function RolesPage() {
   const confirmDelete = useConfirmDelete();
@@ -90,37 +91,32 @@ function RolesPage() {
       }
     );
 
-  const getRowActions = (role: Role) => [
-    {
-      key: "permissions",
-      icon: ICONS.PERMISSION,
-      title: "Assign Permissions",
-      show: can(PERMISSIONS.ROLE.MANAGE),
-      onClick: () =>
-        openModal("assign", {
-          mode: "role-permission",
-          entity: role,
-        }),
+  const getRowActions = useTableActions<Role>({
+    canEdit: can(PERMISSIONS.ROLE.MANAGE),
+    canDelete: can(PERMISSIONS.ROLE.MANAGE),
+
+    onEdit: (role) => {
+      setField("name", role.name);
+      openModal("role-edit", role);
     },
-    {
-      key: "edit",
-      icon: ICONS.EDIT,
-      title: "Edit Role",
-      show: can(PERMISSIONS.ROLE.MANAGE),
-      onClick: () => {
-        setField("name", role.name);
-        openModal("role-edit", role);
+
+    onDelete: handleDelete,
+
+    extraActions: [
+      {
+        key: "permissions",
+        icon: ICONS.PERMISSION,
+        title: "Assign Permissions",
+        show: can(PERMISSIONS.ROLE.MANAGE),
+        onClick: (role) =>
+          openModal("assign", {
+            mode: "role-permission",
+            entity: role,
+          }),
       },
-    },
-    {
-      key: "delete",
-      icon: ICONS.DELETE,
-      title: "Delete Role",
-      variant: "danger" as const,
-      show: can(PERMISSIONS.ROLE.MANAGE),
-      onClick: () => handleDelete(role),
-    },
-  ];
+    ],
+  });
+
 
   return (
     <section className="content pt-3">

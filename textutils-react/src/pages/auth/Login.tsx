@@ -19,9 +19,7 @@ export default function Login({ admin = false }: Props) {
     <LoginForm
       title={admin ? "Admin Login" : "User Login"}
       redirectAdmin={admin}
-      onSuccess={(user) => {
-        navigate(resolveLoginRedirect(user), { replace: true });
-      }}
+     
     />
   );
 }

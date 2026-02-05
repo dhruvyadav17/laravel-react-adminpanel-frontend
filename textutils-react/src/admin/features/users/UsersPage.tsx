@@ -20,6 +20,7 @@ import { usePagination } from "../../../hooks/usePagination";
 
 import { PERMISSIONS } from "../../../constants/permissions";
 import { ICONS } from "../../../constants/icons";
+import { useTableActions } from "../../../components/common/useTableActions";
 
 import {
   useGetUsersQuery,
@@ -72,52 +73,52 @@ function UsersPage() {
 
   /* ================= ROW ACTIONS ================= */
 
-  const getRowActions = (user: User) => {
-    if (user.deleted_at) {
-      return [
-        {
-          key: "restore",
-          icon: ICONS.RESTORE,
-          title: "Restore User",
-          variant: "success" as const,
-          onClick: () => handleRestore(user),
-        },
-      ];
-    }
+const getActiveUserActions = useTableActions<User>({
+  canDelete: can(PERMISSIONS.USER.DELETE),
 
-    return [
-      {
-        key: "roles",
-        icon: ICONS.ROLE,
-        title: "Assign Roles",
-        show: can(PERMISSIONS.USER.ASSIGN_ROLE),
-        onClick: () =>
-          openModal("assign", {
-            mode: "user-role",
-            entity: user,
-          }),
-      },
-      {
-        key: "permissions",
-        icon: ICONS.PERMISSION,
-        title: "Assign Permissions",
-        show: can(PERMISSIONS.USER.ASSIGN_PERMISSION),
-        onClick: () =>
-          openModal("assign", {
-            mode: "user-permission",
-            entity: user,
-          }),
-      },
-      {
-        key: "archive",
-        icon: ICONS.DELETE,
-        title: "Archive User",
-        variant: "danger" as const,
-        show: can(PERMISSIONS.USER.DELETE),
-        onClick: () => handleArchive(user),
-      },
-    ];
-  };
+  extraActions: [
+    {
+      key: "roles",
+      icon: ICONS.ROLE,
+      title: "Assign Roles",
+      show: can(PERMISSIONS.USER.ASSIGN_ROLE),
+      onClick: (user) =>
+        openModal("assign", {
+          mode: "user-role",
+          entity: user,
+        }),
+    },
+    {
+      key: "permissions",
+      icon: ICONS.PERMISSION,
+      title: "Assign Permissions",
+      show: can(PERMISSIONS.USER.ASSIGN_PERMISSION),
+      onClick: (user) =>
+        openModal("assign", {
+          mode: "user-permission",
+          entity: user,
+        }),
+    },
+  ],
+
+  onDelete: handleArchive,
+});
+
+const getDeletedUserActions = useTableActions<User>({
+  extraActions: [
+    {
+      key: "restore",
+      icon: ICONS.RESTORE,
+      title: "Restore User",
+      variant: "success",
+      onClick: handleRestore,
+    },
+  ],
+});
+const getRowActions = (user: User) =>
+  user.deleted_at
+    ? getDeletedUserActions(user)
+    : getActiveUserActions(user);
 
   /* ================= VIEW ================= */
 

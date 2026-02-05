@@ -15,6 +15,7 @@ import { useBackendForm } from "../../../hooks/useBackendForm";
 import { useConfirmDelete } from "../../../hooks/useConfirmDelete";
 import { useAuth } from "../../../auth/hooks/useAuth";
 import { ICONS } from "../../../constants/icons";
+import { useTableActions } from "../../../components/common/useTableActions";
 
 import {
   useGetPermissionsQuery,
@@ -90,26 +91,17 @@ function PermissionsPage() {
       }
     );
 
-  const getRowActions = (permission: Permission) => [
-    {
-      key: "edit",
-      icon: ICONS.EDIT,
-      title: "Edit Permission",
-      show: can(PERMISSIONS.PERMISSION.MANAGE),
-      onClick: () => {
-        setField("name", permission.name);
-        openModal("permission", permission);
-      },
+  const getRowActions = useTableActions<Permission>({
+    canEdit: can(PERMISSIONS.PERMISSION.MANAGE),
+    canDelete: can(PERMISSIONS.PERMISSION.MANAGE),
+
+    onEdit: (permission) => {
+      setField("name", permission.name);
+      openModal("permission", permission);
     },
-    {
-      key: "delete",
-      icon: ICONS.DELETE,
-      title: "Delete Permission",
-      variant: "danger" as const,
-      show: can(PERMISSIONS.PERMISSION.MANAGE),
-      onClick: () => handleDelete(permission),
-    },
-  ];
+
+    onDelete: handleDelete,
+  });
 
   return (
     <section className="content pt-3">
