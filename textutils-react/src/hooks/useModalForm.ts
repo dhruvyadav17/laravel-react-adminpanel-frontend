@@ -23,9 +23,7 @@ export function useModalForm<T extends Record<string, any>>(
   const submit = async () => {
     try {
       setLoading(true);
-
       await execute(() => options.onSubmit(values));
-
       reset();
       options.onSuccess?.();
     } catch (e) {

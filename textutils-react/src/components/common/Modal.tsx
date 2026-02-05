@@ -24,7 +24,7 @@ type Props = {
   size?: "sm" | "md" | "lg";
 
   /* advanced */
-  footer?: React.ReactNode; // 🔥 custom footer override
+  footer?: React.ReactNode;
 };
 
 export default function Modal({
@@ -43,7 +43,6 @@ export default function Modal({
   size = "md",
   footer,
 }: Props) {
-  /* ================= BODY LOCK ================= */
   useEffect(() => {
     document.body.classList.add("modal-open");
 
@@ -64,17 +63,15 @@ export default function Modal({
   const sizeClass =
     size === "sm" ? "modal-sm" : size === "lg" ? "modal-lg" : "";
 
-  /* ================= RENDER ================= */
   return (
     <>
-      {/* BACKDROP */}
       <div className="modal-backdrop fade show" />
 
-      {/* MODAL */}
       <div
         className="modal fade show d-block"
         role="dialog"
         aria-modal="true"
+        onClick={!disableClose ? onClose : undefined}
       >
         <div
           className={`modal-dialog modal-dialog-centered ${sizeClass}`}
@@ -90,7 +87,6 @@ export default function Modal({
                   type="button"
                   className="close"
                   onClick={onClose}
-                  aria-label="Close"
                 >
                   ×
                 </button>
@@ -102,15 +98,13 @@ export default function Modal({
 
             {/* FOOTER */}
             <div className="modal-footer justify-content-between">
-              {footer ? (
-                footer
-              ) : (
+              {footer ?? (
                 <>
                   <Button
                     label={cancelText}
                     variant="secondary"
                     onClick={onClose}
-                    disabled={disableClose || loading}
+                    disabled={loading || disableClose}
                   />
 
                   {onSave && (
