@@ -12,9 +12,9 @@ import RowActions from "../../../components/common/RowActions";
 import Modal from "../../../components/common/Modal";
 import AssignModal from "./AssignModal";
 
-import Card from "../../../ui/Card";
-import CardHeader from "../../../ui/CardHeader";
-import CardBody from "../../../ui/CardBody";
+import Card from "../shared/ui/Card";
+import CardHeader from "../shared/ui/CardHeader";
+import CardBody from "../shared/ui/CardBody";
 
 import {
   useGetRolesQuery,

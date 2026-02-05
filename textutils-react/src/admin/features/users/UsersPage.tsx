@@ -9,9 +9,9 @@ import AssignModal from "../roles/AssignModal";
 import Pagination from "../../../components/common/Pagination";
 import { useTableActions } from "../../../components/common/useTableActions";
 
-import Card from "../../../ui/Card";
-import CardHeader from "../../../ui/CardHeader";
-import CardBody from "../../../ui/CardBody";
+import Card from "../shared/ui/Card";
+import CardHeader from "../shared/ui/CardHeader";
+import CardBody from "../shared/ui/CardBody";
 
 import UserFormModal from "./UserFormModal";
 

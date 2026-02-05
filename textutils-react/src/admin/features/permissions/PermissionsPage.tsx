@@ -9,9 +9,9 @@ import DataTable from "../../../components/common/DataTable";
 // import Can from "../../../components/common/Can";
 import { useTableActions } from "../../../components/common/useTableActions";
 
-import Card from "../../../ui/Card";
-import CardHeader from "../../../ui/CardHeader";
-import CardBody from "../../../ui/CardBody";
+import Card from "../shared/ui/Card";
+import CardHeader from "../shared/ui/CardHeader";
+import CardBody from "../shared/ui/CardBody";
 
 import { useAppModal } from "../../../context/AppModalContext";
 import { useModalForm } from "../../../hooks/useModalForm";

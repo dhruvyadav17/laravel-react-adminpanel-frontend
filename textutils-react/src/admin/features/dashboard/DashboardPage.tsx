@@ -1,6 +1,6 @@
 import { useAuth } from "../../../auth/hooks/useAuth";
 import { useGetDashboardStatsQuery } from "../../../store/api";
-import InfoBox from "../../../ui/InfoBox";
+import InfoBox from "../shared/ui/InfoBox";
 import { ICONS } from "../../../constants/icons";
 
 export default function Dashboard() {
