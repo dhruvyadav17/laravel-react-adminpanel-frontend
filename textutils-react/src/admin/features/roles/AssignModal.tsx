@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import Modal from "./Modal";
-import { execute } from "../../utils/execute";
+import Modal from "../../../components/common/Modal";
+import { execute } from "../../../utils/execute";
 
 import {
   useGetRolesQuery,
@@ -9,10 +9,10 @@ import {
   useAssignUserRolesMutation,
   useAssignUserPermissionsMutation,
   useAssignRolePermissionsMutation,
-} from "../../store/api";
+} from "../../../store/api";
 
-import type { User, Role } from "../../types/models";
-import type { AssignMode } from "../../types/modal";
+import type { User, Role } from "../../../types/models";
+import type { AssignMode } from "../../../types/modal";
 
 type Props = {
   mode: AssignMode;

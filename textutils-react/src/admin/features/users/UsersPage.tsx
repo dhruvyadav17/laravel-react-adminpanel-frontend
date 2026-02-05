@@ -3,13 +3,9 @@ import { memo } from "react";
 import { useAppModal } from "../../../context/AppModalContext";
 import { useAuth } from "../../../auth/hooks/useAuth";
 import { usePagination } from "../../../hooks/usePagination";
-
-// import PageHeader from "../../../components/common/PageHeader";
 import DataTable from "../../../components/common/DataTable";
 import RowActions from "../../../components/common/RowActions";
-// import Button from "../../../components/common/Button";
-// import Can from "../../../components/common/Can";
-import AssignModal from "../../../components/common/AssignModal";
+import AssignModal from "../roles/AssignModal";
 import Pagination from "../../../components/common/Pagination";
 import { useTableActions } from "../../../components/common/useTableActions";
 

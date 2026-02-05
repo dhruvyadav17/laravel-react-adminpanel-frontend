@@ -10,7 +10,7 @@ import RowActions from "../../../components/common/RowActions";
 // import Button from "../../../components/common/Button";
 // import Can from "../../../components/common/Can";
 import Modal from "../../../components/common/Modal";
-import AssignModal from "../../../components/common/AssignModal";
+import AssignModal from "./AssignModal";
 
 import Card from "../../../ui/Card";
 import CardHeader from "../../../ui/CardHeader";
