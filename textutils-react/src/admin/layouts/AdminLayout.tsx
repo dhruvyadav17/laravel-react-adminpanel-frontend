@@ -6,15 +6,25 @@ import ModalHost from "../../components/common/ModalHost";
 export default function AdminLayout() {
   return (
     <div className="wrapper">
+      {/* ================= TOP NAVBAR ================= */}
       <AdminNavbar />
-      <AdminSidebar />
 
+      {/* ================= LEFT SIDEBAR ================= */}
+      <aside className="main-sidebar sidebar-dark-primary">
+        <AdminSidebar />
+      </aside>
+
+      {/* ================= MAIN CONTENT ================= */}
       <div className="content-wrapper">
-        <Outlet />
+        <section className="content pt-3">
+          <Outlet />
+        </section>
       </div>
 
+      {/* ================= GLOBAL MODALS ================= */}
       <ModalHost />
 
+      {/* ================= FOOTER ================= */}
       <footer className="main-footer text-center">
         <strong>Admin Panel</strong>
       </footer>

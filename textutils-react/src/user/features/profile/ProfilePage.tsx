@@ -49,19 +49,19 @@ export default function ProfilePage() {
                 <li className="nav-item">
                   <a
                     className="nav-link active"
-                    data-toggle="tab"
+                    data-bs-toggle="tab"
                     href="#profile"
                   >
                     Profile Info
                   </a>
                 </li>
                 <li className="nav-item">
-                  <a className="nav-link" data-toggle="tab" href="#roles">
+                  <a className="nav-link" data-bs-toggle="tab" href="#roles">
                     My Roles
                   </a>
                 </li>
                 <li className="nav-item">
-                  <a className="nav-link" data-toggle="tab" href="#settings">
+                  <a className="nav-link" data-bs-toggle="tab" href="#settings">
                     Settings
                   </a>
                 </li>

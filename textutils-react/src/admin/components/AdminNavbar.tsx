@@ -4,43 +4,35 @@ import { useLogout } from "../../auth/hooks/useLogout";
 export default function AdminNavbar() {
   const logout = useLogout();
 
-  const toggleSidebar = () => {
-    document.body.classList.toggle("sidebar-collapse");
-  };
-
   return (
     <nav className="main-header navbar navbar-expand navbar-white navbar-light">
-      {/* ================= LEFT ================= */}
+      {/* LEFT */}
       <ul className="navbar-nav">
         <li className="nav-item">
           <button
             className="nav-link btn btn-link"
-            onClick={toggleSidebar}
             type="button"
+            data-widget="pushmenu"
           >
-            <i className="fas fa-bars" />
+            <i className="fa-solid fa-bars" />
           </button>
         </li>
       </ul>
 
-      {/* ================= RIGHT ================= */}
-      <ul className="navbar-nav ml-auto align-items-center">
-        {/* 👤 USER MENU */}
+      {/* RIGHT */}
+      <ul className="navbar-nav ms-auto align-items-center">
         <li className="nav-item dropdown">
           <button
             className="nav-link btn btn-link"
-            data-toggle="dropdown"
+            data-bs-toggle="dropdown"
             type="button"
           >
-            <i className="fas fa-user-circle" />
+            <i className="fa-solid fa-user-circle" />
           </button>
 
-          <div className="dropdown-menu dropdown-menu-right">
-            <NavLink
-              to="/admin/profile"
-              className="dropdown-item"
-            >
-              <i className="fas fa-user mr-2" />
+          <div className="dropdown-menu dropdown-menu-end">
+            <NavLink to="/admin/profile" className="dropdown-item">
+              <i className="fa-solid fa-user me-2" />
               Profile
             </NavLink>
 
@@ -48,9 +40,9 @@ export default function AdminNavbar() {
 
             <button
               className="dropdown-item text-danger"
-              onClick={() => logout()}
+              onClick={() => logout("/admin/login")}
             >
-              <i className="fas fa-sign-out-alt mr-2" />
+              <i className="fa-solid fa-right-from-bracket me-2" />
               Logout
             </button>
           </div>

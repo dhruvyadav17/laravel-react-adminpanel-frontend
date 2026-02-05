@@ -1,12 +1,14 @@
 import { useState } from "react";
+import Modal from "../../components/common/Modal";
+import FormInput from "../../components/common/FormInput";
 import { useCreateAdminMutation } from "../../store/api";
 import { execute } from "../../utils/execute";
 
-export default function CreateAdminModal({
-  onClose,
-}: {
+type Props = {
   onClose: () => void;
-}) {
+};
+
+export default function CreateAdminModal({ onClose }: Props) {
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -16,55 +18,60 @@ export default function CreateAdminModal({
   const [createAdmin, { isLoading }] = useCreateAdminMutation();
 
   const submit = async () => {
-    const result = await execute(
+    const res = await execute(
       () => createAdmin(form).unwrap(),
       "Admin created successfully"
     );
 
-    if (!result) return;
-
-    const { email, password } = result;
+    if (!res) return;
 
     alert(
-      `Admin created!\n\nEmail: ${email}\nPassword: ${password}\n\n⚠️ Please save this password now.`
+      `Admin created!\n\nEmail: ${res.email}\nPassword: ${res.password}\n\n⚠️ Please save this password now.`
     );
 
     onClose();
   };
 
   return (
-    <div className="modal">
-      <h5>Create Admin</h5>
-
-      <input
-        placeholder="Name"
+    <Modal
+      title="Create Admin"
+      onClose={onClose}
+      onSave={submit}
+      saveText={isLoading ? "Creating..." : "Create"}
+      loading={isLoading}
+      size="sm"
+    >
+      <FormInput
+        label="Name"
         value={form.name}
-        onChange={(e) =>
-          setForm({ ...form, name: e.target.value })
-        }
+        onChange={(v) => setForm({ ...form, name: v })}
+        required
       />
 
-      <input
-        placeholder="Email"
+      <FormInput
+        label="Email"
+        type="email"
         value={form.email}
-        onChange={(e) =>
-          setForm({ ...form, email: e.target.value })
-        }
+        onChange={(v) => setForm({ ...form, email: v })}
+        required
       />
 
-      <select
-        value={form.role}
-        onChange={(e) =>
-          setForm({ ...form, role: e.target.value })
-        }
-      >
-        <option value="admin">Admin</option>
-        <option value="manager">Manager</option>
-      </select>
+      <div className="form-group">
+        <label className="form-label">
+          Role <span className="text-danger">*</span>
+        </label>
 
-      <button onClick={submit} disabled={isLoading}>
-        {isLoading ? "Creating..." : "Create"}
-      </button>
-    </div>
+        <select
+          className="form-control"
+          value={form.role}
+          onChange={(e) =>
+            setForm({ ...form, role: e.target.value })
+          }
+        >
+          <option value="admin">Admin</option>
+          <option value="manager">Manager</option>
+        </select>
+      </div>
+    </Modal>
   );
 }

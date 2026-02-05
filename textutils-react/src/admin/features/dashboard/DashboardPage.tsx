@@ -2,18 +2,21 @@ import { useAuth } from "../../../auth/hooks/useAuth";
 import { useGetDashboardStatsQuery } from "../../../store/api";
 import InfoBox from "../shared/ui/InfoBox";
 import { ICONS } from "../../../constants/icons";
+import PageHeader from "../../../components/common/PageHeader";
 
 export default function Dashboard() {
   const { user, permissions } = useAuth();
   const { data: stats } = useGetDashboardStatsQuery();
 
   return (
-    <section className="content pt-3">
-      <div className="container-fluid">
-        <h3 className="mb-3">Admin Dashboard</h3>
+    <>
+      {/* PAGE HEADER */}
+      <PageHeader title="Admin Dashboard" />
 
+      {/* INFO BOXES */}
+      <div className="container-fluid">
         <div className="row">
-          <div className="col-md-3 col-sm-6">
+          <div className="col-lg-3 col-6">
             <InfoBox
               title="Total Users"
               value={stats?.total_users ?? 0}
@@ -22,7 +25,7 @@ export default function Dashboard() {
             />
           </div>
 
-          <div className="col-md-3 col-sm-6">
+          <div className="col-lg-3 col-6">
             <InfoBox
               title="Permissions"
               value={permissions.length}
@@ -31,7 +34,7 @@ export default function Dashboard() {
             />
           </div>
 
-          <div className="col-md-3 col-sm-6">
+          <div className="col-lg-3 col-6">
             <InfoBox
               title="Roles"
               value={user?.roles.length || 0}
@@ -41,6 +44,6 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-    </section>
+    </>
   );
 }
