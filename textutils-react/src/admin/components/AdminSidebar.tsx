@@ -1,37 +1,32 @@
 import MenuRenderer from "../../components/MenuRenderer";
 import { useGetSidebarQuery } from "../../store/api";
-import { useLogout } from "../../auth/hooks/useLogout";
 import type { SidebarGroup } from "../../types/sidebar";
 
 export default function AdminSidebar() {
-  const logout = useLogout();
   const { data: groups = [] } = useGetSidebarQuery();
-
-  const onAction = (action?: string) => {
-    if (action === "logout") logout("/admin/login");
-  };
 
   return (
     <>
-      {/* BRAND */}
-      <a href="/admin/dashboard" className="brand-link">
-        <span className="brand-text fw-semibold">
-          Admin Panel
+      {/* ================= BRAND ================= */}
+      <a href="/admin" className="brand-link">
+        <span className="brand-text fw-light">
+          <b>Admin</b>LTE 4
         </span>
       </a>
 
-      {/* MENU */}
+      {/* ================= SIDEBAR ================= */}
       <div className="sidebar">
         <nav className="mt-2">
           <ul
-            className="nav nav-sidebar flex-column"
+            className="nav nav-pills nav-sidebar flex-column"
             role="menu"
+            data-lte-toggle="treeview"
+            data-accordion="false"
           >
             {groups.map((group: SidebarGroup) => (
               <MenuRenderer
                 key={group.label}
                 group={group}
-                onAction={onAction}
               />
             ))}
           </ul>

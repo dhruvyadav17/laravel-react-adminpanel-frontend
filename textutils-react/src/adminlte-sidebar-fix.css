@@ -1,71 +1,201 @@
 /* ===================================================
-   ADMINLTE 4 + BOOTSTRAP 5 SIDEBAR (REACT SAFE)
+   ADMINLTE 4 DOCS – FINAL FIXED STYLE
+   SINGLE FILE (MERGED & CLEAN)
    =================================================== */
 
+/* ---------- ROOT ---------- */
+:root {
+  --header-height: 57px;
+  --sidebar-width: 250px;
+  --sidebar-mini: 4.6rem;
+
+  --sidebar-bg: #343a40;
+  --sidebar-text: #c2c7d0;
+  --sidebar-hover: #494e53;
+  --sidebar-active: #495057;
+
+  --submenu-bg: rgba(255,255,255,.04);
+  --submenu-active: rgba(255,255,255,.1);
+
+  --transition: .25s ease;
+}
+
+/* ===================================================
+   HEADER
+   =================================================== */
+.main-header {
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #dee2e6;
+  z-index: 1039;
+}
+
+.main-header .nav-link {
+  color: #495057;
+}
+
+.main-header .nav-link:hover {
+  color: #000;
+}
+
+.main-header .fa-bars {
+  font-size: 1.2rem;
+}
+
+/* ===================================================
+   SIDEBAR
+   =================================================== */
 .main-sidebar {
   position: fixed;
   top: 0;
   left: 0;
-  width: 250px;
+  width: var(--sidebar-width);
   height: 100vh;
-  z-index: 1038;
+  background-color: var(--sidebar-bg);
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: width var(--transition),
+              transform var(--transition);
+  z-index: 1040;
 }
 
-/* content shift */
+/* brand */
+.brand-link {
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+  color: #fff;
+  white-space: nowrap;
+}
+
+.brand-link:hover {
+  color: #fff;
+  text-decoration: none;
+}
+
+/* ===================================================
+   CONTENT
+   =================================================== */
 .content-wrapper {
-  margin-left: 250px;
-  padding: 1rem;
+  margin-left: var(--sidebar-width);
   min-height: 100vh;
+  transition: margin-left var(--transition);
 }
 
-/* sidebar nav */
+/* ===================================================
+   SIDEBAR MENU
+   =================================================== */
 .nav-sidebar {
-  padding-left: 0;
+  padding: .5rem 0;
+}
+
+.nav-sidebar .nav-item {
+  margin-bottom: 2px;
 }
 
 .nav-sidebar .nav-link {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.55rem 1rem;
-  color: #fff;
+  padding: .6rem 1rem;
+  color: var(--sidebar-text);
+  font-size: .95rem;
   cursor: pointer;
+  transition: background .2s ease, color .2s ease;
 }
 
 .nav-sidebar .nav-icon {
   width: 1.25rem;
+  margin-right: .5rem;
   text-align: center;
+  font-size: .9rem;
 }
 
-/* treeview */
+/* hover */
+.nav-sidebar .nav-link:hover {
+  background-color: var(--sidebar-hover);
+  color: #fff;
+}
+
+/* active */
+.nav-sidebar .nav-link.active {
+  background-color: var(--sidebar-active);
+  color: #fff;
+}
+
+/* ===================================================
+   TREEVIEW (SUBMENU)
+   =================================================== */
 .nav-treeview {
   display: none;
-  padding-left: 1.5rem;
+  background: var(--submenu-bg);
 }
 
 .menu-open > .nav-treeview {
   display: block;
 }
 
-/* active */
-.nav-link.active {
-  background-color: rgba(255, 255, 255, 0.2);
+.nav-treeview .nav-link {
+  padding-left: 2.5rem;
+  font-size: .9rem;
+  color: var(--sidebar-text);
 }
 
-/* hover */
-.nav-link:hover {
-  background-color: rgba(255, 255, 255, 0.15);
+.nav-treeview .nav-link:hover {
+  background-color: var(--sidebar-hover);
+  color: #fff;
 }
 
-/* collapsed */
+.nav-treeview .nav-link.active {
+  background: var(--submenu-active);
+  color: #fff;
+}
+
+/* arrow rotate (AdminLTE docs behavior) */
+.nav-link .right {
+  margin-left: auto;
+  transition: transform .2s ease;
+}
+
+.menu-open > .nav-link .right {
+  transform: rotate(-90deg);
+}
+
+/* ===================================================
+   COLLAPSED (DESKTOP)
+   =================================================== */
 body.sidebar-collapse .main-sidebar {
-  width: 4.6rem;
+  width: var(--sidebar-mini);
 }
 
 body.sidebar-collapse .content-wrapper {
-  margin-left: 4.6rem;
+  margin-left: var(--sidebar-mini);
 }
 
-body.sidebar-collapse .nav-link p {
+body.sidebar-collapse .nav-link p,
+body.sidebar-collapse .brand-text {
   display: none;
+}
+
+body.sidebar-collapse .nav-icon {
+  margin: 0 auto;
+}
+
+/* ===================================================
+   MOBILE
+   =================================================== */
+@media (max-width: 768px) {
+  .main-sidebar {
+    transform: translateX(-100%);
+  }
+
+  body.sidebar-open .main-sidebar {
+    transform: translateX(0);
+  }
+
+  .content-wrapper {
+    margin-left: 0;
+  }
 }

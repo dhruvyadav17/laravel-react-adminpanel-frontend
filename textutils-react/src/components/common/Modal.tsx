@@ -9,9 +9,10 @@ type Props = {
   onClose: () => void;
 
   /* primary action */
-  onSave?: () => void;
+  onSave?: () => void | Promise<void>;
   saveText?: string;
   saveVariant?: "primary" | "success" | "danger";
+  saveDisabled?: boolean;
 
   /* secondary */
   cancelText?: string;
@@ -35,6 +36,7 @@ export default function Modal({
   onSave,
   saveText = "Save",
   saveVariant = "primary",
+  saveDisabled = false,
   cancelText = "Cancel",
 
   loading = false,
@@ -65,8 +67,10 @@ export default function Modal({
 
   return (
     <>
+      {/* BACKDROP */}
       <div className="modal-backdrop fade show" />
 
+      {/* MODAL */}
       <div
         className="modal fade show d-block"
         role="dialog"
@@ -85,11 +89,9 @@ export default function Modal({
               {!disableClose && (
                 <button
                   type="button"
-                  className="close"
+                  className="btn-close"
                   onClick={onClose}
-                >
-                  ×
-                </button>
+                />
               )}
             </div>
 
@@ -113,6 +115,7 @@ export default function Modal({
                       icon={ICONS.SAVE}
                       variant={saveVariant}
                       loading={loading}
+                      disabled={saveDisabled}
                       onClick={onSave}
                     />
                   )}

@@ -2,8 +2,8 @@ import { useState } from "react";
 import Modal from "./Modal";
 
 type Props = {
-  message: string;                 // 🔥 one-line message only
-  onConfirm: () => Promise<void>;  // async safe
+  message: string;
+  onConfirm: () => Promise<void>;
   onClose: () => void;
   confirmLabel?: string;
 };
@@ -12,7 +12,7 @@ export default function ConfirmDeleteModal({
   message,
   onConfirm,
   onClose,
-  confirmLabel = "Delete", // default
+  confirmLabel = "Delete",
 }: Props) {
   const [loading, setLoading] = useState(false);
 
@@ -31,16 +31,13 @@ export default function ConfirmDeleteModal({
       title="Confirm Action"
       onClose={onClose}
       onSave={handleConfirm}
+      saveText={confirmLabel}
+      saveVariant="danger"
       saveDisabled={loading}
-      saveText="Delete"
-      saveVariant="danger" 
-      dialogClassName="modal-sm"
       disableClose={loading}
+      size="sm"
     >
-      {/* 🔥 RULE: ONE SENTENCE, CLEAR CONSEQUENCE */}
-      <p className="text-danger mb-0">
-        {message}
-      </p>
+      <p className="text-danger mb-0">{message}</p>
     </Modal>
   );
 }

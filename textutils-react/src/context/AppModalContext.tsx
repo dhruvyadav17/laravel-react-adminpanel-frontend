@@ -5,7 +5,7 @@ type ModalType = keyof ModalMap;
 
 type ModalContextValue = {
   modalType: ModalType | null;
-  modalData: any;
+  modalData: ModalMap[ModalType] | null;
   openModal: <K extends ModalType>(
     type: K,
     data: ModalMap[K]
@@ -24,9 +24,13 @@ export function AppModalProvider({
 }) {
   const [modalType, setModalType] =
     useState<ModalType | null>(null);
-  const [modalData, setModalData] = useState<any>(null);
+  const [modalData, setModalData] =
+    useState<ModalMap[ModalType] | null>(null);
 
-  const openModal = (type: ModalType, data: any) => {
+  const openModal = <K extends ModalType>(
+    type: K,
+    data: ModalMap[K]
+  ) => {
     setModalType(type);
     setModalData(data);
   };
@@ -45,7 +49,7 @@ export function AppModalProvider({
   );
 }
 
-export function useAppModal<T = any>() {
+export function useAppModal() {
   const ctx = useContext(AppModalContext);
   if (!ctx) {
     throw new Error(
