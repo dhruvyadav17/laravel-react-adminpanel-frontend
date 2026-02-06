@@ -1,0 +1,71 @@
+/* ===================================================
+   ADMINLTE 4 + BOOTSTRAP 5 SIDEBAR (REACT SAFE)
+   =================================================== */
+
+.main-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 250px;
+  height: 100vh;
+  z-index: 1038;
+}
+
+/* content shift */
+.content-wrapper {
+  margin-left: 250px;
+  padding: 1rem;
+  min-height: 100vh;
+}
+
+/* sidebar nav */
+.nav-sidebar {
+  padding-left: 0;
+}
+
+.nav-sidebar .nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 1rem;
+  color: #fff;
+  cursor: pointer;
+}
+
+.nav-sidebar .nav-icon {
+  width: 1.25rem;
+  text-align: center;
+}
+
+/* treeview */
+.nav-treeview {
+  display: none;
+  padding-left: 1.5rem;
+}
+
+.menu-open > .nav-treeview {
+  display: block;
+}
+
+/* active */
+.nav-link.active {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* hover */
+.nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* collapsed */
+body.sidebar-collapse .main-sidebar {
+  width: 4.6rem;
+}
+
+body.sidebar-collapse .content-wrapper {
+  margin-left: 4.6rem;
+}
+
+body.sidebar-collapse .nav-link p {
+  display: none;
+}

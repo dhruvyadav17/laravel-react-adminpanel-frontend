@@ -12,9 +12,9 @@ export default function AdminNavbar() {
           <button
             className="nav-link btn btn-link"
             type="button"
-            data-widget="pushmenu"
+            data-lte-toggle="sidebar"   // 🔥 FIX
           >
-            <i className="fa-solid fa-bars" />
+            <i className="fas fa-bars" />
           </button>
         </li>
       </ul>
@@ -27,12 +27,12 @@ export default function AdminNavbar() {
             data-bs-toggle="dropdown"
             type="button"
           >
-            <i className="fa-solid fa-user-circle" />
+            <i className="fas fa-user-circle" />
           </button>
 
           <div className="dropdown-menu dropdown-menu-end">
             <NavLink to="/admin/profile" className="dropdown-item">
-              <i className="fa-solid fa-user me-2" />
+              <i className="fas fa-user me-2" />
               Profile
             </NavLink>
 
@@ -42,7 +42,7 @@ export default function AdminNavbar() {
               className="dropdown-item text-danger"
               onClick={() => logout("/admin/login")}
             >
-              <i className="fa-solid fa-right-from-bracket me-2" />
+              <i className="fas fa-sign-out-alt me-2" />
               Logout
             </button>
           </div>

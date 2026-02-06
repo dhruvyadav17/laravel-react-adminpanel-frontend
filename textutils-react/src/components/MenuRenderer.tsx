@@ -20,17 +20,20 @@ export default function MenuRenderer({ group, onAction }: Props) {
 
   return (
     <li className={`nav-item ${isGroupActive ? "menu-open" : ""}`}>
+      {/* GROUP HEADER (AdminLTE style) */}
       <a
         href="#"
         className={`nav-link ${isGroupActive ? "active" : ""}`}
+        onClick={(e) => e.preventDefault()}
       >
         <i className={`nav-icon ${group.icon}`} />
         <p>
           {group.label}
-          <i className="right fa-solid fa-angle-left" />
+          <i className="right fas fa-angle-left" />
         </p>
       </a>
 
+      {/* SUB MENU */}
       <ul className="nav nav-treeview">
         {items.map((item) => {
           const active =
@@ -48,7 +51,7 @@ export default function MenuRenderer({ group, onAction }: Props) {
                     onAction?.(item.action);
                   }}
                 >
-                  <i className="fa-solid fa-right-from-bracket nav-icon" />
+                  <i className="fas fa-sign-out-alt nav-icon" />
                   <p>{item.label}</p>
                 </a>
               ) : (
@@ -56,7 +59,7 @@ export default function MenuRenderer({ group, onAction }: Props) {
                   to={item.path!}
                   className={`nav-link ${active ? "active" : ""}`}
                 >
-                  <i className="fa-regular fa-circle nav-icon" />
+                  <i className="far fa-circle nav-icon" />
                   <p>{item.label}</p>
                 </NavLink>
               )}

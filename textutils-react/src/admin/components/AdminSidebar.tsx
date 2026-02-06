@@ -13,21 +13,19 @@ export default function AdminSidebar() {
 
   return (
     <>
-      {/* ===== BRAND ===== */}
+      {/* BRAND */}
       <a href="/admin/dashboard" className="brand-link">
         <span className="brand-text fw-semibold">
           Admin Panel
         </span>
       </a>
 
-      {/* ===== SIDEBAR MENU ===== */}
+      {/* MENU */}
       <div className="sidebar">
-        <nav>
+        <nav className="mt-2">
           <ul
             className="nav nav-sidebar flex-column"
             role="menu"
-            data-widget="treeview"
-            data-accordion="false"
           >
             {groups.map((group: SidebarGroup) => (
               <MenuRenderer
