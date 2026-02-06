@@ -12,14 +12,16 @@ export default function MenuRenderer({ group }: Props) {
 
   if (!items.length) return null;
 
-  // route-based active check (AdminLTE style)
+  // 🔍 check if any child route is active
   const isRouteActive = items.some(
-    item => item.path && location.pathname.startsWith(item.path)
+    (item) =>
+      item.path &&
+      location.pathname.startsWith(item.path)
   );
 
   const [open, setOpen] = useState(isRouteActive);
 
-  // auto-open when route changes
+  // 🔄 auto open on route change
   useEffect(() => {
     setOpen(isRouteActive);
   }, [isRouteActive]);
@@ -27,24 +29,29 @@ export default function MenuRenderer({ group }: Props) {
   return (
     <li className={`nav-item ${open ? "menu-open" : ""}`}>
       {/* ===== PARENT ===== */}
-      <a
-        href="#"
+      <button
+        type="button"
         className={`nav-link ${open ? "active" : ""}`}
-        onClick={e => {
-          e.preventDefault();
-          setOpen(v => !v);
-        }}
+        onClick={() => setOpen((v) => !v)}
+        style={{ background: "none", border: "none", width: "100%" }}
       >
         <i className={`nav-icon ${group.icon}`} />
         <p>
           {group.label}
-          <i className="right fas fa-angle-left" />
+          <i
+            className={`right fas fa-angle-left ${
+              open ? "rotate-90" : ""
+            }`}
+          />
         </p>
-      </a>
+      </button>
 
       {/* ===== SUB MENU ===== */}
-      <ul className="nav nav-treeview">
-        {items.map(item => (
+      <ul
+        className="nav nav-treeview"
+        style={{ display: open ? "block" : "none" }}
+      >
+        {items.map((item) => (
           <li key={item.label} className="nav-item">
             <NavLink
               to={item.path!}

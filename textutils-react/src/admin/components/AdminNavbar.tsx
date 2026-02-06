@@ -4,24 +4,19 @@ import { useLogout } from "../../auth/hooks/useLogout";
 export default function AdminNavbar() {
   const logout = useLogout();
 
-  const toggleSidebar = () => {
-    const body = document.body;
-    body.classList.toggle("sidebar-collapse");
-  };
-
   return (
     <nav className="main-header navbar navbar-expand navbar-white navbar-light">
       {/* ================= LEFT ================= */}
       <ul className="navbar-nav">
         <li className="nav-item">
-          <button
-            type="button"
-            className="nav-link sidebar-toggle-btn"
-            onClick={toggleSidebar}
-            aria-label="Toggle sidebar"
-          >
-            <i className="fas fa-bars" />
-          </button>
+        <button
+          type="button"
+          className="nav-link"
+          data-lte-toggle="sidebar"
+          aria-label="Toggle sidebar"
+        >
+          <i className="fas fa-bars" />
+        </button>
         </li>
 
         <li className="nav-item d-none d-sm-inline-block">

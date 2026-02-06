@@ -2,8 +2,12 @@ import { Outlet } from "react-router-dom";
 import AdminNavbar from "../components/AdminNavbar";
 import AdminSidebar from "../components/AdminSidebar";
 import ModalHost from "../../components/common/ModalHost";
-
+import { useEffect } from "react";
 export default function AdminLayout() {
+    useEffect(() => {
+    // 🧹 AdminLTE 4 safety cleanup
+    document.body.classList.remove("sidebar-open");
+  }, []);
   return (
     <div className="wrapper">
       {/* ================= HEADER ================= */}
