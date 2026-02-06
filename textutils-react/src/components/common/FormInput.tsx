@@ -29,7 +29,7 @@ export default function FormInput({
   className = "",
 }: Props) {
   return (
-    <div className={`form-group mb-2 ${className}`}>
+    <div className={`mb-2 ${className}`}>
       {label && (
         <label className="form-label">
           {label}

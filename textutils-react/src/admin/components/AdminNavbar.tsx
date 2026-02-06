@@ -6,17 +6,7 @@ export default function AdminNavbar() {
 
   const toggleSidebar = () => {
     const body = document.body;
-
-    // 📱 Mobile
-    if (window.innerWidth < 992) {
-      body.classList.toggle("sidebar-open");
-      body.classList.remove("sidebar-collapse");
-    }
-    // 🖥 Desktop
-    else {
-      body.classList.toggle("sidebar-collapse");
-      body.classList.remove("sidebar-open");
-    }
+    body.classList.toggle("sidebar-collapse");
   };
 
   return (

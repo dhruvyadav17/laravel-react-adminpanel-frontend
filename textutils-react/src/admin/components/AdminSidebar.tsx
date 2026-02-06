@@ -17,12 +17,7 @@ export default function AdminSidebar() {
       {/* ================= SIDEBAR ================= */}
       <div className="sidebar">
         <nav className="mt-2">
-          <ul
-            className="nav nav-pills nav-sidebar flex-column"
-            role="menu"
-            data-lte-toggle="treeview"
-            data-accordion="false"
-          >
+          <ul className="nav nav-pills nav-sidebar flex-column">
             {groups.map((group: SidebarGroup) => (
               <MenuRenderer
                 key={group.label}

@@ -10,7 +10,7 @@ export default function AdminLayout() {
       <AdminNavbar />
 
       {/* ================= SIDEBAR ================= */}
-      <aside className="main-sidebar sidebar-dark-primary elevation-4">
+      <aside className="main-sidebar sidebar-dark-primary">
         <AdminSidebar />
       </aside>
 

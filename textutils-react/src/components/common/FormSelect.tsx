@@ -34,7 +34,7 @@ export default function FormSelect({
   className = "",
 }: Props) {
   return (
-    <div className={`form-group mb-2 ${className}`}>
+    <div className={`mb-2 ${className}`}>
       {label && (
         <label className="form-label">
           {label}
@@ -45,7 +45,7 @@ export default function FormSelect({
       )}
 
       <select
-        className={`form-control ${error ? "is-invalid" : ""}`}
+        className={`form-select ${error ? "is-invalid" : ""}`}
         value={value}
         disabled={disabled}
         required={required}
