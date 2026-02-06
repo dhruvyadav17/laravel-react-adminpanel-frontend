@@ -3,12 +3,8 @@ import FormInput from "../../../components/common/FormInput";
 import { useModalForm } from "../../../hooks/useModalForm";
 import { useAppModal } from "../../../context/AppModalContext";
 import { useAuth } from "../../../auth/hooks/useAuth";
-
-// import PageHeader from "../../../components/common/PageHeader";
 import DataTable from "../../../components/common/DataTable";
 import RowActions from "../../../components/common/RowActions";
-// import Button from "../../../components/common/Button";
-// import Can from "../../../components/common/Can";
 import Modal from "../../../components/common/Modal";
 import AssignModal from "./AssignModal";
 
@@ -115,14 +111,14 @@ function RolesPage() {
               columns={
                 <tr>
                   <th>Name</th>
-                  <th className="text-right">Actions</th>
+                  <th className="text-end">Actions</th>
                 </tr>
               }
             >
               {roles.map((role) => (
                 <tr key={role.id}>
                   <td>{role.name}</td>
-                  <td className="text-right">
+                  <td className="text-end">
                     <RowActions actions={getRowActions(role)} />
                   </td>
                 </tr>

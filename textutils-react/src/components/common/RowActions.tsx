@@ -31,7 +31,7 @@ export default function RowActions({ actions }: Props) {
           disabled={action.disabled}
           size="sm"
           title={action.title}
-          className={index < visible.length - 1 ? "mr-2" : ""}
+          className={index < visible.length - 1 ? "me-2" : ""}
         />
       ))}
     </div>

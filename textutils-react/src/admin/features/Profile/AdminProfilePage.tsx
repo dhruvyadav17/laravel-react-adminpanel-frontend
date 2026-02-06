@@ -30,9 +30,11 @@ export default function AdminProfilePage() {
         <hr />
 
         <h5>Permissions</h5>
-        <ul>
+        <ul className="list-group list-group-flush">
           {permissions.map((p) => (
-            <li key={p}>{p}</li>
+            <li key={p} className="list-group-item">
+              {p}
+            </li>
           ))}
         </ul>
       </div>

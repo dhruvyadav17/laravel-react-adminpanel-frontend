@@ -6,11 +6,6 @@ import { useLogout } from "../../../auth/hooks/useLogout";
 export default function ProfilePage() {
   const { user } = useAuth();
   const logout = useLogout();
-  useEffect(() => {
-    // Bootstrap tab fix (jQuery)
-    // @ts-ignore
-    window.$?.('[data-toggle="tab"]').tab();
-  }, []);
 
   if (!user) {
     return (
@@ -36,7 +31,7 @@ export default function ProfilePage() {
               <h5 className="mb-1">{user.name}</h5>
               <p className="text-muted mb-2">{user.email}</p>
 
-              <span className="badge badge-success">Active User</span>
+              <span className="badge bg-success">Active User</span>
             </div>
           </div>
         </div>
@@ -100,7 +95,7 @@ export default function ProfilePage() {
                   className="btn btn-outline-danger btn-sm mt-3"
                   onClick={() => logout("/login")}
                 >
-                  <i className="fas fa-sign-out-alt mr-1" />
+                  <i className="fas fa-sign-out-alt me-1" />
                   Logout
                 </button>
               </div>

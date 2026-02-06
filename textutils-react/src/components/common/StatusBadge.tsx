@@ -14,26 +14,26 @@ export default function StatusBadge({
     switch (status) {
       case "active":
         label = "Active";
-        className = "badge badge-success";
+        className = "badge bg-success";
         break;
       case "inactive":
         label = "Inactive";
-        className = "badge badge-secondary";
+        className = "badge bg-secondary";
         break;
       case "locked":
         label = "Locked";
-        className = "badge badge-danger";
+        className = "badge bg-danger";
         break;
       case "archived":
         label = "Archived";
-        className = "badge badge-warning";
+        className = "badge bg-warning";
         break;
     }
   } else if (active !== undefined) {
     label = active ? "Active" : "Inactive";
     className = active
-      ? "badge badge-success"
-      : "badge badge-secondary";
+      ? "badge bg-success"
+      : "badge bg-secondary";
   }
 
   return <span className={className}>{label}</span>;

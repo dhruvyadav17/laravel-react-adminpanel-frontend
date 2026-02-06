@@ -34,7 +34,7 @@ export default function FormInput({
         <label className="form-label">
           {label}
           {required && (
-            <span className="text-danger ml-1">*</span>
+            <span className="text-danger ms-1">*</span>
           )}
         </label>
       )}

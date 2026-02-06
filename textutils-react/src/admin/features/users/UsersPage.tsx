@@ -31,16 +31,13 @@ import StatusBadge from "../../../components/common/StatusBadge";
 import PageActions from "../../../components/common/PageActions";
 
 function UsersPage() {
-  
-  const { modalType, modalData, openModal, closeModal } =
-    useAppModal<any>();
+  const { modalType, modalData, openModal, closeModal } = useAppModal<any>();
 
-  const { page, setPage, search, setSearch } =
-    usePagination();
+  const { page, setPage, search, setSearch } = usePagination();
 
   const { data, isLoading } = useGetUsersQuery(
     { page, search },
-    { refetchOnMountOrArgChange: true }
+    { refetchOnMountOrArgChange: true },
   );
 
   const users = data?.data ?? [];
@@ -61,16 +58,13 @@ function UsersPage() {
       onConfirm: async () => {
         await execute(
           () => deleteUser(user.id).unwrap(),
-          "User archived successfully"
+          "User archived successfully",
         );
       },
     });
 
   const handleRestore = (user: User) =>
-    execute(
-      () => restoreUser(user.id).unwrap(),
-      "User restored successfully"
-    );
+    execute(() => restoreUser(user.id).unwrap(), "User restored successfully");
 
   /* ================= TABLE ACTIONS ================= */
 
@@ -118,9 +112,7 @@ function UsersPage() {
   });
 
   const getRowActions = (user: User) =>
-    user.deleted_at
-      ? getDeletedUserActions(user)
-      : getActiveUserActions(user);
+    user.deleted_at ? getDeletedUserActions(user) : getActiveUserActions(user);
 
   /* ================= VIEW ================= */
 
@@ -157,7 +149,7 @@ function UsersPage() {
                   <th>Email</th>
                   <th>Roles</th>
                   <th>Status</th>
-                  <th className="text-right">Actions</th>
+                  <th className="text-end">Actions</th>
                 </tr>
               }
             >
@@ -165,9 +157,7 @@ function UsersPage() {
                 <tr key={user.id}>
                   <td>{user.name}</td>
                   <td>{user.email}</td>
-                  <td>
-                    {user.roles?.join(", ") || "—"}
-                  </td>
+                  <td>{user.roles?.join(", ") || "—"}</td>
                   <td>
                     {user.deleted_at ? (
                       <StatusBadge status="archived" />
@@ -175,10 +165,8 @@ function UsersPage() {
                       <StatusBadge active />
                     )}
                   </td>
-                  <td className="text-right">
-                    <RowActions
-                      actions={getRowActions(user)}
-                    />
+                  <td className="text-end">
+                    <RowActions actions={getRowActions(user)} />
                   </td>
                 </tr>
               ))}
@@ -186,18 +174,13 @@ function UsersPage() {
           </CardBody>
         </Card>
 
-        {meta && (
-          <Pagination
-            meta={meta}
-            onPageChange={setPage}
-          />
-        )}
+        {meta && <Pagination meta={meta} onPageChange={setPage} />}
 
         {/* ================= MODALS ================= */}
 
         {modalType === "user-form" && (
           <UserFormModal
-            user={modalData}   // 👈 NEW (null for add, user for edit)
+            user={modalData} // 👈 NEW (null for add, user for edit)
             onClose={closeModal}
             onSaved={closeModal}
           />

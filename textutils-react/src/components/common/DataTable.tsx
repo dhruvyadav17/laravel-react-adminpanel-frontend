@@ -23,7 +23,7 @@ export default function DataTable({
 }: Props) {
   return (
     <table className="table table-hover table-bordered text-nowrap">
-      <thead className="thead-dark">{columns}</thead>
+      <thead className="table-dark">{columns}</thead>
 
       {isLoading ? (
         <TableSkeleton rows={5} cols={colSpan} />

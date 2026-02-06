@@ -3,10 +3,7 @@ import { memo } from "react";
 import Modal from "../../../components/common/Modal";
 import FormInput from "../../../components/common/FormInput";
 import RowActions from "../../../components/common/RowActions";
-// import Button from "../../../components/common/Button";
-// import PageHeader from "../../../components/common/PageHeader";
 import DataTable from "../../../components/common/DataTable";
-// import Can from "../../../components/common/Can";
 import { useTableActions } from "../../../components/common/useTableActions";
 
 import Card from "../shared/ui/Card";
@@ -110,14 +107,14 @@ function PermissionsPage() {
               columns={
                 <tr>
                   <th>Name</th>
-                  <th className="text-right">Actions</th>
+                  <th className="text-end">Actions</th>
                 </tr>
               }
             >
               {permissions.map((permission) => (
                 <tr key={permission.id}>
                   <td>{permission.name}</td>
-                  <td className="text-right">
+                  <td className="text-end">
                     <RowActions actions={getRowActions(permission)} />
                   </td>
                 </tr>

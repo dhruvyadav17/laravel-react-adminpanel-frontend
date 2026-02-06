@@ -19,7 +19,7 @@ export default function ProfileRoles() {
           className="list-group-item d-flex justify-content-between align-items-center"
         >
           {role}
-          <span className="badge badge-primary">
+          <span className="badge bg-primary">
             Active
           </span>
         </li>
