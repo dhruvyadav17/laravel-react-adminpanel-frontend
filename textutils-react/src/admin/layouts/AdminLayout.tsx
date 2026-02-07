@@ -8,7 +8,7 @@ export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (
-    <div className={`app-wrapper ${sidebarOpen ? "" : "sidebar-collapse"}`}>
+    <div className={`app-wrapper layout-fixed ${ !sidebarOpen ? "sidebar-collapse" : ""}`}>
       {/* HEADER */}
       <nav className="app-header navbar navbar-expand bg-body">
         <AdminNavbar

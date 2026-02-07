@@ -14,32 +14,26 @@ export default function MenuRenderer({ group }: Props) {
   const items = group.children ?? [];
   if (!items.length) return null;
 
-  // active route check
+  // route active → submenu auto open
   const isRouteActive = items.some(
-    (item) =>
-      item.path &&
-      location.pathname.startsWith(item.path)
+    (item) => item.path && location.pathname.startsWith(item.path),
   );
 
-  const [open, setOpen] = useState(isRouteActive);
+  const [open, setOpen] = useState(false);
 
-  // auto open on route change
   useEffect(() => {
-    setOpen(isRouteActive);
+    if (isRouteActive) setOpen(true);
   }, [isRouteActive]);
 
   return (
     <li className={`nav-item ${open ? "menu-open" : ""}`}>
       {/* PARENT */}
-      <button
-        type="button"
+      <a
+        href="#"
         className={`nav-link ${open ? "active" : ""}`}
-        onClick={() => setOpen((v) => !v)}
-        style={{
-          background: "none",
-          border: "none",
-          width: "100%",
-          textAlign: "left",
+        onClick={(e) => {
+          e.preventDefault();
+          setOpen((v) => !v);
         }}
       >
         <i className={`nav-icon ${group.icon}`} />
@@ -47,31 +41,25 @@ export default function MenuRenderer({ group }: Props) {
           {group.label}
           <i className="right fas fa-angle-left" />
         </p>
-      </button>
+      </a>
 
       {/* SUB MENU */}
-      <ul
-        className="nav nav-treeview"
-        style={{ display: open ? "block" : "none" }}
-      >
+      <ul className="nav nav-treeview">
         {items.map((item) => {
           if (item.action === "logout") {
             return (
               <li key={item.label} className="nav-item">
-                <button
-                  type="button"
+                <a
+                  href="#"
                   className="nav-link text-danger"
-                  onClick={() => logout("/admin/login")}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    width: "100%",
-                    textAlign: "left",
+                  onClick={(e) => {
+                    e.preventDefault();
+                    logout("/admin/login");
                   }}
                 >
                   <i className="fas fa-sign-out-alt nav-icon" />
                   <p>{item.label}</p>
-                </button>
+                </a>
               </li>
             );
           }
