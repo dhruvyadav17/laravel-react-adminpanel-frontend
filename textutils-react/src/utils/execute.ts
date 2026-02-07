@@ -28,7 +28,7 @@ export async function execute<T>(
      * - Else use fallback (if provided)
      * - If neither → no toast (silent success)
      */
-    if (successFallback || res?.data?.message) {
+    if (successFallback || res?.message) {
       handleApiSuccess(res, successFallback);
     }
 
