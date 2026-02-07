@@ -8,7 +8,7 @@ use App\Services\Role\RoleService;
 use App\Http\Resources\RoleResource;
 use App\Http\Resources\PermissionResource;
 use App\Http\Controllers\Controller;
-
+use App\Http\Requests\RoleRequest;
 class RoleController extends Controller
 {
     public function __construct(
@@ -31,13 +31,11 @@ class RoleController extends Controller
     /**
      * ➕ POST /api/v1/admin/roles
      */
-    public function store(Request $request)
+    public function store(RoleRequest $request)
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:100', 'unique:roles,name'],
-        ]);
-
-        $role = $this->service->create($data);
+        $role = $this->service->create(
+            $request->validated()
+        );
 
         return $this->success(
             'Role created successfully',
@@ -50,24 +48,19 @@ class RoleController extends Controller
     /**
      * ✏️ PUT /api/v1/admin/roles/{role}
      */
-    public function update(Request $request, Role $role)
+    public function update(RoleRequest $request, Role $role)
     {
-        $data = $request->validate([
-            'name' => [
-                'required',
-                'string',
-                'max:100',
-                'unique:roles,name,' . $role->id,
-            ],
-        ]);
-
-        $updated = $this->service->update($role, $data);
+        $role = $this->service->update(
+            $role,
+            $request->validated()
+        );
 
         return $this->success(
             'Role updated successfully',
-            RoleResource::make($updated)
+            RoleResource::make($role)
         );
     }
+
 
     /**
      * ❌ DELETE /api/v1/admin/roles/{role}

@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Permission;
-use Illuminate\Http\Request;
 use App\Services\Permission\PermissionService;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\PermissionRequest;
 
 class PermissionController extends Controller
 {
@@ -24,13 +24,11 @@ class PermissionController extends Controller
         );
     }
 
-    public function store(Request $request)
+    public function store(PermissionRequest $request)
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'unique:permissions,name'],
-        ]);
-
-        $permission = $this->service->create($data);
+        $permission = $this->service->create(
+            $request->validated()
+        );
 
         return $this->success('Permission created', [
             'id'   => $permission->id,
@@ -38,7 +36,7 @@ class PermissionController extends Controller
         ]);
     }
 
-    public function update(Request $request, Permission $permission)
+    public function update(PermissionRequest $request, Permission $permission)
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'unique:permissions,name,' . $permission->id],

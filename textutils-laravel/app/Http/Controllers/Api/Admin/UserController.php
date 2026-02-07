@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Models\Permission; 
 use App\Services\User\UserService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use App\Http\Requests\UserRequest;
 
 class UserController extends Controller
 {
@@ -32,16 +32,11 @@ class UserController extends Controller
 
     /* ================= CREATE ================= */
 
-    public function store(StoreUserRequest $request)
+    public function store(UserRequest $request)
     {
         $user = $this->service->create(
             $request->validated()
         );
-
-        Log::info('User created', [
-            'user_id' => $user->id,
-            'email'   => $user->email,
-        ]);
 
         return $this->success(
             'User created successfully',

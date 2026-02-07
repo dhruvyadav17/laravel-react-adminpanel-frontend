@@ -1,25 +1,28 @@
 <?php
 
-namespace App\Http\Requests\Role;
+namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
-class StoreRoleRequest extends FormRequest
+class RoleRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // Already protected by middleware / permission
         return true;
     }
 
     public function rules(): array
     {
+        // Route Model Binding: {role}
+        $roleId = $this->route('role');
+
         return [
             'name' => [
                 'required',
                 'string',
                 'max:100',
-                'unique:roles,name',
+                Rule::unique('roles', 'name')->ignore($roleId),
             ],
         ];
     }
