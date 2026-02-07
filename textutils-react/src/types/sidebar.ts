@@ -3,7 +3,6 @@
 export type SidebarItem = {
   label: string;
   path?: string;
-  element?: JSX.Element;   // 🔥 ADD THIS
   permission?: string;
   action?: "logout";
 };
