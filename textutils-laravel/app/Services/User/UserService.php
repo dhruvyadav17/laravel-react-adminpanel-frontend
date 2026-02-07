@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Spatie\Permission\PermissionRegistrar;
+use App\Models\Permission;
 
 class UserService
 {
@@ -137,5 +138,20 @@ class UserService
         $user->syncPermissions($permissions);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    public function permissions(User $user): array
+    {
+        return [
+            'permissions' => Permission::query()
+                ->select('id', 'name')
+                ->orderBy('name')
+                ->get(),
+
+            'assigned' => $user
+                ->getAllPermissions()
+                ->pluck('name')
+                ->values(),
+        ];
     }
 }

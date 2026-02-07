@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Role;
 use Illuminate\Http\Request;
+use App\Http\Requests\RoleRequest;
 use App\Services\Role\RoleService;
+use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Controller;
 use App\Http\Resources\RoleResource;
 use App\Http\Resources\PermissionResource;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\RoleRequest;
+
 class RoleController extends Controller
 {
     public function __construct(
@@ -102,18 +104,18 @@ class RoleController extends Controller
     /**
      * 🔄 POST /api/v1/admin/roles/{role}/permissions
      */
-    public function assignPermissions(Request $request, Role $role)
-    {
-        $data = $request->validate([
-            'permissions'   => ['array'],
-            'permissions.*' => ['string', 'exists:permissions,name'],
-        ]);
-
+    public function assignPermissions(
+        RoleRequest $request,
+        Role $role
+    ) {
         $this->service->syncPermissions(
             $role,
-            $data['permissions'] ?? []
+            $request->validated()['permissions']
         );
 
-        return $this->success('Permissions updated successfully');
+        return $this->success(
+            'Permissions updated successfully'
+        );
     }
+
 }

@@ -14,9 +14,30 @@ class RoleRequest extends FormRequest
 
     public function rules(): array
     {
-        // Route Model Binding: {role}
         $roleId = $this->route('role');
 
+        /*
+        |--------------------------------------------------------------------------
+        | ASSIGN PERMISSIONS (POST /roles/{role}/permissions)
+        |--------------------------------------------------------------------------
+        */
+        if ($this->routeIs('roles.permissions.assign')) {
+            return [
+                'permissions' => ['required', 'array'],
+                'permissions.*' => [
+                    'string',
+                    Rule::exists('permissions', 'name')
+                        ->whereNull('deleted_at')
+                        ->where('guard_name', 'api'),
+                ],
+            ];
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | STORE / UPDATE ROLE
+        |--------------------------------------------------------------------------
+        */
         return [
             'name' => [
                 'required',

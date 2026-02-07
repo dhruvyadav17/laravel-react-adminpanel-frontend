@@ -98,17 +98,7 @@ class UserController extends Controller
     {
         return $this->success(
             'User permissions fetched',
-            [
-                'permissions' => Permission::query()
-                    ->select('id', 'name')
-                    ->orderBy('name')
-                    ->get(),
-
-                'assigned' => $user
-                    ->getAllPermissions()
-                    ->pluck('name')
-                    ->values(),
-            ]
+            $this->service->permissions($user)
         );
     }
 

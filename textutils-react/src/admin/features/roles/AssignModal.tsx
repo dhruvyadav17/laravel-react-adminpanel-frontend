@@ -6,6 +6,7 @@ import {
   useGetRolesQuery,
   useGetPermissionsQuery,
   useGetUserPermissionsQuery,
+  useGetRolePermissionsQuery,
   useAssignUserRolesMutation,
   useAssignUserPermissionsMutation,
   useAssignRolePermissionsMutation,
@@ -27,10 +28,10 @@ export default function AssignModal({
 }: Props) {
   const [selected, setSelected] = useState<string[]>([]);
 
-  /* ================= CONFIG ================= */
+  /* ================= MODE ================= */
 
   const isUser = "email" in entity;
-  const isRole = "name" in entity && !("email" in entity);
+  const isRole = !("email" in entity);
 
   const isUserRole = mode === "user-role";
   const isUserPermission = mode === "user-permission";
@@ -38,18 +39,28 @@ export default function AssignModal({
 
   /* ================= FETCH ================= */
 
+  // USER → ROLES
   const { data: roles = [] } = useGetRolesQuery(undefined, {
     skip: !isUserRole,
   });
 
+  // ALL PERMISSIONS (for checkbox list)
   const { data: permissions = [] } = useGetPermissionsQuery(undefined, {
-    skip: !isUserPermission && !isRolePermission,
+    skip: isUserRole,
   });
 
+  // USER → PERMISSIONS (assigned)
   const { data: userPermData } = useGetUserPermissionsQuery(
     isUserPermission ? (entity as User).id : 0,
     { skip: !isUserPermission }
   );
+
+  // ROLE → PERMISSIONS (🔥 MOST IMPORTANT FIX)
+  const { data: rolePermData, isFetching } =
+    useGetRolePermissionsQuery(
+      isRolePermission ? (entity as Role).id : 0,
+      { skip: !isRolePermission }
+    );
 
   /* ================= MUTATIONS ================= */
 
@@ -65,7 +76,7 @@ export default function AssignModal({
   const saving =
     savingRoles || savingUserPerm || savingRolePerm;
 
-  /* ================= INIT ================= */
+  /* ================= INIT SELECTED ================= */
 
   useEffect(() => {
     if (isUserRole && isUser) {
@@ -76,10 +87,10 @@ export default function AssignModal({
       setSelected(userPermData?.assigned ?? []);
     }
 
-    if (isRolePermission && "permissions" in entity) {
-      setSelected((entity as any).permissions ?? []);
+    if (isRolePermission) {
+      setSelected(rolePermData?.assigned ?? []);
     }
-  }, [mode, entity, userPermData]);
+  }, [mode, entity, userPermData, rolePermData]);
 
   /* ================= TOGGLE ================= */
 
@@ -132,10 +143,9 @@ export default function AssignModal({
 
   /* ================= LIST ================= */
 
-  const list =
-    isUserRole
-      ? roles.map((r) => r.name)
-      : permissions.map((p) => p.name);
+  const list = isUserRole
+    ? roles.map((r) => r.name)
+    : permissions.map((p) => p.name);
 
   /* ================= VIEW ================= */
 
@@ -146,28 +156,32 @@ export default function AssignModal({
       } – ${"name" in entity ? entity.name : ""}`}
       onClose={onClose}
       onSave={save}
-      saveDisabled={saving}
+      saveDisabled={saving || isFetching}
       saveText={saving ? "Saving..." : "Assign"}
       size="lg"
     >
-      <div className="row">
-        {list.map((item) => (
-          <div key={item} className="col-md-4 mb-2">
-            <div className="form-check">
-              <input
-                type="checkbox"
-                className="form-check-input"
-                checked={selected.includes(item)}
-                onChange={() => toggle(item)}
-                disabled={saving || item === "super-admin"}
-              />
-              <label className="form-check-label">
-                {item}
-              </label>
+      {isFetching ? (
+        <p>Loading...</p>
+      ) : (
+        <div className="row">
+          {list.map((item) => (
+            <div key={item} className="col-md-4 mb-2">
+              <div className="form-check">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  checked={selected.includes(item)}
+                  onChange={() => toggle(item)}
+                  disabled={saving || item === "super-admin"}
+                />
+                <label className="form-check-label">
+                  {item}
+                </label>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </Modal>
   );
 }

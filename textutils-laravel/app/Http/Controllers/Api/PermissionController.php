@@ -30,30 +30,39 @@ class PermissionController extends Controller
             $request->validated()
         );
 
-        return $this->success('Permission created', [
-            'id'   => $permission->id,
-            'name' => $permission->name,
-        ]);
+        return $this->success(
+            'Permission created',
+            [
+                'id'   => $permission->id,
+                'name' => $permission->name,
+            ],
+            [],
+            201
+        );
     }
 
-    public function update(PermissionRequest $request, Permission $permission)
-    {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'unique:permissions,name,' . $permission->id],
-        ]);
+    public function update(
+        PermissionRequest $request,
+        Permission $permission
+    ) {
+        $permission = $this->service->update(
+            $permission,
+            $request->validated()
+        );
 
-        $permission = $this->service->update($permission, $data);
-
-        return $this->success('Permission updated', [
-            'id'   => $permission->id,
-            'name' => $permission->name,
-        ]);
+        return $this->success(
+            'Permission updated',
+            [
+                'id'   => $permission->id,
+                'name' => $permission->name,
+            ]
+        );
     }
 
     public function destroy(Permission $permission)
     {
         $this->service->delete($permission);
 
-        return $this->success('Permission deleted', null);
+        return $this->success('Permission deleted');
     }
 }
