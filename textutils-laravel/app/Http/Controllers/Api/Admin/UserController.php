@@ -2,16 +2,16 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
-use App\Http\Controllers\Api\BaseApiController;
+use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
-use App\Models\Permission; // ✅ FIX: REQUIRED IMPORT
+use App\Models\Permission; 
 use App\Services\User\UserService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
-class UserController extends BaseApiController
+class UserController extends Controller
 {
     public function __construct(
         protected UserService $service

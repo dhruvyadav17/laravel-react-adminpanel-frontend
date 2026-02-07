@@ -1,11 +1,12 @@
 <?php
 
 namespace App\Http\Controllers\Api\Admin;
+use App\Http\Controllers\Controller;
 
-use App\Http\Controllers\Api\BaseApiController;
 use App\Services\Sidebar\SidebarService;
 
-class SidebarController extends BaseApiController
+class SidebarController extends Controller
+
 {
     public function __construct(
         protected SidebarService $service

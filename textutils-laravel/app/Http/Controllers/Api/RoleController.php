@@ -7,9 +7,9 @@ use Illuminate\Http\Request;
 use App\Services\Role\RoleService;
 use App\Http\Resources\RoleResource;
 use App\Http\Resources\PermissionResource;
-use App\Http\Controllers\Api\BaseApiController;
+use App\Http\Controllers\Controller;
 
-class RoleController extends BaseApiController
+class RoleController extends Controller
 {
     public function __construct(
         protected RoleService $service

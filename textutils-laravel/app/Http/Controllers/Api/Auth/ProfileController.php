@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Api\Auth;
 
-use App\Http\Controllers\Api\BaseApiController;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Http\Resources\UserResource;
 
-class ProfileController extends BaseApiController
+class ProfileController extends Controller
 {
     public function __invoke(Request $request)
     {

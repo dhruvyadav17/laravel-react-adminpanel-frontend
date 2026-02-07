@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Api\Auth;
 
-use App\Http\Controllers\Api\BaseApiController;
+use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\RefreshTokenRequest;
 use App\Services\Auth\RefreshTokenService;
 
-class RefreshTokenController extends BaseApiController
+class RefreshTokenController extends Controller
 {
     public function __invoke(
         RefreshTokenRequest $request,

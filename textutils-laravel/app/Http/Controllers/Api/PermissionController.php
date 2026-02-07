@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Models\Permission;
 use Illuminate\Http\Request;
 use App\Services\Permission\PermissionService;
-use App\Http\Controllers\Api\BaseApiController;
+use App\Http\Controllers\Controller;
 
-class PermissionController extends BaseApiController
+class PermissionController extends Controller
 {
     public function __construct(
         protected PermissionService $service
