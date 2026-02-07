@@ -1,6 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import type { SidebarGroup } from "../types/sidebar";
+import { useLogout } from "../auth/hooks/useLogout";
 
 type Props = {
   group: SidebarGroup;
@@ -8,11 +9,13 @@ type Props = {
 
 export default function MenuRenderer({ group }: Props) {
   const location = useLocation();
-  const items = group.children ?? [];
+  const logout = useLogout();
 
+  const items = group.children ?? [];
   if (!items.length) return null;
 
-  // 🔍 check if any child route is active
+  /* ================= ACTIVE ROUTE CHECK ================= */
+
   const isRouteActive = items.some(
     (item) =>
       item.path &&
@@ -21,19 +24,25 @@ export default function MenuRenderer({ group }: Props) {
 
   const [open, setOpen] = useState(isRouteActive);
 
-  // 🔄 auto open on route change
+  /* ================= AUTO OPEN ON ROUTE ================= */
+
   useEffect(() => {
     setOpen(isRouteActive);
   }, [isRouteActive]);
 
   return (
     <li className={`nav-item ${open ? "menu-open" : ""}`}>
-      {/* ===== PARENT ===== */}
+      {/* ================= PARENT ================= */}
       <button
         type="button"
         className={`nav-link ${open ? "active" : ""}`}
         onClick={() => setOpen((v) => !v)}
-        style={{ background: "none", border: "none", width: "100%" }}
+        style={{
+          background: "none",
+          border: "none",
+          width: "100%",
+          textAlign: "left",
+        }}
       >
         <i className={`nav-icon ${group.icon}`} />
         <p>
@@ -46,24 +55,48 @@ export default function MenuRenderer({ group }: Props) {
         </p>
       </button>
 
-      {/* ===== SUB MENU ===== */}
+      {/* ================= SUB MENU ================= */}
       <ul
         className="nav nav-treeview"
         style={{ display: open ? "block" : "none" }}
       >
-        {items.map((item) => (
-          <li key={item.label} className="nav-item">
-            <NavLink
-              to={item.path!}
-              className={({ isActive }) =>
-                `nav-link ${isActive ? "active" : ""}`
-              }
-            >
-              <i className="far fa-circle nav-icon" />
-              <p>{item.label}</p>
-            </NavLink>
-          </li>
-        ))}
+        {items.map((item) => {
+          /* ===== LOGOUT ACTION ===== */
+          if (item.action === "logout") {
+            return (
+              <li key={item.label} className="nav-item">
+                <button
+                  type="button"
+                  className="nav-link text-danger w-100"
+                  onClick={() => logout("/admin/login")}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    textAlign: "left",
+                  }}
+                >
+                  <i className="fas fa-sign-out-alt nav-icon" />
+                  <p>{item.label}</p>
+                </button>
+              </li>
+            );
+          }
+
+          /* ===== NORMAL LINK ===== */
+          return (
+            <li key={item.label} className="nav-item">
+              <NavLink
+                to={item.path!}
+                className={({ isActive }) =>
+                  `nav-link ${isActive ? "active" : ""}`
+                }
+              >
+                <i className="far fa-circle nav-icon" />
+                <p>{item.label}</p>
+              </NavLink>
+            </li>
+          );
+        })}
       </ul>
     </li>
   );
