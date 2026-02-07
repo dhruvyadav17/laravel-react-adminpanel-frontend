@@ -1,34 +1,35 @@
 import { Outlet } from "react-router-dom";
+import { useState } from "react";
 import AdminNavbar from "../components/AdminNavbar";
 import AdminSidebar from "../components/AdminSidebar";
 import ModalHost from "../../components/common/ModalHost";
-import { useEffect } from "react";
-export default function AdminLayout() {
-    useEffect(() => {
-    // 🧹 AdminLTE 4 safety cleanup
-    document.body.classList.remove("sidebar-open");
-  }, []);
-  return (
-    <div className="wrapper">
-      {/* ================= HEADER ================= */}
-      <AdminNavbar />
 
-      {/* ================= SIDEBAR ================= */}
-      <aside className="main-sidebar sidebar-dark-primary">
+export default function AdminLayout() {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  return (
+    <div className={`app-wrapper ${sidebarOpen ? "" : "sidebar-collapse"}`}>
+      {/* HEADER */}
+      <nav className="app-header navbar navbar-expand bg-body">
+        <AdminNavbar
+          onToggleSidebar={() =>
+            setSidebarOpen((prev) => !prev)
+          }
+        />
+      </nav>
+
+      {/* SIDEBAR */}
+      <aside className="app-sidebar bg-body-secondary shadow">
         <AdminSidebar />
       </aside>
 
-      {/* ================= CONTENT ================= */}
-      <div className="content-wrapper">
-        <Outlet />
-      </div>
+      {/* MAIN CONTENT */}
+      <main className="app-main">
+        <div className="app-content px-3 pt-3">
+          <Outlet />
+        </div>
+      </main>
 
-      {/* ================= FOOTER ================= */}
-      <footer className="main-footer text-center">
-        <strong>Admin Panel</strong>
-      </footer>
-
-      {/* ================= GLOBAL MODALS ================= */}
       <ModalHost />
     </div>
   );

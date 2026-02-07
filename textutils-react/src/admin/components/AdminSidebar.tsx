@@ -6,27 +6,25 @@ export default function AdminSidebar() {
   const { data: groups = [] } = useGetSidebarQuery();
 
   return (
-    <>
-      {/* ================= BRAND ================= */}
-      <a href="/admin" className="brand-link">
-        <span className="brand-text fw-light">
+    <div className="sidebar-wrapper">
+      {/* BRAND */}
+      <div className="sidebar-brand px-3 py-2 fw-semibold">
+        <a href="/admin" className="text-reset text-decoration-none">
           <b>Admin</b>LTE 4
-        </span>
-      </a>
-
-      {/* ================= SIDEBAR ================= */}
-      <div className="sidebar">
-        <nav className="mt-2">
-          <ul className="nav nav-pills nav-sidebar flex-column">
-            {groups.map((group: SidebarGroup) => (
-              <MenuRenderer
-                key={group.label}
-                group={group}
-              />
-            ))}
-          </ul>
-        </nav>
+        </a>
       </div>
-    </>
+
+      {/* MENU */}
+      <nav className="mt-2">
+        <ul className="nav sidebar-menu flex-column">
+          {groups.map((group: SidebarGroup) => (
+            <MenuRenderer
+              key={group.label}
+              group={group}
+            />
+          ))}
+        </ul>
+      </nav>
+    </div>
   );
 }

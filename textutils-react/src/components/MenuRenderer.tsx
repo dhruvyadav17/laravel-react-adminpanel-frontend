@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import type { SidebarGroup } from "../types/sidebar";
 import { useLogout } from "../auth/hooks/useLogout";
 
@@ -14,8 +14,7 @@ export default function MenuRenderer({ group }: Props) {
   const items = group.children ?? [];
   if (!items.length) return null;
 
-  /* ================= ACTIVE ROUTE CHECK ================= */
-
+  // active route check
   const isRouteActive = items.some(
     (item) =>
       item.path &&
@@ -24,15 +23,14 @@ export default function MenuRenderer({ group }: Props) {
 
   const [open, setOpen] = useState(isRouteActive);
 
-  /* ================= AUTO OPEN ON ROUTE ================= */
-
+  // auto open on route change
   useEffect(() => {
     setOpen(isRouteActive);
   }, [isRouteActive]);
 
   return (
     <li className={`nav-item ${open ? "menu-open" : ""}`}>
-      {/* ================= PARENT ================= */}
+      {/* PARENT */}
       <button
         type="button"
         className={`nav-link ${open ? "active" : ""}`}
@@ -47,31 +45,27 @@ export default function MenuRenderer({ group }: Props) {
         <i className={`nav-icon ${group.icon}`} />
         <p>
           {group.label}
-          <i
-            className={`right fas fa-angle-left ${
-              open ? "rotate-90" : ""
-            }`}
-          />
+          <i className="right fas fa-angle-left" />
         </p>
       </button>
 
-      {/* ================= SUB MENU ================= */}
+      {/* SUB MENU */}
       <ul
         className="nav nav-treeview"
         style={{ display: open ? "block" : "none" }}
       >
         {items.map((item) => {
-          /* ===== LOGOUT ACTION ===== */
           if (item.action === "logout") {
             return (
               <li key={item.label} className="nav-item">
                 <button
                   type="button"
-                  className="nav-link text-danger w-100"
+                  className="nav-link text-danger"
                   onClick={() => logout("/admin/login")}
                   style={{
                     background: "none",
                     border: "none",
+                    width: "100%",
                     textAlign: "left",
                   }}
                 >
@@ -82,7 +76,6 @@ export default function MenuRenderer({ group }: Props) {
             );
           }
 
-          /* ===== NORMAL LINK ===== */
           return (
             <li key={item.label} className="nav-item">
               <NavLink

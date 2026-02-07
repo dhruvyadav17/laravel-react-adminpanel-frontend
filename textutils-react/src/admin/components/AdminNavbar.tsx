@@ -1,47 +1,50 @@
 import { NavLink } from "react-router-dom";
 import { useLogout } from "../../auth/hooks/useLogout";
 
-export default function AdminNavbar() {
+type Props = {
+  onToggleSidebar: () => void;
+};
+
+export default function AdminNavbar({ onToggleSidebar }: Props) {
   const logout = useLogout();
 
   return (
-    <nav className="main-header navbar navbar-expand navbar-white navbar-light">
+    <nav className="navbar navbar-expand bg-body w-100">
       {/* ================= LEFT ================= */}
-      <ul className="navbar-nav">
+      <ul className="navbar-nav align-items-center">
+        {/* SIDEBAR TOGGLE (REACT CONTROLLED) */}
         <li className="nav-item">
-        <button
-          type="button"
-          className="nav-link"
-          data-lte-toggle="sidebar"
-          aria-label="Toggle sidebar"
-        >
-          <i className="fas fa-bars" />
-        </button>
+          <button
+            type="button"
+            className="btn btn-outline-secondary me-2"
+            onClick={onToggleSidebar}
+            aria-label="Toggle sidebar"
+          >
+            <i className="fas fa-bars" />
+          </button>
         </li>
 
-        <li className="nav-item d-none d-sm-inline-block">
-          <NavLink to="/admin" className="nav-link">
+        <li className="nav-item d-none d-md-inline-block">
+          <NavLink to="/admin" className="nav-link fw-semibold">
             Home
           </NavLink>
         </li>
 
-        <li className="nav-item d-none d-sm-inline-block">
-          <a href="#" className="nav-link">
-            Contact
-          </a>
+        <li className="nav-item d-none d-md-inline-block">
+          <span className="nav-link text-muted">Contact</span>
         </li>
       </ul>
 
       {/* ================= RIGHT ================= */}
-      <ul className="navbar-nav ms-auto">
-        {/* Search */}
+      <ul className="navbar-nav ms-auto align-items-center">
+        {/* SEARCH ICON */}
         <li className="nav-item">
-          <a href="#" className="nav-link">
+          <span className="nav-link">
             <i className="fas fa-search" />
-          </a>
+          </span>
         </li>
 
-        {/* Notifications */}
+        {/* NOTIFICATIONS */}
         <li className="nav-item dropdown">
           <a
             href="#"
@@ -51,7 +54,7 @@ export default function AdminNavbar() {
             aria-expanded="false"
           >
             <i className="far fa-bell" />
-            <span className="badge bg-warning navbar-badge">3</span>
+            <span className="badge bg-warning ms-1">3</span>
           </a>
 
           <div className="dropdown-menu dropdown-menu-end dropdown-menu-lg">
@@ -61,28 +64,30 @@ export default function AdminNavbar() {
 
             <div className="dropdown-divider" />
 
-            <a href="#" className="dropdown-item">
-              <i className="fas fa-envelope me-2" /> New message
-            </a>
+            <span className="dropdown-item">
+              <i className="fas fa-envelope me-2" />
+              New message
+            </span>
 
             <div className="dropdown-divider" />
 
-            <a href="#" className="dropdown-item">
-              <i className="fas fa-users me-2" /> New user registered
-            </a>
+            <span className="dropdown-item">
+              <i className="fas fa-users me-2" />
+              New user registered
+            </span>
           </div>
         </li>
 
-        {/* Profile */}
-        <li className="nav-item dropdown">
+        {/* PROFILE */}
+        <li className="nav-item dropdown ms-2">
           <a
             href="#"
-            className="nav-link profile-btn"
+            className="nav-link"
             data-bs-toggle="dropdown"
             role="button"
             aria-expanded="false"
           >
-            <i className="fas fa-user-circle fa-lg" />
+            <i className="fas fa-user-circle fs-5" />
           </a>
 
           <div className="dropdown-menu dropdown-menu-end">
@@ -94,6 +99,7 @@ export default function AdminNavbar() {
             <div className="dropdown-divider" />
 
             <button
+              type="button"
               className="dropdown-item text-danger"
               onClick={() => logout("/admin/login")}
             >
