@@ -20,7 +20,9 @@ export default function CreateAdminModal({ onClose }: Props) {
   const submit = async () => {
     const res = await execute(
       () => createAdmin(form).unwrap(),
-      "Admin created successfully"
+      {
+        defaultMessage: "Admin created successfully",
+      }
     );
 
     if (!res) return;
@@ -31,6 +33,7 @@ export default function CreateAdminModal({ onClose }: Props) {
 
     onClose();
   };
+
 
   return (
     <Modal

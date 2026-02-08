@@ -115,7 +115,7 @@ class UserController extends Controller
         );
 
         return $this->success(
-            'Permissions updated successfully',
+            'Permissions assigned successfully.',
             [
                 'assigned' => $user
                     ->getAllPermissions()

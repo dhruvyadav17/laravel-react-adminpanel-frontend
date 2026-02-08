@@ -58,13 +58,19 @@ function UsersPage() {
       onConfirm: async () => {
         await execute(
           () => deleteUser(user.id).unwrap(),
-          "User archived successfully",
+          {
+            defaultMessage: "User archived successfully",
+          }
         );
       },
     });
 
   const handleRestore = (user: User) =>
-    execute(() => restoreUser(user.id).unwrap(), "User restored successfully");
+    execute(() => restoreUser(user.id).unwrap(),
+    {
+      defaultMessage: "User restored successfully",
+    }
+);
 
   /* ================= TABLE ACTIONS ================= */
 

@@ -34,10 +34,12 @@ export default function ForgotPassword() {
         reset();
         return res;
       },
-      "Password reset link sent to your email"
-    ).catch(handleError)
-     .finally(() => setLoading(false));
+      {
+        defaultMessage: "Password reset link sent to your email",
+      }
+    ).finally(() => setLoading(false));
   };
+
 
   return (
     <div className="container mt-5" style={{ maxWidth: 420 }}>

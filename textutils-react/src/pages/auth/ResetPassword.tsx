@@ -18,8 +18,8 @@ export default function ResetPassword() {
     e.preventDefault();
 
     if (password !== confirm) {
-      alert("Passwords do not match");
-      return;
+      // ✅ centralized error toast
+      throw new Error("Passwords do not match");
     }
 
     await execute(
@@ -36,7 +36,9 @@ export default function ResetPassword() {
         navigate("/login", { replace: true });
         return res;
       },
-      "Password reset successfully"
+      {
+        defaultMessage: "Password reset successfully",
+      }
     ).finally(() => setLoading(false));
   };
 

@@ -119,7 +119,10 @@ export default function AssignModal({
         assignUserPermissions({
           id: (entity as User).id,
           permissions: selected,
-        }).unwrap()
+        }).unwrap(),
+        {
+          defaultMessage: "Permissions assigned successfully",
+        }
       );
     }
 
@@ -128,7 +131,10 @@ export default function AssignModal({
         assignRolePermissions({
           id: (entity as Role).id,
           permissions: selected,
-        }).unwrap()
+        }).unwrap(),
+        {
+          defaultMessage: "Permissions assigned successfully",
+        }
       );
     }
 
