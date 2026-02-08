@@ -27,6 +27,7 @@ import { ICONS } from "../../../constants/icons";
 import { useConfirmAction } from "../../../hooks/useConfirmAction";
 import PageActions from "../../../components/common/PageActions";
 import { getModalTitle } from "../../../utils/modalTitle";
+import { execute } from "../../../utils/execute";
 
 function PermissionsPage() {
   const confirmAction = useConfirmAction();
@@ -55,7 +56,12 @@ function PermissionsPage() {
           : createPermission(values).unwrap(),
 
       onSuccess: closeModal,
-    },
+
+      // 🔥 NEW (optional but recommended)
+      successMessage: modalData?.id
+        ? "Permission updated successfully"
+        : "Permission created successfully",
+    }
   );
 
   /* ================= DELETE ================= */
@@ -65,7 +71,11 @@ function PermissionsPage() {
       message: "Are you sure you want to delete this permission?",
       confirmLabel: "Delete Permission",
       onConfirm: async () => {
-        await deletePermission(permission.id).unwrap();
+        await execute(() => deletePermission(permission.id).unwrap(), {
+          variant: "danger", // 🔴 RED
+          defaultMessage: "Permission deleted successfully",
+        });
+
       },
     });
 

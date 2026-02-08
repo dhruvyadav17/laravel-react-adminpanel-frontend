@@ -4,6 +4,10 @@ import { execute } from "../utils/execute";
 type Options<T> = {
   onSubmit: (values: T) => Promise<any>;
   onSuccess?: () => void;
+
+  /** NEW (optional) */
+  successMessage?: string;
+  variant?: "success" | "danger";
 };
 
 export function useModalForm<T extends Record<string, any>>(
@@ -23,7 +27,17 @@ export function useModalForm<T extends Record<string, any>>(
   const submit = async () => {
     try {
       setLoading(true);
-      await execute(() => options.onSubmit(values));
+
+      await execute(
+        () => options.onSubmit(values),
+        {
+          defaultMessage:
+            options.successMessage ??
+            "Action completed successfully",
+          variant: options.variant ?? "success",
+        }
+      );
+
       reset();
       options.onSuccess?.();
     } catch (e) {
@@ -37,7 +51,6 @@ export function useModalForm<T extends Record<string, any>>(
     values,
     errors,
     loading,
-
     setField,
     submit,
     reset,

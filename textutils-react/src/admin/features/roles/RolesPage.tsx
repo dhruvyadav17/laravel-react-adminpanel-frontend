@@ -26,11 +26,11 @@ import { useTableActions } from "../../../components/common/useTableActions";
 import { useConfirmAction } from "../../../hooks/useConfirmAction";
 import PageActions from "../../../components/common/PageActions";
 import { getModalTitle } from "../../../utils/modalTitle";
+import { execute } from "../../../utils/execute";
 
 function RolesPage() {
   const confirmAction = useConfirmAction();
-  const { modalType, modalData, openModal, closeModal } =
-    useAppModal<any>();
+  const { modalType, modalData, openModal, closeModal } = useAppModal<any>();
 
   const { data: roles = [], isLoading } = useGetRolesQuery();
   const [createRole] = useCreateRoleMutation();
@@ -50,7 +50,7 @@ function RolesPage() {
             }).unwrap()
           : createRole(values).unwrap(),
       onSuccess: closeModal,
-    }
+    },
   );
 
   const handleDelete = (role: Role) =>
@@ -58,7 +58,10 @@ function RolesPage() {
       message: "Are you sure you want to delete this role?",
       confirmLabel: "Delete Role",
       onConfirm: async () => {
-        await deleteRole(role.id).unwrap();
+        await execute(() => deleteRole(role.id).unwrap(), {
+          variant: "danger", // 🔴 RED
+          defaultMessage: "Role deleted successfully",
+        });
       },
     });
 
@@ -127,18 +130,13 @@ function RolesPage() {
           </CardBody>
         </Card>
 
-        {(modalType === "role-add" ||
-          modalType === "role-edit") && (
+        {(modalType === "role-add" || modalType === "role-edit") && (
           <Modal
             title={getModalTitle("Role", modalData)}
             onClose={closeModal}
             onSave={form.submit}
             saveDisabled={form.loading}
-            saveText={
-              modalType === "role-edit"
-                ? "Update"
-                : "Save"
-            }
+            saveText={modalType === "role-edit" ? "Update" : "Save"}
           >
             <FormInput
               label="Role Name"

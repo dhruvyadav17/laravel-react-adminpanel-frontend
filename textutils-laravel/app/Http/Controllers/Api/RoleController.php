@@ -114,7 +114,7 @@ class RoleController extends Controller
         );
 
         return $this->success(
-            'Permissions updated successfully'
+            'Permissions assigned successfully.'
         );
     }
 

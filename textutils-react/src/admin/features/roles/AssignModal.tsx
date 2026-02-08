@@ -106,40 +106,35 @@ export default function AssignModal({
 
   const save = async () => {
     if (isUserRole) {
-      await execute(
-        () =>
-          assignUserRoles({
-            id: (entity as User).id,
-            roles: selected,
-          }).unwrap(),
-        "Roles assigned successfully"
+      await execute(() =>
+        assignUserRoles({
+          id: (entity as User).id,
+          roles: selected,
+        }).unwrap()
       );
     }
 
     if (isUserPermission) {
-      await execute(
-        () =>
-          assignUserPermissions({
-            id: (entity as User).id,
-            permissions: selected,
-          }).unwrap(),
-        "Permissions assigned successfully"
+      await execute(() =>
+        assignUserPermissions({
+          id: (entity as User).id,
+          permissions: selected,
+        }).unwrap()
       );
     }
 
     if (isRolePermission) {
-      await execute(
-        () =>
-          assignRolePermissions({
-            id: (entity as Role).id,
-            permissions: selected,
-          }).unwrap(),
-        "Permissions assigned successfully"
+      await execute(() =>
+        assignRolePermissions({
+          id: (entity as Role).id,
+          permissions: selected,
+        }).unwrap()
       );
     }
 
     onClose();
   };
+
 
   /* ================= LIST ================= */
 
