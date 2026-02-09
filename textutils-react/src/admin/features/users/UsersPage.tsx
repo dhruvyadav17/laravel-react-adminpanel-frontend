@@ -3,11 +3,11 @@ import { memo } from "react";
 import { useAppModal } from "../../../context/AppModalContext";
 import { useAuth } from "../../../auth/hooks/useAuth";
 import { usePagination } from "../../../hooks/usePagination";
-import DataTable from "../../../components/common/DataTable";
-import RowActions from "../../../components/common/RowActions";
+import DataTable from "../../components/table/DataTable";
+import RowActions from "../../components/table/RowActions";
 import AssignModal from "../roles/AssignModal";
 import Pagination from "../../../components/common/Pagination";
-import { useTableActions } from "../../../components/common/useTableActions";
+import { useTableActions } from "../../hooks/useTableActions";
 
 import Card from "../shared/ui/Card";
 import CardHeader from "../shared/ui/CardHeader";

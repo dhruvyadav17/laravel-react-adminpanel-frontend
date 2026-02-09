@@ -3,8 +3,8 @@ import FormInput from "../../../components/common/FormInput";
 import { useModalForm } from "../../../hooks/useModalForm";
 import { useAppModal } from "../../../context/AppModalContext";
 import { useAuth } from "../../../auth/hooks/useAuth";
-import DataTable from "../../../components/common/DataTable";
-import RowActions from "../../../components/common/RowActions";
+import DataTable from "../../components/table/DataTable";
+import RowActions from "../../components/table/RowActions";
 import Modal from "../../../components/common/Modal";
 import AssignModal from "./AssignModal";
 
@@ -22,7 +22,7 @@ import {
 import type { Role } from "../../../types/models";
 import { PERMISSIONS } from "../../../constants/permissions";
 import { ICONS } from "../../../constants/icons";
-import { useTableActions } from "../../../components/common/useTableActions";
+import { useTableActions } from "../../hooks/useTableActions";
 import { useConfirmAction } from "../../../hooks/useConfirmAction";
 import PageActions from "../../../components/common/PageActions";
 import { getModalTitle } from "../../../utils/modalTitle";

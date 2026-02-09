@@ -2,9 +2,9 @@ import { memo } from "react";
 
 import Modal from "../../../components/common/Modal";
 import FormInput from "../../../components/common/FormInput";
-import RowActions from "../../../components/common/RowActions";
-import DataTable from "../../../components/common/DataTable";
-import { useTableActions } from "../../../components/common/useTableActions";
+import RowActions from "../../components/table/RowActions";
+import DataTable from "../../components/table/DataTable";
+import { useTableActions } from "../../hooks/useTableActions";
 
 import Card from "../shared/ui/Card";
 import CardHeader from "../shared/ui/CardHeader";
