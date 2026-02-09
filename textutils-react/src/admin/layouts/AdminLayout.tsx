@@ -8,26 +8,29 @@ import ModalHost from "../../components/common/ModalHost";
 export default function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
 
-  // 🔥 BODY CLASS CONTROL (REQUIRED)
- useEffect(() => {
-  document.body.classList.toggle("sidebar-collapse", collapsed);
-}, [collapsed]);
+  useEffect(() => {
+    document.body.classList.toggle("sidebar-collapse", collapsed);
+
+    return () => {
+      document.body.classList.remove("sidebar-collapse");
+    };
+  }, [collapsed]);
 
   return (
     <div className="app-wrapper layout-fixed">
       {/* HEADER */}
-      <nav className="app-header navbar navbar-expand bg-body">
+      <nav className="app-header navbar navbar-expand bg-body border-bottom">
         <AdminNavbar onToggle={() => setCollapsed(v => !v)} />
       </nav>
 
       {/* SIDEBAR */}
-      <aside className="app-sidebar bg-body-secondary shadow">
+      <aside className="app-sidebar shadow">
         <AdminSidebar />
       </aside>
 
       {/* MAIN */}
       <main className="app-main">
-        <div className="content p-3">
+        <div className="container-fluid">
           <Outlet />
         </div>
       </main>

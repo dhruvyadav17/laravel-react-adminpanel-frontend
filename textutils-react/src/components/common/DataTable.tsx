@@ -22,23 +22,25 @@ export default function DataTable({
   emptyMessage,
 }: Props) {
   return (
-    <table className="table table-hover table-bordered text-nowrap">
-      <thead className="table-dark">{columns}</thead>
+    <div className="table-responsive">
+      <table className="table table-hover table-bordered text-nowrap w-100">
+        <thead className="table-dark">{columns}</thead>
 
-      {isLoading ? (
-        <TableSkeleton rows={5} cols={colSpan} />
-      ) : (
-        <tbody>
-          {hasData ? (
-            children
-          ) : (
-            <TableEmptyRow
-              colSpan={colSpan}
-              message={emptyMessage}
-            />
-          )}
-        </tbody>
-      )}
-    </table>
+        {isLoading ? (
+          <TableSkeleton rows={5} cols={colSpan} />
+        ) : (
+          <tbody>
+            {hasData ? (
+              children
+            ) : (
+              <TableEmptyRow
+                colSpan={colSpan}
+                message={emptyMessage}
+              />
+            )}
+          </tbody>
+        )}
+      </table>
+    </div>
   );
 }

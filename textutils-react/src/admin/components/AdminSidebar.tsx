@@ -6,14 +6,20 @@ export default function AdminSidebar() {
 
   return (
     <div className="sidebar">
+      {/* BRAND */}
       <a href="/admin/dashboard" className="brand-link">
-        <span className="brand-text fw-semibold">
+        <span className="brand-text">
           <b>Admin</b>LTE 4
         </span>
       </a>
 
+      {/* MENU */}
       <nav className="mt-2">
-        <ul className="nav nav-pills nav-sidebar flex-column" role="menu">
+        <ul
+          className="nav nav-pills nav-sidebar flex-column"
+          data-lte-toggle="treeview"
+          role="menu"
+        >
           {groups.map(group => (
             <MenuRenderer key={group.label} group={group} />
           ))}
@@ -22,4 +28,3 @@ export default function AdminSidebar() {
     </div>
   );
 }
-

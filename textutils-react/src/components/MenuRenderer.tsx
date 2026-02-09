@@ -28,7 +28,7 @@ export default function MenuRenderer({ group }: Props) {
     <li className={`nav-item ${open ? "menu-open" : ""}`}>
       <a
         href="#"
-        className={`nav-link ${open ? "active" : ""}`}
+        className={`nav-link ${isActive ? "active" : ""}`}
         onClick={e => {
           e.preventDefault();
           setOpen(v => !v);
