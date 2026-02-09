@@ -23,7 +23,7 @@ import {
 
 import type { Permission } from "../../../types/models";
 import { PERMISSIONS } from "../../../constants/permissions";
-import { ICONS } from "../../constants/icons";
+import { ICONS } from "../../../constants/icons";
 import { useConfirmAction } from "../../../hooks/useConfirmAction";
 import PageActions from "../../components/page/PageActions";
 import { getModalTitle } from "../../../utils/modalTitle";

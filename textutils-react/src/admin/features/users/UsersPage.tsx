@@ -25,7 +25,7 @@ import { execute } from "../../../utils/execute";
 import type { User } from "../../../types/models";
 
 import { PERMISSIONS } from "../../../constants/permissions";
-import { ICONS } from "../../constants/icons";
+import { ICONS } from "../../../constants/icons";
 import { useConfirmAction } from "../../../hooks/useConfirmAction";
 import StatusBadge from "../../../components/common/StatusBadge";
 import PageActions from "../../components/page/PageActions";

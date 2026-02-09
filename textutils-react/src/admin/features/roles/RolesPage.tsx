@@ -21,7 +21,7 @@ import {
 
 import type { Role } from "../../../types/models";
 import { PERMISSIONS } from "../../../constants/permissions";
-import { ICONS } from "../../constants/icons";
+import { ICONS } from "../../../constants/icons";
 import { useTableActions } from "../../hooks/useTableActions";
 import { useConfirmAction } from "../../../hooks/useConfirmAction";
 import PageActions from "../../components/page/PageActions";

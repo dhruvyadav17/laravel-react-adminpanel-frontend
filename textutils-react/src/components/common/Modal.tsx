@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import Button from "./Button";
-import { ICONS } from "../../admin/constants/icons";
+import { ICONS } from "../../constants/icons";
 
 type Props = {
   title: string;
