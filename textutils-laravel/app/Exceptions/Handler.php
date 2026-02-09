@@ -2,6 +2,7 @@
 
 namespace App\Exceptions;
 
+use App\Traits\ApiResponse;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -9,36 +10,38 @@ use Throwable;
 
 class Handler extends ExceptionHandler
 {
+    use ApiResponse;
+
     public function render($request, Throwable $e)
     {
         if ($request->expectsJson()) {
 
             /* ================= VALIDATION ERRORS ================= */
             if ($e instanceof ValidationException) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors'  => $e->errors(),
-                ], 422);
+                return $this->error(
+                    'Validation failed',
+                    $e->errors(),
+                    422
+                );
             }
 
             /* ================= HTTP EXCEPTIONS ================= */
             if ($e instanceof HttpException) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $e->getMessage() ?: 'Request error',
-                    'data'    => (object) [],
-                ], $e->getStatusCode());
+                return $this->error(
+                    $e->getMessage() ?: 'Request error',
+                    null,
+                    $e->getStatusCode()
+                );
             }
 
             /* ================= FALLBACK ================= */
-            return response()->json([
-                'success' => false,
-                'message' => config('app.debug')
+            return $this->error(
+                config('app.debug')
                     ? $e->getMessage()
                     : 'Server error',
-                'data' => (object) [],
-            ], 500);
+                null,
+                500
+            );
         }
 
         return parent::render($request, $e);

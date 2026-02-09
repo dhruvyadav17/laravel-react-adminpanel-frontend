@@ -1,201 +1,82 @@
-/* ===================================================
-   ADMINLTE 4 DOCS – FINAL FIXED STYLE
-   SINGLE FILE (MERGED & CLEAN)
-   =================================================== */
-
-/* ---------- ROOT ---------- */
-:root {
-  --header-height: 57px;
-  --sidebar-width: 250px;
-  --sidebar-mini: 4.6rem;
-
-  --sidebar-bg: #343a40;
-  --sidebar-text: #c2c7d0;
-  --sidebar-hover: #494e53;
-  --sidebar-active: #495057;
-
-  --submenu-bg: rgba(255,255,255,.04);
-  --submenu-active: rgba(255,255,255,.1);
-
-  --transition: .25s ease;
-}
-
-/* ===================================================
-   HEADER
-   =================================================== */
-.main-header {
-  height: var(--header-height);
-  display: flex;
-  align-items: center;
-  border-bottom: 1px solid #dee2e6;
-  z-index: 1039;
-}
-
-.main-header .nav-link {
-  color: #495057;
-}
-
-.main-header .nav-link:hover {
-  color: #000;
-}
-
-.main-header .fa-bars {
-  font-size: 1.2rem;
-}
-
-/* ===================================================
-   SIDEBAR
-   =================================================== */
-.main-sidebar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: var(--sidebar-width);
-  height: 100vh;
-  background-color: var(--sidebar-bg);
-  overflow-y: auto;
+/* =====================================================
+   SIDEBAR CORE
+===================================================== */
+.app-sidebar {
+  width: 260px;
+  transition: width 0.25s ease;
   overflow-x: hidden;
-  transition: width var(--transition),
-              transform var(--transition);
-  z-index: 1040;
 }
 
-/* brand */
-.brand-link {
-  height: var(--header-height);
-  display: flex;
-  align-items: center;
-  padding: 0 1rem;
-  border-bottom: 1px solid rgba(255,255,255,.1);
-  color: #fff;
+.sidebar {
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* =====================================================
+   COLLAPSED MODE
+===================================================== */
+.sidebar-collapse .app-sidebar {
+  width: 80px;
+}
+
+.sidebar-collapse .nav-sidebar .nav-link p {
+  opacity: 0;
+  visibility: hidden;
   white-space: nowrap;
 }
 
-.brand-link:hover {
-  color: #fff;
-  text-decoration: none;
+.sidebar-collapse .nav-sidebar .nav-icon {
+  margin-right: 0;
+  text-align: center;
+  width: 100%;
 }
 
-/* ===================================================
-   CONTENT
-   =================================================== */
-.content-wrapper {
-  margin-left: var(--sidebar-width);
-  min-height: 100vh;
-  transition: margin-left var(--transition);
+/* =====================================================
+   MAIN CONTENT SHIFT
+===================================================== */
+.app-main {
+  margin-left: 260px;
+  transition: margin-left 0.25s ease;
 }
 
-/* ===================================================
-   SIDEBAR MENU
-   =================================================== */
-.nav-sidebar {
-  padding: .5rem 0;
+.sidebar-collapse .app-main {
+  margin-left: 80px;
 }
 
-.nav-sidebar .nav-item {
-  margin-bottom: 2px;
+/* =====================================================
+   TREEVIEW (SUBMENU)
+===================================================== */
+.nav-sidebar .nav-treeview {
+  display: none;
+  padding-left: 1rem;
+}
+
+.nav-sidebar .menu-open > .nav-treeview {
+  display: block;
 }
 
 .nav-sidebar .nav-link {
   display: flex;
   align-items: center;
-  padding: .6rem 1rem;
-  color: var(--sidebar-text);
-  font-size: .95rem;
-  cursor: pointer;
-  transition: background .2s ease, color .2s ease;
+  gap: 0.5rem;
 }
 
-.nav-sidebar .nav-icon {
-  width: 1.25rem;
-  margin-right: .5rem;
+/* =====================================================
+   ICONS & ALIGNMENT
+===================================================== */
+.nav-icon {
+  min-width: 1.5rem;
   text-align: center;
-  font-size: .9rem;
 }
 
-/* hover */
-.nav-sidebar .nav-link:hover {
-  background-color: var(--sidebar-hover);
-  color: #fff;
-}
-
-/* active */
+/* =====================================================
+   ACTIVE STATES (ADMINLTE LIKE)
+===================================================== */
 .nav-sidebar .nav-link.active {
-  background-color: var(--sidebar-active);
+  background-color: #0d6efd;
   color: #fff;
 }
 
-/* ===================================================
-   TREEVIEW (SUBMENU)
-   =================================================== */
-.nav-treeview {
-  display: none;
-  background: var(--submenu-bg);
-}
-
-.menu-open > .nav-treeview {
-  display: block;
-}
-
-.nav-treeview .nav-link {
-  padding-left: 2.5rem;
-  font-size: .9rem;
-  color: var(--sidebar-text);
-}
-
-.nav-treeview .nav-link:hover {
-  background-color: var(--sidebar-hover);
+.nav-sidebar .nav-link.active i {
   color: #fff;
-}
-
-.nav-treeview .nav-link.active {
-  background: var(--submenu-active);
-  color: #fff;
-}
-
-/* arrow rotate (AdminLTE docs behavior) */
-.nav-link .right {
-  margin-left: auto;
-  transition: transform .2s ease;
-}
-
-.menu-open > .nav-link .right {
-  transform: rotate(-90deg);
-}
-
-/* ===================================================
-   COLLAPSED (DESKTOP)
-   =================================================== */
-body.sidebar-collapse .main-sidebar {
-  width: var(--sidebar-mini);
-}
-
-body.sidebar-collapse .content-wrapper {
-  margin-left: var(--sidebar-mini);
-}
-
-body.sidebar-collapse .nav-link p,
-body.sidebar-collapse .brand-text {
-  display: none;
-}
-
-body.sidebar-collapse .nav-icon {
-  margin: 0 auto;
-}
-
-/* ===================================================
-   MOBILE
-   =================================================== */
-@media (max-width: 768px) {
-  .main-sidebar {
-    transform: translateX(-100%);
-  }
-
-  body.sidebar-open .main-sidebar {
-    transform: translateX(0);
-  }
-
-  .content-wrapper {
-    margin-left: 0;
-  }
 }

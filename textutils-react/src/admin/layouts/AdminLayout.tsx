@@ -1,21 +1,23 @@
 import { Outlet } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
 import AdminNavbar from "../components/AdminNavbar";
 import AdminSidebar from "../components/AdminSidebar";
 import ModalHost from "../../components/common/ModalHost";
 
 export default function AdminLayout() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [collapsed, setCollapsed] = useState(false);
+
+  // 🔥 BODY CLASS CONTROL (REQUIRED)
+ useEffect(() => {
+  document.body.classList.toggle("sidebar-collapse", collapsed);
+}, [collapsed]);
 
   return (
-    <div className={`app-wrapper layout-fixed ${ !sidebarOpen ? "sidebar-collapse" : ""}`}>
+    <div className="app-wrapper layout-fixed">
       {/* HEADER */}
       <nav className="app-header navbar navbar-expand bg-body">
-        <AdminNavbar
-          onToggleSidebar={() =>
-            setSidebarOpen((prev) => !prev)
-          }
-        />
+        <AdminNavbar onToggle={() => setCollapsed(v => !v)} />
       </nav>
 
       {/* SIDEBAR */}
@@ -23,9 +25,9 @@ export default function AdminLayout() {
         <AdminSidebar />
       </aside>
 
-      {/* MAIN CONTENT */}
+      {/* MAIN */}
       <main className="app-main">
-        <div className="app-content px-3 pt-3">
+        <div className="content p-3">
           <Outlet />
         </div>
       </main>

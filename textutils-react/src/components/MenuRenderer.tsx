@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { SidebarGroup } from "../types/sidebar";
 import { useLogout } from "../auth/hooks/useLogout";
 
@@ -14,26 +14,24 @@ export default function MenuRenderer({ group }: Props) {
   const items = group.children ?? [];
   if (!items.length) return null;
 
-  // route active → submenu auto open
-  const isRouteActive = items.some(
-    (item) => item.path && location.pathname.startsWith(item.path),
+  const isActive = items.some(
+    i => i.path && location.pathname.startsWith(i.path)
   );
 
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(isActive);
 
   useEffect(() => {
-    if (isRouteActive) setOpen(true);
-  }, [isRouteActive]);
+    setOpen(isActive);
+  }, [isActive]);
 
   return (
     <li className={`nav-item ${open ? "menu-open" : ""}`}>
-      {/* PARENT */}
       <a
         href="#"
         className={`nav-link ${open ? "active" : ""}`}
-        onClick={(e) => {
+        onClick={e => {
           e.preventDefault();
-          setOpen((v) => !v);
+          setOpen(v => !v);
         }}
       >
         <i className={`nav-icon ${group.icon}`} />
@@ -43,16 +41,15 @@ export default function MenuRenderer({ group }: Props) {
         </p>
       </a>
 
-      {/* SUB MENU */}
       <ul className="nav nav-treeview">
-        {items.map((item) => {
+        {items.map(item => {
           if (item.action === "logout") {
             return (
               <li key={item.label} className="nav-item">
                 <a
                   href="#"
                   className="nav-link text-danger"
-                  onClick={(e) => {
+                  onClick={e => {
                     e.preventDefault();
                     logout("/admin/login");
                   }}
