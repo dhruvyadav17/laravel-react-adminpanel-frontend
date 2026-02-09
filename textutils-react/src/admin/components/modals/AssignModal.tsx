@@ -13,7 +13,7 @@ import {
 } from "../../../store/api";
 
 import type { User, Role } from "../../../types/models";
-import type { AssignMode } from "../../../types/modal";
+import type { AssignMode } from "../../types/modal";
 
 type Props = {
   mode: AssignMode;

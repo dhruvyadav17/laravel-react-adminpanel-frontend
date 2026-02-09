@@ -1,7 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import type { SidebarGroup } from "../../types/sidebar";
-import { useLogout } from "../../auth/hooks/useLogout";
+import { useLogout } from "../../../auth/hooks/useLogout";
 
 type Props = {
   group: SidebarGroup;

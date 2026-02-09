@@ -6,11 +6,11 @@ import { useAuth } from "../../../auth/hooks/useAuth";
 import DataTable from "../../components/table/DataTable";
 import RowActions from "../../components/table/RowActions";
 import Modal from "../../../components/common/Modal";
-import AssignModal from "./AssignModal";
+import AssignModal from "../../components/modals/AssignModal";
 
-import Card from "../shared/ui/Card";
-import CardHeader from "../shared/ui/CardHeader";
-import CardBody from "../shared/ui/CardBody";
+import Card from "../../components/ui/Card";
+import CardHeader from "../../components/ui/CardHeader";
+import CardBody from "../../components/ui/CardBody";
 
 import {
   useGetRolesQuery,
@@ -21,10 +21,10 @@ import {
 
 import type { Role } from "../../../types/models";
 import { PERMISSIONS } from "../../../constants/permissions";
-import { ICONS } from "../../../constants/icons";
+import { ICONS } from "../../constants/icons";
 import { useTableActions } from "../../hooks/useTableActions";
 import { useConfirmAction } from "../../../hooks/useConfirmAction";
-import PageActions from "../../../components/common/PageActions";
+import PageActions from "../../components/page/PageActions";
 import { getModalTitle } from "../../../utils/modalTitle";
 import { execute } from "../../../utils/execute";
 

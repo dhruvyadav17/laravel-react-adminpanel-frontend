@@ -1,5 +1,5 @@
 import { createContext, useContext, useState } from "react";
-import type { ModalMap } from "../types/modal";
+import type { ModalMap } from "../admin/types/modal";
 
 type ModalType = keyof ModalMap;
 

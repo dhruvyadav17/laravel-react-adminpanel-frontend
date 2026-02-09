@@ -1,8 +1,8 @@
 import { useAuth } from "../../../auth/hooks/useAuth";
 import { useGetDashboardStatsQuery } from "../../../store/api";
-import InfoBox from "../shared/ui/InfoBox";
-import { ICONS } from "../../../constants/icons";
-import PageHeader from "../../../components/common/PageHeader";
+import InfoBox from "../../components/ui/InfoBox";
+import { ICONS } from "../../constants/icons";
+import PageHeader from "../../components/page/PageHeader";
 
 export default function Dashboard() {
   const { user, permissions } = useAuth();

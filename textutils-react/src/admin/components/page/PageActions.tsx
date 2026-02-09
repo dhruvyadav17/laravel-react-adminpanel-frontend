@@ -1,6 +1,6 @@
 import PageHeader from "./PageHeader";
-import Button from "./Button";
-import Can from "./Can";
+import Button from "../../../components/common/Button";
+import Can from "../../../components/common/Can";
 
 type Props = {
   title: string;

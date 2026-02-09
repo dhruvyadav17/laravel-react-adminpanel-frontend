@@ -1,14 +1,14 @@
 import { Outlet } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import "admin-lte/dist/css/adminlte.min.css";
-import AdminNavbar from "../components/AdminNavbar";
-import AdminSidebar from "../components/AdminSidebar";
+import AdminNavbar from "./AdminNavbar";
+import AdminSidebar from "./AdminSidebar";
 import ModalHost from "../../components/common/ModalHost";
 
 export default function AdminLayout() {
 
   useEffect(() => {
-    import("../assets/css/adminlte-sidebar-fix.css");
+    import("../styles/adminlte-sidebar-fix.css");
     import("admin-lte/dist/js/adminlte.min.js");
 
     return () => {

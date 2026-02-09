@@ -83,22 +83,6 @@ export default function ProfilePage() {
               <div className="tab-pane fade" id="roles">
                 <ProfileRoles />
               </div>
-
-              {/* ===== SETTINGS (PLACEHOLDER) ===== */}
-              <div className="tab-pane fade" id="settings">
-                <p className="text-muted">Settings section coming soon.</p>
-
-                <button className="btn btn-outline-danger btn-sm">
-                  Change Password
-                </button>
-                <button
-                  className="btn btn-outline-danger btn-sm mt-3"
-                  onClick={() => logout("/login")}
-                >
-                  <i className="fas fa-sign-out-alt me-1" />
-                  Logout
-                </button>
-              </div>
             </div>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { ICONS } from "../../constants/icons";
+import { ICONS } from "../constants/icons";
 
 type ActionConfig<T> = {
   canEdit?: boolean;

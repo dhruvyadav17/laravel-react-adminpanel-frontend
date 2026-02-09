@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import MenuRenderer from "./MenuRenderer";
+import MenuRenderer from "../components/sidebar/MenuRenderer";
 import { useGetSidebarQuery } from "../../store/api";
 
 export default function AdminSidebar() {

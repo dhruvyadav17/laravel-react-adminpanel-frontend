@@ -1,4 +1,4 @@
-import type { User, Role } from "./models";
+import type { User, Role } from "../../types/models";
 
 /* ================= ASSIGN ================= */
 

@@ -5,15 +5,15 @@ import { useAuth } from "../../../auth/hooks/useAuth";
 import { usePagination } from "../../../hooks/usePagination";
 import DataTable from "../../components/table/DataTable";
 import RowActions from "../../components/table/RowActions";
-import AssignModal from "../roles/AssignModal";
+import AssignModal from "../../components/modals/AssignModal";
 import Pagination from "../../../components/common/Pagination";
 import { useTableActions } from "../../hooks/useTableActions";
 
-import Card from "../shared/ui/Card";
-import CardHeader from "../shared/ui/CardHeader";
-import CardBody from "../shared/ui/CardBody";
+import Card from "../../components/ui/Card";
+import CardHeader from "../../components/ui/CardHeader";
+import CardBody from "../../components/ui/CardBody";
 
-import UserFormModal from "./UserFormModal";
+import UserFormModal from "../../components/modals/UserFormModal";
 
 import {
   useGetUsersQuery,
@@ -25,10 +25,10 @@ import { execute } from "../../../utils/execute";
 import type { User } from "../../../types/models";
 
 import { PERMISSIONS } from "../../../constants/permissions";
-import { ICONS } from "../../../constants/icons";
+import { ICONS } from "../../constants/icons";
 import { useConfirmAction } from "../../../hooks/useConfirmAction";
 import StatusBadge from "../../../components/common/StatusBadge";
-import PageActions from "../../../components/common/PageActions";
+import PageActions from "../../components/page/PageActions";
 
 function UsersPage() {
   const { modalType, modalData, openModal, closeModal } = useAppModal<any>();
