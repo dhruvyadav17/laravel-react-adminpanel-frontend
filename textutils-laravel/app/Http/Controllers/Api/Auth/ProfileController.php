@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers\Api\Auth;
 
-use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 use App\Http\Requests\UserRequest;
+use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 
 class ProfileController extends Controller
 {
-    public function __invoke(UserRequest $request)
+    public function __invoke(Request $request)
     {
         $user = $request->user()->load('roles');
 
