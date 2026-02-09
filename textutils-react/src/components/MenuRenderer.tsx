@@ -14,21 +14,28 @@ export default function MenuRenderer({ group }: Props) {
   const items = group.children ?? [];
   if (!items.length) return null;
 
-  const isActive = items.some(
-    i => i.path && location.pathname.startsWith(i.path)
+  // 🔥 robust active detection
+  const isGroupActive = items.some(
+    i =>
+      i.path &&
+      location.pathname.startsWith(
+        i.path.replace(/\/$/, "")
+      )
   );
 
-  const [open, setOpen] = useState(isActive);
+  const [open, setOpen] = useState(isGroupActive);
 
   useEffect(() => {
-    setOpen(isActive);
-  }, [isActive]);
+    setOpen(isGroupActive);
+  }, [location.pathname]);
 
   return (
     <li className={`nav-item ${open ? "menu-open" : ""}`}>
+      {/* GROUP */}
       <a
         href="#"
-        className={`nav-link ${isActive ? "active" : ""}`}
+        title={group.label} // 🔥 tooltip
+        className={`nav-link ${isGroupActive ? "active" : ""}`}
         onClick={e => {
           e.preventDefault();
           setOpen(v => !v);
@@ -41,6 +48,7 @@ export default function MenuRenderer({ group }: Props) {
         </p>
       </a>
 
+      {/* CHILDREN */}
       <ul className="nav nav-treeview">
         {items.map(item => {
           if (item.action === "logout") {
@@ -48,6 +56,7 @@ export default function MenuRenderer({ group }: Props) {
               <li key={item.label} className="nav-item">
                 <a
                   href="#"
+                  title={item.label}
                   className="nav-link text-danger"
                   onClick={e => {
                     e.preventDefault();
@@ -65,6 +74,7 @@ export default function MenuRenderer({ group }: Props) {
             <li key={item.label} className="nav-item">
               <NavLink
                 to={item.path!}
+                title={item.label} // 🔥 tooltip
                 className={({ isActive }) =>
                   `nav-link ${isActive ? "active" : ""}`
                 }
