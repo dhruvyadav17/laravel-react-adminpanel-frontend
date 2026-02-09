@@ -21,7 +21,7 @@ class RoleRequest extends FormRequest
         | ASSIGN PERMISSIONS (POST /roles/{role}/permissions)
         |--------------------------------------------------------------------------
         */
-        if ($this->routeIs('roles.permissions.assign')) {
+        if ($this->routeIs('admin.roles.permissions.assign')) {
             return [
                 'permissions' => ['required', 'array'],
                 'permissions.*' => [
