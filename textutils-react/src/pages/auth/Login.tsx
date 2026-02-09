@@ -1,4 +1,4 @@
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import LoginForm from "../../auth/LoginForm";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { resolveLoginRedirect } from "../../utils/authRedirect";
@@ -9,17 +9,20 @@ type Props = {
 
 export default function Login({ admin = false }: Props) {
   const { isAuth, user } = useAuth();
-  const navigate = useNavigate();
 
   if (isAuth) {
-    return <Navigate to={resolveLoginRedirect(user)} replace />;
+    return (
+      <Navigate
+        to={resolveLoginRedirect(user, admin)}
+        replace
+      />
+    );
   }
 
   return (
     <LoginForm
       title={admin ? "Admin Login" : "User Login"}
       redirectAdmin={admin}
-     
     />
   );
 }
