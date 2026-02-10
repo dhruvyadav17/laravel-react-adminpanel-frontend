@@ -61,16 +61,20 @@ function UsersPage() {
       message: "Are you sure you want to archive this user?",
       confirmLabel: "Yes, Archive",
       onConfirm: async () => {
-        await execute(() => deleteUser(user.id).unwrap(), {
-          defaultMessage: "User archived successfully",
-        });
+        await execute(() =>
+          deleteUser(user.id).unwrap(), {
+            defaultMessage: "User archived successfully",
+          }
+        );
       },
     });
 
   const handleRestore = (user: User) =>
-    execute(() => restoreUser(user.id).unwrap(), {
-      defaultMessage: "User restored successfully",
-    });
+    execute(() =>
+      restoreUser(user.id).unwrap(), {
+        defaultMessage: "User restored successfully",
+      }
+    );
 
   /* ================= TABLE ACTIONS ================= */
 
@@ -196,7 +200,8 @@ function UsersPage() {
           />
         )}
 
-        {/* MODALS */}
+        {/* ================= MODALS ================= */}
+
         {modalType === "user-form" && (
           <UserFormModal
             user={modalData}
@@ -205,13 +210,15 @@ function UsersPage() {
           />
         )}
 
-        {modalType === "assign" && modalData && (
-          <AssignModal
-            mode={modalData.mode}
-            entity={modalData.entity}
-            onClose={closeModal}
-          />
-        )}
+        {modalType === "assign" &&
+          modalData?.mode &&
+          modalData?.entity && (
+            <AssignModal
+              mode={modalData.mode}
+              entity={modalData.entity}
+              onClose={closeModal}
+            />
+          )}
       </div>
     </section>
   );

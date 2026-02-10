@@ -26,16 +26,30 @@ export default function AssignModal({
   entity,
   onClose,
 }: Props) {
+  /* ================= EARLY GUARD ================= */
+  if (!mode || !entity) return null;
+
   const [selected, setSelected] = useState<string[]>([]);
 
   /* ================= MODE ================= */
 
   const isUser = "email" in entity;
-  const isRole = !("email" in entity);
 
   const isUserRole = mode === "user-role";
   const isUserPermission = mode === "user-permission";
   const isRolePermission = mode === "role-permission";
+
+  /* ================= IDS ================= */
+
+  const userId =
+    (isUserRole || isUserPermission) && isUser
+      ? (entity as User).id
+      : undefined;
+
+  const roleId =
+    isRolePermission && !isUser
+      ? (entity as Role).id
+      : undefined;
 
   /* ================= FETCH ================= */
 
@@ -44,23 +58,23 @@ export default function AssignModal({
     skip: !isUserRole,
   });
 
-  // ALL PERMISSIONS (for checkbox list)
+  // ALL PERMISSIONS
   const { data: permissions = [] } = useGetPermissionsQuery(undefined, {
     skip: isUserRole,
   });
 
-  // USER → PERMISSIONS (assigned)
-  const { data: userPermData } = useGetUserPermissionsQuery(
-    isUserPermission ? (entity as User).id : 0,
-    { skip: !isUserPermission }
-  );
+  // USER → PERMISSIONS
+  const { data: userPermData } = useGetUserPermissionsQuery(userId!, {
+    skip: !isUserPermission || !userId,
+  });
 
-  // ROLE → PERMISSIONS (🔥 MOST IMPORTANT FIX)
-  const { data: rolePermData, isFetching } =
-    useGetRolePermissionsQuery(
-      isRolePermission ? (entity as Role).id : 0,
-      { skip: !isRolePermission }
-    );
+  // ROLE → PERMISSIONS
+  const {
+    data: rolePermData,
+    isFetching,
+  } = useGetRolePermissionsQuery(roleId!, {
+    skip: !isRolePermission || !roleId,
+  });
 
   /* ================= MUTATIONS ================= */
 
@@ -105,42 +119,39 @@ export default function AssignModal({
   /* ================= SAVE ================= */
 
   const save = async () => {
-    if (isUserRole) {
+    if (isUserRole && userId) {
       await execute(() =>
         assignUserRoles({
-          id: (entity as User).id,
+          id: userId,
           roles: selected,
         }).unwrap()
       );
     }
 
-    if (isUserPermission) {
-      await execute(() =>
-        assignUserPermissions({
-          id: (entity as User).id,
-          permissions: selected,
-        }).unwrap(),
-        {
-          defaultMessage: "Permissions assigned successfully",
-        }
+    if (isUserPermission && userId) {
+      await execute(
+        () =>
+          assignUserPermissions({
+            id: userId,
+            permissions: selected,
+          }).unwrap(),
+        { defaultMessage: "Permissions assigned successfully" }
       );
     }
 
-    if (isRolePermission) {
-      await execute(() =>
-        assignRolePermissions({
-          id: (entity as Role).id,
-          permissions: selected,
-        }).unwrap(),
-        {
-          defaultMessage: "Permissions assigned successfully",
-        }
+    if (isRolePermission && roleId) {
+      await execute(
+        () =>
+          assignRolePermissions({
+            id: roleId,
+            permissions: selected,
+          }).unwrap(),
+        { defaultMessage: "Permissions assigned successfully" }
       );
     }
 
     onClose();
   };
-
 
   /* ================= LIST ================= */
 
@@ -154,7 +165,7 @@ export default function AssignModal({
     <Modal
       title={`Assign ${
         isUserRole ? "Roles" : "Permissions"
-      } – ${"name" in entity ? entity.name : ""}`}
+      } – ${entity.name}`}
       onClose={onClose}
       onSave={save}
       saveDisabled={saving || isFetching}

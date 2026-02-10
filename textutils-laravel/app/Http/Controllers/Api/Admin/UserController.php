@@ -102,26 +102,32 @@ class UserController extends Controller
         );
     }
 
-    public function assignPermissions(Request $request, User $user)
-    {
-        $data = $request->validate([
-            'permissions'   => ['array'],
-            'permissions.*' => ['string', 'exists:permissions,name'],
-        ]);
+public function assignPermissions(Request $request, User $user)
+{
+    $data = $request->validate([
+        'permissions'   => ['nullable', 'array'],
+        'permissions.*' => ['string', 'exists:permissions,name'],
+    ]);
 
-        $this->service->assignPermissions(
-            $user,
-            $data['permissions'] ?? []
-        );
+    $permissions = $data['permissions'] ?? [];
 
-        return $this->success(
-            'Permissions assigned successfully.',
-            [
-                'assigned' => $user
-                    ->getAllPermissions()
-                    ->pluck('name')
-                    ->values(),
-            ]
-        );
-    }
+    $this->service->assignPermissions($user, $permissions);
+
+    // 🔥 Reload fresh permissions
+    $user->load('permissions');
+
+    Log::info('Assigned permissions to user', [
+        'user_id'     => $user->id,
+        'permissions' => $permissions,
+    ]);
+
+    return $this->success(
+        'Permissions assigned successfully.',
+        [
+            'assigned' => $user->permissions
+                ->pluck('name')
+                ->values(),
+        ]
+    );
+}
 }
