@@ -23,13 +23,7 @@ class RoleRequest extends FormRequest
         */
         if ($this->routeIs('admin.roles.permissions.assign')) {
             return [
-                'permissions' => ['required', 'array'],
-                'permissions.*' => [
-                    'string',
-                    Rule::exists('permissions', 'name')
-                        ->whereNull('deleted_at')
-                        ->where('guard_name', 'api'),
-                ],
+                'permissions' => [ 'array'],
             ];
         }
 

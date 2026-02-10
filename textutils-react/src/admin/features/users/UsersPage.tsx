@@ -3,15 +3,18 @@ import { memo } from "react";
 import { useAppModal } from "../../../context/AppModalContext";
 import { useAuth } from "../../../auth/hooks/useAuth";
 import { usePagination } from "../../../hooks/usePagination";
+
 import DataTable from "../../components/table/DataTable";
 import RowActions from "../../components/table/RowActions";
 import AssignModal from "../../components/modals/AssignModal";
 import Pagination from "../../../components/common/Pagination";
 import { useTableActions } from "../../hooks/useTableActions";
 
-import Card from "../../components/ui/Card";
-import CardHeader from "../../components/ui/CardHeader";
-import CardBody from "../../components/ui/CardBody";
+import {
+  Card,
+  CardHeader,
+  CardBody,
+} from "../../../components/ui/Card";
 
 import UserFormModal from "../../components/modals/UserFormModal";
 
@@ -31,13 +34,15 @@ import StatusBadge from "../../../components/common/StatusBadge";
 import PageActions from "../../components/page/PageActions";
 
 function UsersPage() {
-  const { modalType, modalData, openModal, closeModal } = useAppModal<any>();
+  const { modalType, modalData, openModal, closeModal } =
+    useAppModal<any>();
 
-  const { page, setPage, search, setSearch } = usePagination();
+  const { page, setPage, search, setSearch } =
+    usePagination();
 
   const { data, isLoading } = useGetUsersQuery(
     { page, search },
-    { refetchOnMountOrArgChange: true },
+    { refetchOnMountOrArgChange: true }
   );
 
   const users = data?.data ?? [];
@@ -56,21 +61,16 @@ function UsersPage() {
       message: "Are you sure you want to archive this user?",
       confirmLabel: "Yes, Archive",
       onConfirm: async () => {
-        await execute(
-          () => deleteUser(user.id).unwrap(),
-          {
-            defaultMessage: "User archived successfully",
-          }
-        );
+        await execute(() => deleteUser(user.id).unwrap(), {
+          defaultMessage: "User archived successfully",
+        });
       },
     });
 
   const handleRestore = (user: User) =>
-    execute(() => restoreUser(user.id).unwrap(),
-    {
+    execute(() => restoreUser(user.id).unwrap(), {
       defaultMessage: "User restored successfully",
-    }
-);
+    });
 
   /* ================= TABLE ACTIONS ================= */
 
@@ -118,7 +118,9 @@ function UsersPage() {
   });
 
   const getRowActions = (user: User) =>
-    user.deleted_at ? getDeletedUserActions(user) : getActiveUserActions(user);
+    user.deleted_at
+      ? getDeletedUserActions(user)
+      : getActiveUserActions(user);
 
   /* ================= VIEW ================= */
 
@@ -132,6 +134,7 @@ function UsersPage() {
           icon={ICONS.ADD}
           onClick={() => openModal("user-form", null)}
         />
+
         {/* SEARCH */}
         <div className="mb-3">
           <input
@@ -144,11 +147,15 @@ function UsersPage() {
 
         <Card>
           <CardHeader title="Users List" />
-          <CardBody className="p-0">
+
+          <CardBody
+            className="p-0"
+            loading={isLoading}
+            empty={!isLoading && users.length === 0}
+            emptyText="No users found"
+          >
             <DataTable
-              isLoading={isLoading}
               colSpan={5}
-              hasData={users.length > 0}
               columns={
                 <tr>
                   <th>Name</th>
@@ -172,7 +179,9 @@ function UsersPage() {
                     )}
                   </td>
                   <td className="text-end">
-                    <RowActions actions={getRowActions(user)} />
+                    <RowActions
+                      actions={getRowActions(user)}
+                    />
                   </td>
                 </tr>
               ))}
@@ -180,13 +189,17 @@ function UsersPage() {
           </CardBody>
         </Card>
 
-        {meta && <Pagination meta={meta} onPageChange={setPage} />}
+        {meta && (
+          <Pagination
+            meta={meta}
+            onPageChange={setPage}
+          />
+        )}
 
-        {/* ================= MODALS ================= */}
-
+        {/* MODALS */}
         {modalType === "user-form" && (
           <UserFormModal
-            user={modalData} // 👈 NEW (null for add, user for edit)
+            user={modalData}
             onClose={closeModal}
             onSaved={closeModal}
           />

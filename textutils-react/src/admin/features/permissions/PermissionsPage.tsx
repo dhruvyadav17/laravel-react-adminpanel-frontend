@@ -2,13 +2,16 @@ import { memo } from "react";
 
 import Modal from "../../../components/common/Modal";
 import FormInput from "../../../components/common/FormInput";
+
 import RowActions from "../../components/table/RowActions";
 import DataTable from "../../components/table/DataTable";
 import { useTableActions } from "../../hooks/useTableActions";
 
-import Card from "../../components/ui/Card";
-import CardHeader from "../../components/ui/CardHeader";
-import CardBody from "../../components/ui/CardBody";
+import {
+  Card,
+  CardHeader,
+  CardBody,
+} from "../../../components/ui/Card";
 
 import { useAppModal } from "../../../context/AppModalContext";
 import { useModalForm } from "../../../hooks/useModalForm";
@@ -23,7 +26,6 @@ import {
 
 import type { Permission } from "../../../types/models";
 import { PERMISSIONS } from "../../../constants/permissions";
-import { ICONS } from "../../../constants/icons";
 import { useConfirmAction } from "../../../hooks/useConfirmAction";
 import PageActions from "../../components/page/PageActions";
 import { getModalTitle } from "../../../utils/modalTitle";
@@ -34,7 +36,8 @@ function PermissionsPage() {
   const { modalType, modalData, openModal, closeModal } =
     useAppModal<Permission>();
 
-  const { data: permissions = [], isLoading } = useGetPermissionsQuery();
+  const { data: permissions = [], isLoading } =
+    useGetPermissionsQuery();
 
   const [createPermission] = useCreatePermissionMutation();
   const [updatePermission] = useUpdatePermissionMutation();
@@ -57,7 +60,6 @@ function PermissionsPage() {
 
       onSuccess: closeModal,
 
-      // 🔥 NEW (optional but recommended)
       successMessage: modalData?.id
         ? "Permission updated successfully"
         : "Permission created successfully",
@@ -71,11 +73,14 @@ function PermissionsPage() {
       message: "Are you sure you want to delete this permission?",
       confirmLabel: "Delete Permission",
       onConfirm: async () => {
-        await execute(() => deletePermission(permission.id).unwrap(), {
-          variant: "danger", // 🔴 RED
-          defaultMessage: "Permission deleted successfully",
-        });
-
+        await execute(
+          () => deletePermission(permission.id).unwrap(),
+          {
+            variant: "danger",
+            defaultMessage:
+              "Permission deleted successfully",
+          }
+        );
       },
     });
 
@@ -107,17 +112,27 @@ function PermissionsPage() {
             openModal("permission");
           }}
         />
+
         <Card>
           <CardHeader title="Permissions List" />
-          <CardBody className="p-0">
+
+          <CardBody
+            className="p-0"
+            loading={isLoading}
+            empty={
+              !isLoading &&
+              permissions.length === 0
+            }
+            emptyText="No permissions found"
+          >
             <DataTable
-              isLoading={isLoading}
               colSpan={2}
-              hasData={permissions.length > 0}
               columns={
                 <tr>
                   <th>Name</th>
-                  <th className="text-end">Actions</th>
+                  <th className="text-end">
+                    Actions
+                  </th>
                 </tr>
               }
             >
@@ -125,7 +140,11 @@ function PermissionsPage() {
                 <tr key={permission.id}>
                   <td>{permission.name}</td>
                   <td className="text-end">
-                    <RowActions actions={getRowActions(permission)} />
+                    <RowActions
+                      actions={getRowActions(
+                        permission
+                      )}
+                    />
                   </td>
                 </tr>
               ))}
@@ -136,17 +155,24 @@ function PermissionsPage() {
         {/* ================= ADD / EDIT MODAL ================= */}
         {modalType === "permission" && (
           <Modal
-            title={getModalTitle("Permission", modalData)}
+            title={getModalTitle(
+              "Permission",
+              modalData
+            )}
             onClose={closeModal}
             onSave={form.submit}
             saveDisabled={form.loading}
-            saveText={modalData?.id ? "Update" : "Save"}
+            saveText={
+              modalData?.id ? "Update" : "Save"
+            }
           >
             <FormInput
               label="Permission Name"
               value={form.values.name}
               error={form.errors.name?.[0]}
-              onChange={(v) => form.setField("name", v)}
+              onChange={(v) =>
+                form.setField("name", v)
+              }
               disabled={form.loading}
               required
             />

@@ -1,16 +1,22 @@
 import { memo } from "react";
+
 import FormInput from "../../../components/common/FormInput";
+import Modal from "../../../components/common/Modal";
+
 import { useModalForm } from "../../../hooks/useModalForm";
 import { useAppModal } from "../../../context/AppModalContext";
 import { useAuth } from "../../../auth/hooks/useAuth";
+
 import DataTable from "../../components/table/DataTable";
 import RowActions from "../../components/table/RowActions";
-import Modal from "../../../components/common/Modal";
 import AssignModal from "../../components/modals/AssignModal";
 
-import Card from "../../components/ui/Card";
-import CardHeader from "../../components/ui/CardHeader";
-import CardBody from "../../components/ui/CardBody";
+// ✅ CORRECT IMPORT (GLOBAL / CANONICAL)
+import {
+  Card,
+  CardHeader,
+  CardBody,
+} from "../../../components/ui/Card";
 
 import {
   useGetRolesQuery,
@@ -22,6 +28,7 @@ import {
 import type { Role } from "../../../types/models";
 import { PERMISSIONS } from "../../../constants/permissions";
 import { ICONS } from "../../../constants/icons";
+
 import { useTableActions } from "../../hooks/useTableActions";
 import { useConfirmAction } from "../../../hooks/useConfirmAction";
 import PageActions from "../../components/page/PageActions";
@@ -30,14 +37,19 @@ import { execute } from "../../../utils/execute";
 
 function RolesPage() {
   const confirmAction = useConfirmAction();
-  const { modalType, modalData, openModal, closeModal } = useAppModal<any>();
+  const { modalType, modalData, openModal, closeModal } =
+    useAppModal<any>();
 
-  const { data: roles = [], isLoading } = useGetRolesQuery();
+  const { data: roles = [], isLoading } =
+    useGetRolesQuery();
+
   const [createRole] = useCreateRoleMutation();
   const [updateRole] = useUpdateRoleMutation();
   const [deleteRole] = useDeleteRoleMutation();
 
   const { can } = useAuth();
+
+  /* ================= FORM ================= */
 
   const form = useModalForm(
     { name: "" },
@@ -50,8 +62,10 @@ function RolesPage() {
             }).unwrap()
           : createRole(values).unwrap(),
       onSuccess: closeModal,
-    },
+    }
   );
+
+  /* ================= ACTIONS ================= */
 
   const handleDelete = (role: Role) =>
     confirmAction({
@@ -59,7 +73,7 @@ function RolesPage() {
       confirmLabel: "Delete Role",
       onConfirm: async () => {
         await execute(() => deleteRole(role.id).unwrap(), {
-          variant: "danger", // 🔴 RED
+          variant: "danger",
           defaultMessage: "Role deleted successfully",
         });
       },
@@ -91,6 +105,8 @@ function RolesPage() {
     ],
   });
 
+  /* ================= VIEW ================= */
+
   return (
     <section className="content pt-3">
       <div className="container-fluid">
@@ -106,11 +122,15 @@ function RolesPage() {
 
         <Card>
           <CardHeader title="Roles List" />
-          <CardBody className="p-0">
+
+          <CardBody
+            className="p-0"
+            loading={isLoading}
+            empty={!roles.length}
+            emptyText="No roles found"
+          >
             <DataTable
-              isLoading={isLoading}
               colSpan={2}
-              hasData={roles.length > 0}
               columns={
                 <tr>
                   <th>Name</th>
@@ -122,7 +142,9 @@ function RolesPage() {
                 <tr key={role.id}>
                   <td>{role.name}</td>
                   <td className="text-end">
-                    <RowActions actions={getRowActions(role)} />
+                    <RowActions
+                      actions={getRowActions(role)}
+                    />
                   </td>
                 </tr>
               ))}
@@ -130,19 +152,27 @@ function RolesPage() {
           </CardBody>
         </Card>
 
-        {(modalType === "role-add" || modalType === "role-edit") && (
+        {/* MODALS */}
+        {(modalType === "role-add" ||
+          modalType === "role-edit") && (
           <Modal
             title={getModalTitle("Role", modalData)}
             onClose={closeModal}
             onSave={form.submit}
             saveDisabled={form.loading}
-            saveText={modalType === "role-edit" ? "Update" : "Save"}
+            saveText={
+              modalType === "role-edit"
+                ? "Update"
+                : "Save"
+            }
           >
             <FormInput
               label="Role Name"
               value={form.values.name}
               error={form.errors.name?.[0]}
-              onChange={(v) => form.setField("name", v)}
+              onChange={(v) =>
+                form.setField("name", v)
+              }
               disabled={form.loading}
               required
             />
