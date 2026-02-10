@@ -50,11 +50,11 @@ export default function DashboardPage() {
               key={widget.title}
               className="col-lg-3 col-6"
             >
-              <Card>
-                <CardBody loading={isLoading}>
+              {/* <Card>
+                <CardBody loading={isLoading}> */}
                   <InfoBox {...widget} />
-                </CardBody>
-              </Card>
+                {/* </CardBody>
+              </Card> */}
             </div>
           ))}
         </div>
