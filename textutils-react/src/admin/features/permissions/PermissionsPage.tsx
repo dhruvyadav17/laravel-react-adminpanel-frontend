@@ -1,14 +1,12 @@
-import { memo } from "react";
+import { memo, useMemo } from "react";
 
 import FormModal from "../../../components/common/FormModal";
 import FormInput from "../../../components/common/FormInput";
 
 import AdminPage from "../../components/page/AdminPage";
-import AdminTable from "../../components/table/AdminTable";
+import CrudTableCard from "../../components/crud/CrudTableCard";
 import RowActions from "../../components/table/RowActions";
 import { useTableActions } from "../../hooks/useTableActions";
-
-import { Card, CardHeader, CardBody } from "../../../components/ui/Card";
 
 import { useAppModal } from "../../../context/AppModalContext";
 import { useModalForm } from "../../../hooks/useModalForm";
@@ -32,7 +30,8 @@ function PermissionsPage() {
   const { modalType, modalData, openModal, closeModal } =
     useAppModal<Permission>();
 
-  const { data: permissions = [], isLoading } = useGetPermissionsQuery();
+  const { data: permissions = [], isLoading } =
+    useGetPermissionsQuery();
 
   const [createPermission] = useCreatePermissionMutation();
   const [updatePermission] = useUpdatePermissionMutation();
@@ -40,7 +39,7 @@ function PermissionsPage() {
 
   const { can } = useAuth();
 
-  /* ================= MODAL FORM ================= */
+  /* ================= FORM ================= */
 
   const form = useModalForm(
     { name: "" },
@@ -58,7 +57,7 @@ function PermissionsPage() {
       successMessage: modalData?.id
         ? "Permission updated successfully"
         : "Permission created successfully",
-    },
+    }
   );
 
   /* ================= DELETE ================= */
@@ -68,16 +67,19 @@ function PermissionsPage() {
       message: "Are you sure you want to delete this permission?",
       confirmLabel: "Delete Permission",
       onConfirm: async () => {
-        await execute(() => deletePermission(permission.id).unwrap(), {
-          variant: "danger",
-          defaultMessage: "Permission deleted successfully",
-        });
+        await execute(
+          () => deletePermission(permission.id).unwrap(),
+          {
+            variant: "danger",
+            defaultMessage: "Permission deleted successfully",
+          }
+        );
       },
     });
 
   /* ================= TABLE ACTIONS ================= */
 
-  const getRowActions = useTableActions<Permission>({
+  const rowActions = useTableActions<Permission>({
     canEdit: can(PERMISSIONS.PERMISSION.MANAGE),
     canDelete: can(PERMISSIONS.PERMISSION.MANAGE),
 
@@ -88,6 +90,18 @@ function PermissionsPage() {
 
     onDelete: handleDelete,
   });
+
+  /* ================= TABLE HEADER ================= */
+
+  const columns = useMemo(
+    () => (
+      <tr>
+        <th>Name</th>
+        <th className="text-end">Actions</th>
+      </tr>
+    ),
+    []
+  );
 
   /* ================= VIEW ================= */
 
@@ -101,32 +115,22 @@ function PermissionsPage() {
         openModal("permission");
       }}
     >
-      <Card>
-        <CardHeader title="Permissions List" />
-        <CardBody className="p-0" loading={isLoading}>
-          <AdminTable<Permission>
-            loading={isLoading}
-            data={permissions}
-            colSpan={2}
-            columns={
-              <tr>
-                <th>Name</th>
-                <th className="text-end">Actions</th>
-              </tr>
-            }
-            renderRow={(permission) => (
-              <tr key={permission.id}>
-                <td>{permission.name}</td>
-                <td className="text-end">
-                  <RowActions actions={getRowActions(permission)} />
-                </td>
-              </tr>
-            )}
-          />
-        </CardBody>
-      </Card>
-
-      {/* ================= MODAL ================= */}
+      <CrudTableCard<Permission>
+        title="Permissions List"
+        loading={isLoading}
+        data={permissions}
+        emptyText="No permissions found"
+        colSpan={2}
+        columns={columns}
+        renderRow={(permission) => (
+          <tr key={permission.id}>
+            <td>{permission.name}</td>
+            <td className="text-end">
+              <RowActions actions={rowActions(permission)} />
+            </td>
+          </tr>
+        )}
+      />
 
       {modalType === "permission" && (
         <FormModal

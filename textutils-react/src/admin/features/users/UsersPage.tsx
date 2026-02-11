@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useMemo } from "react";
 
 import { useAppModal } from "../../../context/AppModalContext";
 import { useAuth } from "../../../auth/hooks/useAuth";
@@ -11,9 +11,9 @@ import AssignModal from "../../components/modals/AssignModal";
 import Pagination from "../../../components/common/Pagination";
 import { useTableActions } from "../../hooks/useTableActions";
 
-import { Card, CardHeader, CardBody } from "../../../components/ui/Card";
-
 import UserFormModal from "../../components/modals/UserFormModal";
+import AdminCard from "../../components/ui/AdminCard";
+import TableSearch from "../../../components/common/TableSearch";
 
 import {
   useGetUsersQuery,
@@ -31,12 +31,13 @@ import StatusBadge from "../../../components/common/StatusBadge";
 
 function UsersPage() {
   const { modalType, modalData, openModal, closeModal } = useAppModal<any>();
-
   const { page, setPage, search, setSearch } = usePagination();
+  const { can } = useAuth();
+  const confirmAction = useConfirmAction();
 
   const { data, isLoading } = useGetUsersQuery(
     { page, search },
-    { refetchOnMountOrArgChange: true },
+    { refetchOnMountOrArgChange: true }
   );
 
   const users = data?.data ?? [];
@@ -44,9 +45,6 @@ function UsersPage() {
 
   const [deleteUser] = useDeleteUserMutation();
   const [restoreUser] = useRestoreUserMutation();
-
-  const { can } = useAuth();
-  const confirmAction = useConfirmAction();
 
   /* ================= ACTION HANDLERS ================= */
 
@@ -68,9 +66,9 @@ function UsersPage() {
 
   /* ================= TABLE ACTIONS ================= */
 
-  const getActiveUserActions = useTableActions<User>({
+  const activeActions = useTableActions<User>({
     canDelete: can(PERMISSIONS.USER.DELETE),
-
+    onDelete: handleArchive,
     extraActions: [
       {
         key: "roles",
@@ -95,11 +93,9 @@ function UsersPage() {
           }),
       },
     ],
-
-    onDelete: handleArchive,
   });
 
-  const getDeletedUserActions = useTableActions<User>({
+  const deletedActions = useTableActions<User>({
     extraActions: [
       {
         key: "restore",
@@ -112,7 +108,22 @@ function UsersPage() {
   });
 
   const getRowActions = (user: User) =>
-    user.deleted_at ? getDeletedUserActions(user) : getActiveUserActions(user);
+    user.deleted_at ? deletedActions(user) : activeActions(user);
+
+  /* ================= TABLE HEADER ================= */
+
+  const columns = useMemo(
+    () => (
+      <tr>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Roles</th>
+        <th>Status</th>
+        <th className="text-end">Actions</th>
+      </tr>
+    ),
+    []
+  );
 
   /* ================= VIEW ================= */
 
@@ -124,53 +135,37 @@ function UsersPage() {
       actionIcon={ICONS.ADD}
       onAction={() => openModal("user-form", null)}
     >
-      {/* SEARCH */}
-      <div className="mb-3">
-        <input
-          className="form-control"
-          placeholder="Search by name or email..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+      <TableSearch
+        value={search}
+        onChange={setSearch}
+        placeholder="Search by name or email..."
+      />
+
+      <AdminCard title="Users List" loading={isLoading}>
+        <AdminTable<User>
+          loading={isLoading}
+          data={users}
+          colSpan={5}
+          columns={columns}
+          renderRow={(user) => (
+            <tr key={user.id}>
+              <td>{user.name}</td>
+              <td>{user.email}</td>
+              <td>{user.roles?.join(", ") || "—"}</td>
+              <td>
+                {user.deleted_at ? (
+                  <StatusBadge status="archived" />
+                ) : (
+                  <StatusBadge active />
+                )}
+              </td>
+              <td className="text-end">
+                <RowActions actions={getRowActions(user)} />
+              </td>
+            </tr>
+          )}
         />
-      </div>
-
-      <Card>
-        <CardHeader title="Users List" />
-
-        <CardBody className="p-0" loading={isLoading}>
-          <AdminTable<User>
-            loading={isLoading}
-            data={users}
-            colSpan={5}
-            columns={
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Roles</th>
-                <th>Status</th>
-                <th className="text-end">Actions</th>
-              </tr>
-            }
-            renderRow={(user) => (
-              <tr key={user.id}>
-                <td>{user.name}</td>
-                <td>{user.email}</td>
-                <td>{user.roles?.join(", ") || "—"}</td>
-                <td>
-                  {user.deleted_at ? (
-                    <StatusBadge status="archived" />
-                  ) : (
-                    <StatusBadge active />
-                  )}
-                </td>
-                <td className="text-end">
-                  <RowActions actions={getRowActions(user)} />
-                </td>
-              </tr>
-            )}
-          />
-        </CardBody>
-      </Card>
+      </AdminCard>
 
       {meta && <Pagination meta={meta} onPageChange={setPage} />}
 

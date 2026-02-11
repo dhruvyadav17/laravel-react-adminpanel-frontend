@@ -11,7 +11,7 @@ type ActionConfig<T> = {
     key: string;
     icon: string;
     title: string;
-    variant?: "danger" | "warning" | "primary";
+    variant?: "danger" | "warning" | "primary"|"success";
     show?: boolean;
     onClick: (row: T) => void;
   }>;

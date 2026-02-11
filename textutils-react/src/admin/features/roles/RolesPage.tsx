@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useMemo } from "react";
 
 import FormInput from "../../../components/common/FormInput";
 import FormModal from "../../../components/common/FormModal";
@@ -8,11 +8,9 @@ import { useAppModal } from "../../../context/AppModalContext";
 import { useAuth } from "../../../auth/hooks/useAuth";
 
 import AdminPage from "../../components/page/AdminPage";
-import AdminTable from "../../components/table/AdminTable";
+import CrudTableCard from "../../components/crud/CrudTableCard";
 import RowActions from "../../components/table/RowActions";
 import AssignModal from "../../components/modals/AssignModal";
-
-import { Card, CardHeader, CardBody } from "../../../components/ui/Card";
 
 import {
   useGetRolesQuery,
@@ -32,7 +30,8 @@ import { execute } from "../../../utils/execute";
 
 function RolesPage() {
   const confirmAction = useConfirmAction();
-  const { modalType, modalData, openModal, closeModal } = useAppModal<any>();
+  const { modalType, modalData, openModal, closeModal } =
+    useAppModal<any>();
 
   const { data: roles = [], isLoading } = useGetRolesQuery();
 
@@ -56,10 +55,10 @@ function RolesPage() {
           : createRole(values).unwrap(),
 
       onSuccess: closeModal,
-    },
+    }
   );
 
-  /* ================= ACTIONS ================= */
+  /* ================= DELETE ================= */
 
   const handleDelete = (role: Role) =>
     confirmAction({
@@ -73,7 +72,9 @@ function RolesPage() {
       },
     });
 
-  const getRowActions = useTableActions<Role>({
+  /* ================= TABLE ACTIONS ================= */
+
+  const rowActions = useTableActions<Role>({
     canEdit: can(PERMISSIONS.ROLE.MANAGE),
     canDelete: can(PERMISSIONS.ROLE.MANAGE),
 
@@ -99,6 +100,18 @@ function RolesPage() {
     ],
   });
 
+  /* ================= TABLE HEADER ================= */
+
+  const columns = useMemo(
+    () => (
+      <tr>
+        <th>Name</th>
+        <th className="text-end">Actions</th>
+      </tr>
+    ),
+    []
+  );
+
   /* ================= VIEW ================= */
 
   return (
@@ -112,33 +125,22 @@ function RolesPage() {
         openModal("role-add");
       }}
     >
-      <Card>
-        <CardHeader title="Roles List" />
-
-        <CardBody className="p-0" loading={isLoading}>
-          <AdminTable<Role>
-            loading={isLoading}
-            data={roles}
-            colSpan={2}
-            columns={
-              <tr>
-                <th>Name</th>
-                <th className="text-end">Actions</th>
-              </tr>
-            }
-            renderRow={(role) => (
-              <tr key={role.id}>
-                <td>{role.name}</td>
-                <td className="text-end">
-                  <RowActions actions={getRowActions(role)} />
-                </td>
-              </tr>
-            )}
-          />
-        </CardBody>
-      </Card>
-
-      {/* ================= MODALS ================= */}
+      <CrudTableCard<Role>
+        title="Roles List"
+        loading={isLoading}
+        data={roles}
+        emptyText="No roles found"
+        colSpan={2}
+        columns={columns}
+        renderRow={(role) => (
+          <tr key={role.id}>
+            <td>{role.name}</td>
+            <td className="text-end">
+              <RowActions actions={rowActions(role)} />
+            </td>
+          </tr>
+        )}
+      />
 
       {(modalType === "role-add" || modalType === "role-edit") && (
         <FormModal
@@ -159,13 +161,15 @@ function RolesPage() {
         </FormModal>
       )}
 
-      {modalType === "assign" && modalData?.mode && modalData?.entity && (
-        <AssignModal
-          mode={modalData.mode}
-          entity={modalData.entity}
-          onClose={closeModal}
-        />
-      )}
+      {modalType === "assign" &&
+        modalData?.mode &&
+        modalData?.entity && (
+          <AssignModal
+            mode={modalData.mode}
+            entity={modalData.entity}
+            onClose={closeModal}
+          />
+        )}
     </AdminPage>
   );
 }

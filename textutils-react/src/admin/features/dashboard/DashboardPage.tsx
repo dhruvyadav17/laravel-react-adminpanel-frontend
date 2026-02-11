@@ -3,11 +3,12 @@ import { useMemo } from "react";
 import { useAuth } from "../../../auth/hooks/useAuth";
 import { useGetDashboardStatsQuery } from "../../../store/api";
 
-import PageHeader from "../../components/page/PageHeader";
+// import PageHeader from "../../components/page/PageHeader";
 import InfoBox from "../../components/ui/InfoBox";
 
-import { Card, CardBody } from "../../../components/ui/Card";
+// import { Card, CardBody } from "../../../components/ui/Card";
 import { ICONS } from "../../../constants/icons";
+import AdminPage from "../../components/page/AdminPage";
 
 export default function DashboardPage() {
   const { user, permissions } = useAuth();
@@ -38,12 +39,7 @@ export default function DashboardPage() {
   );
 
   return (
-    <>
-      {/* PAGE HEADER */}
-      <PageHeader title="Admin Dashboard" />
-
-      {/* DASHBOARD WIDGETS */}
-      <div className="container-fluid">
+    <AdminPage title="Admin Dashboard">
         <div className="row g-3">
           {widgets.map((widget) => (
             <div
@@ -58,7 +54,6 @@ export default function DashboardPage() {
             </div>
           ))}
         </div>
-      </div>
-    </>
+    </AdminPage>
   );
 }
