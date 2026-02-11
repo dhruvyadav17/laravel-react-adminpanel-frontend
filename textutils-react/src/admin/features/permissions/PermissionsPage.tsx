@@ -3,7 +3,6 @@ import { memo, useMemo } from "react";
 import AdminPage from "../../components/page/AdminPage";
 import AdminCard from "../../components/ui/AdminCard";
 import DataTable from "../../components/table/DataTable";
-import TableEmptyRow from "../../components/table/TableEmptyRow";
 import RowActions from "../../components/table/RowActions";
 
 import CrudModal from "../../../components/common/CrudModal";
