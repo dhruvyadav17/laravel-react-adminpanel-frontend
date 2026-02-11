@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import Modal from "../../../components/common/Modal";
+
+import FormModal from "../../../components/common/FormModal";
+import CheckboxGrid from "../../../components/common/CheckboxGrid";
 import { execute } from "../../../utils/execute";
 
 import {
@@ -26,12 +28,12 @@ export default function AssignModal({
   entity,
   onClose,
 }: Props) {
-  /* ================= EARLY GUARD ================= */
+  /* ================= GUARD ================= */
   if (!mode || !entity) return null;
 
   const [selected, setSelected] = useState<string[]>([]);
 
-  /* ================= MODE ================= */
+  /* ================= MODE CHECKS ================= */
 
   const isUser = "email" in entity;
 
@@ -53,22 +55,20 @@ export default function AssignModal({
 
   /* ================= FETCH ================= */
 
-  // USER → ROLES
   const { data: roles = [] } = useGetRolesQuery(undefined, {
     skip: !isUserRole,
   });
 
-  // ALL PERMISSIONS
-  const { data: permissions = [] } = useGetPermissionsQuery(undefined, {
-    skip: isUserRole,
-  });
+  const { data: permissions = [] } =
+    useGetPermissionsQuery(undefined, {
+      skip: isUserRole,
+    });
 
-  // USER → PERMISSIONS
-  const { data: userPermData } = useGetUserPermissionsQuery(userId!, {
-    skip: !isUserPermission || !userId,
-  });
+  const { data: userPermData } =
+    useGetUserPermissionsQuery(userId!, {
+      skip: !isUserPermission || !userId,
+    });
 
-  // ROLE → PERMISSIONS
   const {
     data: rolePermData,
     isFetching,
@@ -159,41 +159,34 @@ export default function AssignModal({
     ? roles.map((r) => r.name)
     : permissions.map((p) => p.name);
 
+  /* ================= TITLE ================= */
+
+  const title = `Assign ${
+    isUserRole ? "Roles" : "Permissions"
+  } – ${entity.name}`;
+
   /* ================= VIEW ================= */
 
   return (
-    <Modal
-      title={`Assign ${
-        isUserRole ? "Roles" : "Permissions"
-      } – ${entity.name}`}
-      onClose={onClose}
+    <FormModal
+      title={title}
+      loading={saving || isFetching}
       onSave={save}
-      saveDisabled={saving || isFetching}
-      saveText={saving ? "Saving..." : "Assign"}
-      size="lg"
+      onClose={onClose}
+      saveText="Assign"
     >
       {isFetching ? (
         <p>Loading...</p>
       ) : (
-        <div className="row">
-          {list.map((item) => (
-            <div key={item} className="col-md-4 mb-2">
-              <div className="form-check">
-                <input
-                  type="checkbox"
-                  className="form-check-input"
-                  checked={selected.includes(item)}
-                  onChange={() => toggle(item)}
-                  disabled={saving || item === "super-admin"}
-                />
-                <label className="form-check-label">
-                  {item}
-                </label>
-              </div>
-            </div>
-          ))}
-        </div>
+        <CheckboxGrid
+          items={list}
+          selected={selected}
+          onToggle={toggle}
+          disabled={(item) =>
+            saving || item === "super-admin"
+          }
+        />
       )}
-    </Modal>
+    </FormModal>
   );
 }

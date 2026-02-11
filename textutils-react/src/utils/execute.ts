@@ -6,6 +6,7 @@ import {
 type ExecuteOptions = {
   defaultMessage?: string;
   variant?: "success" | "danger";
+  silent?: boolean; // 🔥 optional: disable success toast
 };
 
 export async function execute<T>(
@@ -15,26 +16,29 @@ export async function execute<T>(
   const {
     defaultMessage = "Action completed successfully",
     variant = "success",
+    silent = false,
   } = options;
 
   try {
-    const res: any = await fn();
+    const result = await fn();
 
-    const message =
-      typeof res?.message === "string" &&
-      res.message.trim().length > 0
-        ? res.message
-        : defaultMessage;
+    if (!silent) {
+      const message =
+        typeof (result as any)?.message === "string" &&
+        (result as any).message.trim().length > 0
+          ? (result as any).message
+          : defaultMessage;
 
-    handleApiSuccess(
-      { message },
-      defaultMessage,
-      variant
-    );
+      handleApiSuccess(
+        { message },
+        defaultMessage,
+        variant
+      );
+    }
 
-    return res;
+    return result;
   } catch (error) {
     handleApiError(error);
-    throw error;
+    throw error; // 🔥 important: keep promise chain intact
   }
 }

@@ -1,4 +1,4 @@
-import Modal from "../../../components/common/Modal";
+import FormModal from "../../../components/common/FormModal";
 import FormInput from "../../../components/common/FormInput";
 import { useModalForm } from "../../../hooks/useModalForm";
 import {
@@ -15,11 +15,7 @@ type Props = {
   user?: User | null;
 };
 
-export default function UserFormModal({
-  onClose,
-  onSaved,
-  user,
-}: Props) {
+export default function UserFormModal({ onClose, onSaved, user }: Props) {
   const [createUser] = useCreateUserMutation();
   const [updateUser] = useUpdateUserMutation();
 
@@ -42,16 +38,15 @@ export default function UserFormModal({
         return createUser(values).unwrap();
       },
       onSuccess: onSaved,
-    }
+    },
   );
 
   return (
-    <Modal
+    <FormModal
       title={getModalTitle("User", user)}
-      onClose={onClose}
+      loading={form.loading}
       onSave={form.submit}
-      saveDisabled={form.loading}
-      saveText={form.loading ? "Saving..." : "Save"}
+      onClose={onClose}
     >
       <FormInput
         label="Name"
@@ -87,12 +82,10 @@ export default function UserFormModal({
         type="password"
         value={form.values.password_confirmation}
         error={form.errors.password_confirmation?.[0]}
-        onChange={(v) =>
-          form.setField("password_confirmation", v)
-        }
+        onChange={(v) => form.setField("password_confirmation", v)}
         disabled={form.loading}
         required={!user}
       />
-    </Modal>
+    </FormModal>
   );
 }

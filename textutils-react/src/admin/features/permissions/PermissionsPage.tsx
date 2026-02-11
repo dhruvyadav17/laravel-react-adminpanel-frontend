@@ -1,17 +1,14 @@
 import { memo } from "react";
 
-import Modal from "../../../components/common/Modal";
+import FormModal from "../../../components/common/FormModal";
 import FormInput from "../../../components/common/FormInput";
 
+import AdminPage from "../../components/page/AdminPage";
+import AdminTable from "../../components/table/AdminTable";
 import RowActions from "../../components/table/RowActions";
-import DataTable from "../../components/table/DataTable";
 import { useTableActions } from "../../hooks/useTableActions";
 
-import {
-  Card,
-  CardHeader,
-  CardBody,
-} from "../../../components/ui/Card";
+import { Card, CardHeader, CardBody } from "../../../components/ui/Card";
 
 import { useAppModal } from "../../../context/AppModalContext";
 import { useModalForm } from "../../../hooks/useModalForm";
@@ -27,7 +24,6 @@ import {
 import type { Permission } from "../../../types/models";
 import { PERMISSIONS } from "../../../constants/permissions";
 import { useConfirmAction } from "../../../hooks/useConfirmAction";
-import PageActions from "../../components/page/PageActions";
 import { getModalTitle } from "../../../utils/modalTitle";
 import { execute } from "../../../utils/execute";
 
@@ -36,8 +32,7 @@ function PermissionsPage() {
   const { modalType, modalData, openModal, closeModal } =
     useAppModal<Permission>();
 
-  const { data: permissions = [], isLoading } =
-    useGetPermissionsQuery();
+  const { data: permissions = [], isLoading } = useGetPermissionsQuery();
 
   const [createPermission] = useCreatePermissionMutation();
   const [updatePermission] = useUpdatePermissionMutation();
@@ -63,7 +58,7 @@ function PermissionsPage() {
       successMessage: modalData?.id
         ? "Permission updated successfully"
         : "Permission created successfully",
-    }
+    },
   );
 
   /* ================= DELETE ================= */
@@ -73,14 +68,10 @@ function PermissionsPage() {
       message: "Are you sure you want to delete this permission?",
       confirmLabel: "Delete Permission",
       onConfirm: async () => {
-        await execute(
-          () => deletePermission(permission.id).unwrap(),
-          {
-            variant: "danger",
-            defaultMessage:
-              "Permission deleted successfully",
-          }
-        );
+        await execute(() => deletePermission(permission.id).unwrap(), {
+          variant: "danger",
+          defaultMessage: "Permission deleted successfully",
+        });
       },
     });
 
@@ -101,85 +92,61 @@ function PermissionsPage() {
   /* ================= VIEW ================= */
 
   return (
-    <section className="content pt-3">
-      <div className="container-fluid">
-        <PageActions
-          title="Permissions"
-          permission={PERMISSIONS.PERMISSION.MANAGE}
-          buttonLabel="+ Add Permission"
-          onClick={() => {
-            form.reset();
-            openModal("permission");
-          }}
-        />
-
-        <Card>
-          <CardHeader title="Permissions List" />
-
-          <CardBody
-            className="p-0"
+    <AdminPage
+      title="Permissions"
+      permission={PERMISSIONS.PERMISSION.MANAGE}
+      actionLabel="+ Add Permission"
+      onAction={() => {
+        form.reset();
+        openModal("permission");
+      }}
+    >
+      <Card>
+        <CardHeader title="Permissions List" />
+        <CardBody className="p-0" loading={isLoading}>
+          <AdminTable<Permission>
             loading={isLoading}
-            empty={
-              !isLoading &&
-              permissions.length === 0
+            data={permissions}
+            colSpan={2}
+            columns={
+              <tr>
+                <th>Name</th>
+                <th className="text-end">Actions</th>
+              </tr>
             }
-            emptyText="No permissions found"
-          >
-            <DataTable
-              colSpan={2}
-              columns={
-                <tr>
-                  <th>Name</th>
-                  <th className="text-end">
-                    Actions
-                  </th>
-                </tr>
-              }
-            >
-              {permissions.map((permission) => (
-                <tr key={permission.id}>
-                  <td>{permission.name}</td>
-                  <td className="text-end">
-                    <RowActions
-                      actions={getRowActions(
-                        permission
-                      )}
-                    />
-                  </td>
-                </tr>
-              ))}
-            </DataTable>
-          </CardBody>
-        </Card>
-
-        {/* ================= ADD / EDIT MODAL ================= */}
-        {modalType === "permission" && (
-          <Modal
-            title={getModalTitle(
-              "Permission",
-              modalData
+            renderRow={(permission) => (
+              <tr key={permission.id}>
+                <td>{permission.name}</td>
+                <td className="text-end">
+                  <RowActions actions={getRowActions(permission)} />
+                </td>
+              </tr>
             )}
-            onClose={closeModal}
-            onSave={form.submit}
-            saveDisabled={form.loading}
-            saveText={
-              modalData?.id ? "Update" : "Save"
-            }
-          >
-            <FormInput
-              label="Permission Name"
-              value={form.values.name}
-              error={form.errors.name?.[0]}
-              onChange={(v) =>
-                form.setField("name", v)
-              }
-              disabled={form.loading}
-              required
-            />
-          </Modal>
-        )}
-      </div>
-    </section>
+          />
+        </CardBody>
+      </Card>
+
+      {/* ================= MODAL ================= */}
+
+      {modalType === "permission" && (
+        <FormModal
+          title={getModalTitle("Permission", modalData)}
+          loading={form.loading}
+          onSave={form.submit}
+          onClose={closeModal}
+          saveText={modalData?.id ? "Update" : "Save"}
+        >
+          <FormInput
+            label="Permission Name"
+            value={form.values.name}
+            error={form.errors.name?.[0]}
+            onChange={(v) => form.setField("name", v)}
+            disabled={form.loading}
+            required
+          />
+        </FormModal>
+      )}
+    </AdminPage>
   );
 }
 

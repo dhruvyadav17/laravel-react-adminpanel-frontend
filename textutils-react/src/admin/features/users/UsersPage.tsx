@@ -4,17 +4,14 @@ import { useAppModal } from "../../../context/AppModalContext";
 import { useAuth } from "../../../auth/hooks/useAuth";
 import { usePagination } from "../../../hooks/usePagination";
 
-import DataTable from "../../components/table/DataTable";
+import AdminPage from "../../components/page/AdminPage";
+import AdminTable from "../../components/table/AdminTable";
 import RowActions from "../../components/table/RowActions";
 import AssignModal from "../../components/modals/AssignModal";
 import Pagination from "../../../components/common/Pagination";
 import { useTableActions } from "../../hooks/useTableActions";
 
-import {
-  Card,
-  CardHeader,
-  CardBody,
-} from "../../../components/ui/Card";
+import { Card, CardHeader, CardBody } from "../../../components/ui/Card";
 
 import UserFormModal from "../../components/modals/UserFormModal";
 
@@ -31,18 +28,15 @@ import { PERMISSIONS } from "../../../constants/permissions";
 import { ICONS } from "../../../constants/icons";
 import { useConfirmAction } from "../../../hooks/useConfirmAction";
 import StatusBadge from "../../../components/common/StatusBadge";
-import PageActions from "../../components/page/PageActions";
 
 function UsersPage() {
-  const { modalType, modalData, openModal, closeModal } =
-    useAppModal<any>();
+  const { modalType, modalData, openModal, closeModal } = useAppModal<any>();
 
-  const { page, setPage, search, setSearch } =
-    usePagination();
+  const { page, setPage, search, setSearch } = usePagination();
 
   const { data, isLoading } = useGetUsersQuery(
     { page, search },
-    { refetchOnMountOrArgChange: true }
+    { refetchOnMountOrArgChange: true },
   );
 
   const users = data?.data ?? [];
@@ -61,20 +55,16 @@ function UsersPage() {
       message: "Are you sure you want to archive this user?",
       confirmLabel: "Yes, Archive",
       onConfirm: async () => {
-        await execute(() =>
-          deleteUser(user.id).unwrap(), {
-            defaultMessage: "User archived successfully",
-          }
-        );
+        await execute(() => deleteUser(user.id).unwrap(), {
+          defaultMessage: "User archived successfully",
+        });
       },
     });
 
   const handleRestore = (user: User) =>
-    execute(() =>
-      restoreUser(user.id).unwrap(), {
-        defaultMessage: "User restored successfully",
-      }
-    );
+    execute(() => restoreUser(user.id).unwrap(), {
+      defaultMessage: "User restored successfully",
+    });
 
   /* ================= TABLE ACTIONS ================= */
 
@@ -122,105 +112,86 @@ function UsersPage() {
   });
 
   const getRowActions = (user: User) =>
-    user.deleted_at
-      ? getDeletedUserActions(user)
-      : getActiveUserActions(user);
+    user.deleted_at ? getDeletedUserActions(user) : getActiveUserActions(user);
 
   /* ================= VIEW ================= */
 
   return (
-    <section className="content pt-3">
-      <div className="container-fluid">
-        <PageActions
-          title="Users"
-          permission={PERMISSIONS.USER.CREATE}
-          buttonLabel="Add User"
-          icon={ICONS.ADD}
-          onClick={() => openModal("user-form", null)}
+    <AdminPage
+      title="Users"
+      permission={PERMISSIONS.USER.CREATE}
+      actionLabel="Add User"
+      actionIcon={ICONS.ADD}
+      onAction={() => openModal("user-form", null)}
+    >
+      {/* SEARCH */}
+      <div className="mb-3">
+        <input
+          className="form-control"
+          placeholder="Search by name or email..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
         />
-
-        {/* SEARCH */}
-        <div className="mb-3">
-          <input
-            className="form-control"
-            placeholder="Search by name or email..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-
-        <Card>
-          <CardHeader title="Users List" />
-
-          <CardBody
-            className="p-0"
-            loading={isLoading}
-            empty={!isLoading && users.length === 0}
-            emptyText="No users found"
-          >
-            <DataTable
-              colSpan={5}
-              columns={
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Roles</th>
-                  <th>Status</th>
-                  <th className="text-end">Actions</th>
-                </tr>
-              }
-            >
-              {users.map((user) => (
-                <tr key={user.id}>
-                  <td>{user.name}</td>
-                  <td>{user.email}</td>
-                  <td>{user.roles?.join(", ") || "—"}</td>
-                  <td>
-                    {user.deleted_at ? (
-                      <StatusBadge status="archived" />
-                    ) : (
-                      <StatusBadge active />
-                    )}
-                  </td>
-                  <td className="text-end">
-                    <RowActions
-                      actions={getRowActions(user)}
-                    />
-                  </td>
-                </tr>
-              ))}
-            </DataTable>
-          </CardBody>
-        </Card>
-
-        {meta && (
-          <Pagination
-            meta={meta}
-            onPageChange={setPage}
-          />
-        )}
-
-        {/* ================= MODALS ================= */}
-
-        {modalType === "user-form" && (
-          <UserFormModal
-            user={modalData}
-            onClose={closeModal}
-            onSaved={closeModal}
-          />
-        )}
-
-        {modalType === "assign" &&
-          modalData?.mode &&
-          modalData?.entity && (
-            <AssignModal
-              mode={modalData.mode}
-              entity={modalData.entity}
-              onClose={closeModal}
-            />
-          )}
       </div>
-    </section>
+
+      <Card>
+        <CardHeader title="Users List" />
+
+        <CardBody className="p-0" loading={isLoading}>
+          <AdminTable<User>
+            loading={isLoading}
+            data={users}
+            colSpan={5}
+            columns={
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Roles</th>
+                <th>Status</th>
+                <th className="text-end">Actions</th>
+              </tr>
+            }
+            renderRow={(user) => (
+              <tr key={user.id}>
+                <td>{user.name}</td>
+                <td>{user.email}</td>
+                <td>{user.roles?.join(", ") || "—"}</td>
+                <td>
+                  {user.deleted_at ? (
+                    <StatusBadge status="archived" />
+                  ) : (
+                    <StatusBadge active />
+                  )}
+                </td>
+                <td className="text-end">
+                  <RowActions actions={getRowActions(user)} />
+                </td>
+              </tr>
+            )}
+          />
+        </CardBody>
+      </Card>
+
+      {meta && <Pagination meta={meta} onPageChange={setPage} />}
+
+      {/* ================= MODALS ================= */}
+
+      {modalType === "user-form" && (
+        <UserFormModal
+          user={modalData}
+          onClose={closeModal}
+          onSaved={closeModal}
+        />
+      )}
+
+      {modalType === "assign" && modalData?.mode && modalData?.entity && (
+        <AssignModal
+          mode={modalData.mode}
+          entity={modalData.entity}
+          onClose={closeModal}
+        />
+      )}
+    </AdminPage>
   );
 }
 
