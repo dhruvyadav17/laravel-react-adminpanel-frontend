@@ -1,4 +1,6 @@
-import PageActions from "./PageActions";
+import { Card, CardHeader } from "../../../components/ui/Card";
+import Button from "../../../components/common/Button";
+import Can from "../../../components/common/Can";
 
 type Props = {
   title: string;
@@ -17,17 +19,26 @@ export default function AdminPage({
   onAction,
   children,
 }: Props) {
-  return (
-    <section className="content pt-3">
-      <div className="container-fluid">
-        <PageActions
-          title={title}
-          permission={permission}
-          buttonLabel={actionLabel}
+  const action =
+    permission && actionLabel && onAction ? (
+      <Can permission={permission}>
+        <Button
+          label={actionLabel}
           icon={actionIcon}
           onClick={onAction}
         />
+      </Can>
+    ) : null;
 
+  return (
+    <section className="content pt-3">
+      <div className="container-fluid">
+        {/* HEADER */}
+        <Card className="mb-3">
+          <CardHeader title={title} action={action} />
+        </Card>
+
+        {/* CONTENT */}
         {children}
       </div>
     </section>

@@ -1,11 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   useGetRolesQuery,
   useGetPermissionsQuery,
-  useAssignRoleToUserMutation,
-  useAssignPermissionToUserMutation,
-  useAssignPermissionToRoleMutation,
-} from "../../../store/api";
+  useGetUserPermissionsQuery,
+  useGetRolePermissionsQuery,
+  useAssignUserRolesMutation,
+  useAssignUserPermissionsMutation,
+  useAssignRolePermissionsMutation,
+} from "../../store/api";
+
+/* ================= TYPES ================= */
 
 type Mode =
   | "user-role"
@@ -15,41 +19,103 @@ type Mode =
 type Entity = {
   id: number;
   roles?: string[];
-  permissions?: string[];
 };
+
+type AssignItem = {
+  name: string;
+  assigned: boolean;
+};
+
+/* ================= HOOK ================= */
 
 export function useAssignLogic(mode: Mode, entity: Entity) {
   const isUserRole = mode === "user-role";
   const isUserPermission = mode === "user-permission";
   const isRolePermission = mode === "role-permission";
 
+  const [selected, setSelected] = useState<string[]>([]);
+
+  /* ================= FETCH ALL ================= */
+
   const { data: roles = [] } = useGetRolesQuery(undefined, {
     skip: !isUserRole,
+    refetchOnMountOrArgChange: true,
   });
 
   const { data: permissions = [] } = useGetPermissionsQuery(undefined, {
-    skip: !isUserPermission && !isRolePermission,
+    skip: isUserRole,
+    refetchOnMountOrArgChange: true,
   });
 
-  const [assignUserRoles] = useAssignRoleToUserMutation();
-  const [assignUserPermissions] =
-    useAssignPermissionToUserMutation();
-  const [assignRolePermissions] =
-    useAssignPermissionToRoleMutation();
+  /* ================= FETCH ASSIGNED ================= */
 
-  const items = isUserRole ? roles : permissions;
+  const { data: userPermData } =
+    useGetUserPermissionsQuery(entity.id, {
+      skip: !isUserPermission,
+    });
 
-  const initialSelected =
-    isUserRole
-      ? entity.roles ?? []
-      : entity.permissions ?? [];
+  const { data: rolePermData } =
+    useGetRolePermissionsQuery(entity.id, {
+      skip: !isRolePermission,
+    });
 
-  const [selected, setSelected] =
-    useState<string[]>(initialSelected);
+  /* ================= MUTATIONS ================= */
+
+  const [assignUserRoles] = useAssignUserRolesMutation();
+  const [assignUserPermissions] = useAssignUserPermissionsMutation();
+  const [assignRolePermissions] = useAssignRolePermissionsMutation();
+
+  /* ================= INIT SELECTED ================= */
 
   useEffect(() => {
-    setSelected(initialSelected);
-  }, [entity.id]);
+    if (isUserRole) {
+      setSelected(entity.roles ?? []);
+      return;
+    }
+
+    if (isUserPermission && userPermData) {
+      setSelected(
+        Array.isArray(userPermData.assigned)
+          ? userPermData.assigned
+          : []
+      );
+      return;
+    }
+
+    if (isRolePermission && rolePermData) {
+      setSelected(
+        Array.isArray(rolePermData.assigned)
+          ? rolePermData.assigned
+          : []
+      );
+    }
+  }, [
+    mode,
+    entity.id,
+    entity.roles,
+    userPermData,
+    rolePermData,
+  ]);
+
+  /* ================= ITEMS ================= */
+
+  const items: AssignItem[] = useMemo(() => {
+    const selectedSet = new Set(selected);
+
+    if (isUserRole) {
+      return roles.map((r: any) => ({
+        name: r.name,
+        assigned: selectedSet.has(r.name),
+      }));
+    }
+
+    return permissions.map((p: any) => ({
+      name: p.name,
+      assigned: selectedSet.has(p.name),
+    }));
+  }, [isUserRole, roles, permissions, selected]);
+
+  /* ================= TOGGLE ================= */
 
   const toggle = (value: string) => {
     setSelected((prev) =>
@@ -59,35 +125,34 @@ export function useAssignLogic(mode: Mode, entity: Entity) {
     );
   };
 
+  /* ================= SUBMIT ================= */
+
   const submit = async () => {
     if (isUserRole) {
       return assignUserRoles({
-        userId: entity.id,
+        id: entity.id,
         roles: selected,
       }).unwrap();
     }
 
     if (isUserPermission) {
       return assignUserPermissions({
-        userId: entity.id,
+        id: entity.id,
         permissions: selected,
       }).unwrap();
     }
 
     if (isRolePermission) {
       return assignRolePermissions({
-        roleId: entity.id,
+        id: entity.id,
         permissions: selected,
       }).unwrap();
     }
   };
 
-  const title =
-    mode === "user-role"
-      ? "Assign Roles"
-      : mode === "user-permission"
-      ? "Assign Permissions"
-      : "Assign Permissions";
+  const title = isUserRole
+    ? "Assign Roles"
+    : "Assign Permissions";
 
   return {
     items,

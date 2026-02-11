@@ -3,17 +3,21 @@ import { memo, useMemo } from "react";
 import { useAppModal } from "../../../context/AppModalContext";
 import { useAuth } from "../../../auth/hooks/useAuth";
 import { usePagination } from "../../../hooks/usePagination";
+import { useConfirmAction } from "../../../hooks/useConfirmAction";
 
 import AdminPage from "../../components/page/AdminPage";
-import AdminTable from "../../components/table/AdminTable";
+import AdminCard from "../../components/ui/AdminCard";
+import DataTable from "../../components/table/DataTable";
+import TableEmptyRow from "../../components/table/TableEmptyRow";
 import RowActions from "../../components/table/RowActions";
 import AssignModal from "../../components/modals/AssignModal";
+
 import Pagination from "../../../components/common/Pagination";
-import { useTableActions } from "../../hooks/useTableActions";
+import TableSearch from "../../../components/common/TableSearch";
+import StatusBadge from "../../../components/common/StatusBadge";
 
 import UserFormModal from "../../components/modals/UserFormModal";
-import AdminCard from "../../components/ui/AdminCard";
-import TableSearch from "../../../components/common/TableSearch";
+import { useTableActions } from "../../hooks/useTableActions";
 
 import {
   useGetUsersQuery,
@@ -23,11 +27,8 @@ import {
 
 import { execute } from "../../../utils/execute";
 import type { User } from "../../../types/models";
-
 import { PERMISSIONS } from "../../../constants/permissions";
 import { ICONS } from "../../../constants/icons";
-import { useConfirmAction } from "../../../hooks/useConfirmAction";
-import StatusBadge from "../../../components/common/StatusBadge";
 
 function UsersPage() {
   const { modalType, modalData, openModal, closeModal } = useAppModal<any>();
@@ -46,7 +47,7 @@ function UsersPage() {
   const [deleteUser] = useDeleteUserMutation();
   const [restoreUser] = useRestoreUserMutation();
 
-  /* ================= ACTION HANDLERS ================= */
+  /* ================= ACTIONS ================= */
 
   const handleArchive = (user: User) =>
     confirmAction({
@@ -63,8 +64,6 @@ function UsersPage() {
     execute(() => restoreUser(user.id).unwrap(), {
       defaultMessage: "User restored successfully",
     });
-
-  /* ================= TABLE ACTIONS ================= */
 
   const activeActions = useTableActions<User>({
     canDelete: can(PERMISSIONS.USER.DELETE),
@@ -110,8 +109,6 @@ function UsersPage() {
   const getRowActions = (user: User) =>
     user.deleted_at ? deletedActions(user) : activeActions(user);
 
-  /* ================= TABLE HEADER ================= */
-
   const columns = useMemo(
     () => (
       <tr>
@@ -124,8 +121,6 @@ function UsersPage() {
     ),
     []
   );
-
-  /* ================= VIEW ================= */
 
   return (
     <AdminPage
@@ -141,35 +136,35 @@ function UsersPage() {
         placeholder="Search by name or email..."
       />
 
-      <AdminCard title="Users List" loading={isLoading}>
-        <AdminTable<User>
-          loading={isLoading}
-          data={users}
-          colSpan={5}
-          columns={columns}
-          renderRow={(user) => (
-            <tr key={user.id}>
-              <td>{user.name}</td>
-              <td>{user.email}</td>
-              <td>{user.roles?.join(", ") || "—"}</td>
-              <td>
-                {user.deleted_at ? (
-                  <StatusBadge status="archived" />
-                ) : (
-                  <StatusBadge active />
-                )}
-              </td>
-              <td className="text-end">
-                <RowActions actions={getRowActions(user)} />
-              </td>
-            </tr>
-          )}
-        />
+      <AdminCard
+        title="Users List"
+        loading={isLoading}
+        empty={!isLoading && users.length === 0}
+        emptyText="No users found"
+      >
+        <DataTable columns={columns} colSpan={5}>
+          {!isLoading &&
+            users.map((user) => (
+              <tr key={user.id}>
+                <td>{user.name}</td>
+                <td>{user.email}</td>
+                <td>{user.roles?.join(", ") || "—"}</td>
+                <td>
+                  {user.deleted_at ? (
+                    <StatusBadge status="archived" />
+                  ) : (
+                    <StatusBadge active />
+                  )}
+                </td>
+                <td className="text-end">
+                  <RowActions actions={getRowActions(user)} />
+                </td>
+              </tr>
+            ))}
+        </DataTable>
       </AdminCard>
 
       {meta && <Pagination meta={meta} onPageChange={setPage} />}
-
-      {/* ================= MODALS ================= */}
 
       {modalType === "user-form" && (
         <UserFormModal

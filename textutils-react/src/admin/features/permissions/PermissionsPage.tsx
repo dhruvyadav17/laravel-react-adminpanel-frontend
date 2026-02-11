@@ -1,9 +1,10 @@
 import { memo, useMemo } from "react";
 
 import AdminPage from "../../components/page/AdminPage";
-import CrudTableCard from "../../components/crud/CrudTableCard";
+import AdminCard from "../../components/ui/AdminCard";
+import DataTable from "../../components/table/DataTable";
+import TableEmptyRow from "../../components/table/TableEmptyRow";
 import RowActions from "../../components/table/RowActions";
-import { useTableActions } from "../../hooks/useTableActions";
 
 import CrudModal from "../../../components/common/CrudModal";
 import FormInput from "../../../components/common/FormInput";
@@ -13,6 +14,7 @@ import { useModalForm } from "../../../hooks/useModalForm";
 import { useAuth } from "../../../auth/hooks/useAuth";
 import { useConfirmAction } from "../../../hooks/useConfirmAction";
 import { useCrudHandlers } from "../../../hooks/useCrudHandlers";
+import { useTableActions } from "../../hooks/useTableActions";
 
 import {
   useGetPermissionsQuery,
@@ -37,14 +39,14 @@ function PermissionsPage() {
 
   /* ================= CRUD HANDLERS ================= */
 
-  const [createPermissionMutation] = useCreatePermissionMutation();
-  const [updatePermissionMutation] = useUpdatePermissionMutation();
-  const [deletePermissionMutation] = useDeletePermissionMutation();
+  const [createMutation] = useCreatePermissionMutation();
+  const [updateMutation] = useUpdatePermissionMutation();
+  const [deleteMutation] = useDeletePermissionMutation();
 
   const { create, update, remove } = useCrudHandlers({
-    create: createPermissionMutation,
-    update: updatePermissionMutation,
-    remove: deletePermissionMutation,
+    create: createMutation,
+    update: updateMutation,
+    remove: deleteMutation,
   });
 
   /* ================= FORM ================= */
@@ -56,12 +58,7 @@ function PermissionsPage() {
         modalData?.id
           ? update(modalData.id, { name: values.name })
           : create(values),
-
       onSuccess: closeModal,
-
-      successMessage: modalData?.id
-        ? "Permission updated successfully"
-        : "Permission created successfully",
     }
   );
 
@@ -84,12 +81,10 @@ function PermissionsPage() {
   const rowActions = useTableActions<Permission>({
     canEdit: can(PERMISSIONS.PERMISSION.MANAGE),
     canDelete: can(PERMISSIONS.PERMISSION.MANAGE),
-
     onEdit: (permission) => {
       form.setField("name", permission.name);
       openModal("permission", permission);
     },
-
     onDelete: handleDelete,
   });
 
@@ -111,30 +106,30 @@ function PermissionsPage() {
     <AdminPage
       title="Permissions"
       permission={PERMISSIONS.PERMISSION.MANAGE}
-      actionLabel="+ Add Permission"
+      actionLabel="Add Permission"
       onAction={() => {
         form.reset();
         openModal("permission");
       }}
     >
-      <CrudTableCard<Permission>
+      <AdminCard
         title="Permissions List"
         loading={isLoading}
-        data={permissions}
+        empty={!isLoading && permissions.length === 0}
         emptyText="No permissions found"
-        colSpan={2}
-        columns={columns}
-        renderRow={(permission) => (
-          <tr key={permission.id}>
-            <td>{permission.name}</td>
-            <td className="text-end">
-              <RowActions actions={rowActions(permission)} />
-            </td>
-          </tr>
-        )}
-      />
-
-      {/* ================= MODAL ================= */}
+      >
+        <DataTable columns={columns} colSpan={2}>
+          {!isLoading &&
+            permissions.map((permission) => (
+              <tr key={permission.id}>
+                <td>{permission.name}</td>
+                <td className="text-end">
+                  <RowActions actions={rowActions(permission)} />
+                </td>
+              </tr>
+            ))}
+        </DataTable>
+      </AdminCard>
 
       {modalType === "permission" && (
         <CrudModal
@@ -142,7 +137,6 @@ function PermissionsPage() {
           loading={form.loading}
           onSave={form.submit}
           onClose={closeModal}
-          saveText={modalData?.id ? "Update" : "Save"}
         >
           <FormInput
             label="Permission Name"

@@ -1,7 +1,9 @@
 import { memo, useMemo } from "react";
 
 import AdminPage from "../../components/page/AdminPage";
-import CrudTableCard from "../../components/crud/CrudTableCard";
+import AdminCard from "../../components/ui/AdminCard";
+import DataTable from "../../components/table/DataTable";
+import TableEmptyRow from "../../components/table/TableEmptyRow";
 import RowActions from "../../components/table/RowActions";
 import AssignModal from "../../components/modals/AssignModal";
 
@@ -36,33 +38,26 @@ function RolesPage() {
   const { can } = useAuth();
   const { data: roles = [], isLoading } = useGetRolesQuery();
 
-  /* ================= CRUD HANDLERS ================= */
-
-  const [createRoleMutation] = useCreateRoleMutation();
-  const [updateRoleMutation] = useUpdateRoleMutation();
-  const [deleteRoleMutation] = useDeleteRoleMutation();
+  const [createMutation] = useCreateRoleMutation();
+  const [updateMutation] = useUpdateRoleMutation();
+  const [deleteMutation] = useDeleteRoleMutation();
 
   const { create, update, remove } = useCrudHandlers({
-    create: createRoleMutation,
-    update: updateRoleMutation,
-    remove: deleteRoleMutation,
+    create: createMutation,
+    update: updateMutation,
+    remove: deleteMutation,
   });
-
-  /* ================= FORM ================= */
 
   const form = useModalForm(
     { name: "" },
     {
-      onSubmit: (values) =>
-        modalType === "role-edit" && modalData?.id
-          ? update(modalData.id, { name: values.name })
-          : create(values),
-
+onSubmit: (values) =>
+  modalType === "role-edit" && modalData?.id
+    ? update(modalData.id, values)
+    : create(values),
       onSuccess: closeModal,
     }
   );
-
-  /* ================= DELETE ================= */
 
   const handleDelete = (role: Role) =>
     confirmAction({
@@ -75,8 +70,6 @@ function RolesPage() {
         });
       },
     });
-
-  /* ================= TABLE ACTIONS ================= */
 
   const rowActions = useTableActions<Role>({
     canEdit: can(PERMISSIONS.ROLE.MANAGE),
@@ -104,8 +97,6 @@ function RolesPage() {
     ],
   });
 
-  /* ================= TABLE HEADER ================= */
-
   const columns = useMemo(
     () => (
       <tr>
@@ -115,8 +106,6 @@ function RolesPage() {
     ),
     []
   );
-
-  /* ================= VIEW ================= */
 
   return (
     <AdminPage
@@ -129,24 +118,24 @@ function RolesPage() {
         openModal("role-add");
       }}
     >
-      <CrudTableCard<Role>
+      <AdminCard
         title="Roles List"
         loading={isLoading}
-        data={roles}
+        empty={!isLoading && roles.length === 0}
         emptyText="No roles found"
-        colSpan={2}
-        columns={columns}
-        renderRow={(role) => (
-          <tr key={role.id}>
-            <td>{role.name}</td>
-            <td className="text-end">
-              <RowActions actions={rowActions(role)} />
-            </td>
-          </tr>
-        )}
-      />
-
-      {/* ================= MODAL ================= */}
+      >
+        <DataTable columns={columns} colSpan={2}>
+          {!isLoading &&
+            roles.map((role) => (
+              <tr key={role.id}>
+                <td>{role.name}</td>
+                <td className="text-end">
+                  <RowActions actions={rowActions(role)} />
+                </td>
+              </tr>
+            ))}
+        </DataTable>
+      </AdminCard>
 
       {(modalType === "role-add" || modalType === "role-edit") && (
         <CrudModal
@@ -154,7 +143,6 @@ function RolesPage() {
           loading={form.loading}
           onSave={form.submit}
           onClose={closeModal}
-          saveText={modalType === "role-edit" ? "Update" : "Save"}
         >
           <FormInput
             label="Role Name"
@@ -166,8 +154,6 @@ function RolesPage() {
           />
         </CrudModal>
       )}
-
-      {/* ================= ASSIGN MODAL ================= */}
 
       {modalType === "assign" &&
         modalData &&
