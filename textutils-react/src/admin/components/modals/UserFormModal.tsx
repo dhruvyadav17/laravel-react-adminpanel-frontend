@@ -1,12 +1,14 @@
-import FormModal from "../../../components/common/FormModal";
+import CrudModal from "../../../components/common/CrudModal";
 import FormInput from "../../../components/common/FormInput";
 import { useModalForm } from "../../../hooks/useModalForm";
+import { useCrudHandlers } from "../../../hooks/useCrudHandlers";
+
 import {
   useCreateUserMutation,
   useUpdateUserMutation,
 } from "../../../store/api";
-import { getModalTitle } from "../../../utils/modalTitle";
 
+import { getModalTitle } from "../../../utils/modalTitle";
 import type { User } from "../../../types/models";
 
 type Props = {
@@ -15,9 +17,22 @@ type Props = {
   user?: User | null;
 };
 
-export default function UserFormModal({ onClose, onSaved, user }: Props) {
-  const [createUser] = useCreateUserMutation();
-  const [updateUser] = useUpdateUserMutation();
+export default function UserFormModal({
+  onClose,
+  onSaved,
+  user,
+}: Props) {
+  /* ================= MUTATIONS ================= */
+
+  const [createUserMutation] = useCreateUserMutation();
+  const [updateUserMutation] = useUpdateUserMutation();
+
+  const { create, update } = useCrudHandlers({
+    create: createUserMutation,
+    update: updateUserMutation,
+  });
+
+  /* ================= FORM ================= */
 
   const form = useModalForm(
     {
@@ -27,26 +42,24 @@ export default function UserFormModal({ onClose, onSaved, user }: Props) {
       password_confirmation: "",
     },
     {
-      onSubmit: (values) => {
-        if (user?.id) {
-          return updateUser({
-            id: user.id,
-            data: values,
-          }).unwrap();
-        }
+      onSubmit: (values) =>
+        user?.id
+          ? update(user.id, { data: values })
+          : create(values),
 
-        return createUser(values).unwrap();
-      },
       onSuccess: onSaved,
-    },
+    }
   );
 
+  /* ================= VIEW ================= */
+
   return (
-    <FormModal
+    <CrudModal
       title={getModalTitle("User", user)}
       loading={form.loading}
       onSave={form.submit}
       onClose={onClose}
+      saveText={user ? "Update" : "Save"}
     >
       <FormInput
         label="Name"
@@ -82,10 +95,12 @@ export default function UserFormModal({ onClose, onSaved, user }: Props) {
         type="password"
         value={form.values.password_confirmation}
         error={form.errors.password_confirmation?.[0]}
-        onChange={(v) => form.setField("password_confirmation", v)}
+        onChange={(v) =>
+          form.setField("password_confirmation", v)
+        }
         disabled={form.loading}
         required={!user}
       />
-    </FormModal>
+    </CrudModal>
   );
 }

@@ -1,16 +1,19 @@
 import { memo, useMemo } from "react";
 
-import FormInput from "../../../components/common/FormInput";
-import FormModal from "../../../components/common/FormModal";
-
-import { useModalForm } from "../../../hooks/useModalForm";
-import { useAppModal } from "../../../context/AppModalContext";
-import { useAuth } from "../../../auth/hooks/useAuth";
-
 import AdminPage from "../../components/page/AdminPage";
 import CrudTableCard from "../../components/crud/CrudTableCard";
 import RowActions from "../../components/table/RowActions";
 import AssignModal from "../../components/modals/AssignModal";
+
+import CrudModal from "../../../components/common/CrudModal";
+import FormInput from "../../../components/common/FormInput";
+
+import { useAppModal } from "../../../context/AppModalContext";
+import { useModalForm } from "../../../hooks/useModalForm";
+import { useAuth } from "../../../auth/hooks/useAuth";
+import { useTableActions } from "../../hooks/useTableActions";
+import { useConfirmAction } from "../../../hooks/useConfirmAction";
+import { useCrudHandlers } from "../../../hooks/useCrudHandlers";
 
 import {
   useGetRolesQuery,
@@ -22,24 +25,28 @@ import {
 import type { Role } from "../../../types/models";
 import { PERMISSIONS } from "../../../constants/permissions";
 import { ICONS } from "../../../constants/icons";
-
-import { useTableActions } from "../../hooks/useTableActions";
-import { useConfirmAction } from "../../../hooks/useConfirmAction";
 import { getModalTitle } from "../../../utils/modalTitle";
 import { execute } from "../../../utils/execute";
 
 function RolesPage() {
   const confirmAction = useConfirmAction();
   const { modalType, modalData, openModal, closeModal } =
-    useAppModal<any>();
-
-  const { data: roles = [], isLoading } = useGetRolesQuery();
-
-  const [createRole] = useCreateRoleMutation();
-  const [updateRole] = useUpdateRoleMutation();
-  const [deleteRole] = useDeleteRoleMutation();
+    useAppModal<Role>();
 
   const { can } = useAuth();
+  const { data: roles = [], isLoading } = useGetRolesQuery();
+
+  /* ================= CRUD HANDLERS ================= */
+
+  const [createRoleMutation] = useCreateRoleMutation();
+  const [updateRoleMutation] = useUpdateRoleMutation();
+  const [deleteRoleMutation] = useDeleteRoleMutation();
+
+  const { create, update, remove } = useCrudHandlers({
+    create: createRoleMutation,
+    update: updateRoleMutation,
+    remove: deleteRoleMutation,
+  });
 
   /* ================= FORM ================= */
 
@@ -47,12 +54,9 @@ function RolesPage() {
     { name: "" },
     {
       onSubmit: (values) =>
-        modalType === "role-edit"
-          ? updateRole({
-              id: modalData.id,
-              name: values.name,
-            }).unwrap()
-          : createRole(values).unwrap(),
+        modalType === "role-edit" && modalData?.id
+          ? update(modalData.id, { name: values.name })
+          : create(values),
 
       onSuccess: closeModal,
     }
@@ -65,7 +69,7 @@ function RolesPage() {
       message: "Are you sure you want to delete this role?",
       confirmLabel: "Delete Role",
       onConfirm: async () => {
-        await execute(() => deleteRole(role.id).unwrap(), {
+        await execute(() => remove(role.id), {
           variant: "danger",
           defaultMessage: "Role deleted successfully",
         });
@@ -142,8 +146,10 @@ function RolesPage() {
         )}
       />
 
+      {/* ================= MODAL ================= */}
+
       {(modalType === "role-add" || modalType === "role-edit") && (
-        <FormModal
+        <CrudModal
           title={getModalTitle("Role", modalData)}
           loading={form.loading}
           onSave={form.submit}
@@ -158,15 +164,18 @@ function RolesPage() {
             disabled={form.loading}
             required
           />
-        </FormModal>
+        </CrudModal>
       )}
 
+      {/* ================= ASSIGN MODAL ================= */}
+
       {modalType === "assign" &&
-        modalData?.mode &&
-        modalData?.entity && (
+        modalData &&
+        (modalData as any)?.mode &&
+        (modalData as any)?.entity && (
           <AssignModal
-            mode={modalData.mode}
-            entity={modalData.entity}
+            mode={(modalData as any).mode}
+            entity={(modalData as any).entity}
             onClose={closeModal}
           />
         )}
