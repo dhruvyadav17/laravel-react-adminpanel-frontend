@@ -1,7 +1,7 @@
+import { useEffect } from "react";
 import CrudModal from "../../../components/common/CrudModal";
 import FormInput from "../../../components/common/FormInput";
-import { useModalForm } from "../../../hooks/useModalForm";
-import { useCrudHandlers } from "../../../hooks/useCrudHandlers";
+import { useCrudForm } from "../../../hooks/useCrudForm";
 
 import {
   useCreateUserMutation,
@@ -24,32 +24,45 @@ export default function UserFormModal({
 }: Props) {
   /* ================= MUTATIONS ================= */
 
-  const [createUserMutation] = useCreateUserMutation();
-  const [updateUserMutation] = useUpdateUserMutation();
+  const [createUser] = useCreateUserMutation();
+  const [updateUser] = useUpdateUserMutation();
 
-  const { create, update } = useCrudHandlers({
-    create: createUserMutation,
-    update: updateUserMutation,
-  });
+  /* ================= CRUD FORM ================= */
 
-  /* ================= FORM ================= */
-
-  const form = useModalForm(
-    {
-      name: user?.name ?? "",
-      email: user?.email ?? "",
+  const form = useCrudForm({
+    initialValues: {
+      name: "",
+      email: "",
       password: "",
       password_confirmation: "",
     },
-    {
-      onSubmit: (values) =>
-        user?.id
-          ? update(user.id, { data: values })
-          : create(values),
+    create: createUser,
+    update: updateUser,
+    onSuccess: onSaved,
+  });
 
-      onSuccess: onSaved,
+  /* ================= SYNC EDIT DATA ================= */
+
+  useEffect(() => {
+    if (user) {
+      form.setAllValues({
+        name: user.name,
+        email: user.email,
+        password: "",
+        password_confirmation: "",
+      });
+    } else {
+      form.reset();
     }
-  );
+  }, [user]);
+
+  /* ================= SUBMIT ================= */
+
+  const handleSubmit = () => {
+    user?.id
+      ? form.update(user.id)
+      : form.create();
+  };
 
   /* ================= VIEW ================= */
 
@@ -57,7 +70,7 @@ export default function UserFormModal({
     <CrudModal
       title={getModalTitle("User", user)}
       loading={form.loading}
-      onSave={form.submit}
+      onSave={handleSubmit}
       onClose={onClose}
       saveText={user ? "Update" : "Save"}
     >

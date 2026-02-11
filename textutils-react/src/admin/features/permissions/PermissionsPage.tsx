@@ -9,10 +9,9 @@ import CrudModal from "../../../components/common/CrudModal";
 import FormInput from "../../../components/common/FormInput";
 
 import { useAppModal } from "../../../context/AppModalContext";
-import { useModalForm } from "../../../hooks/useModalForm";
+import { useCrudForm } from "../../../hooks/useCrudForm";
 import { useAuth } from "../../../auth/hooks/useAuth";
 import { useConfirmAction } from "../../../hooks/useConfirmAction";
-import { useCrudHandlers } from "../../../hooks/useCrudHandlers";
 import { useTableActions } from "../../hooks/useTableActions";
 
 import {
@@ -23,9 +22,9 @@ import {
 } from "../../../store/api";
 
 import type { Permission } from "../../../types/models";
-import { PERMISSIONS } from "../../../constants/permissions";
+import { PERMISSIONS, ADMIN_ROLES } from "../../../constants/rbac";
+
 import { getModalTitle } from "../../../utils/modalTitle";
-import { execute } from "../../../utils/execute";
 
 function PermissionsPage() {
   const confirmAction = useConfirmAction();
@@ -36,46 +35,26 @@ function PermissionsPage() {
   const { data: permissions = [], isLoading } =
     useGetPermissionsQuery();
 
-  /* ================= CRUD HANDLERS ================= */
+  const [createPermission] = useCreatePermissionMutation();
+  const [updatePermission] = useUpdatePermissionMutation();
+  const [deletePermission] = useDeletePermissionMutation();
 
-  const [createMutation] = useCreatePermissionMutation();
-  const [updateMutation] = useUpdatePermissionMutation();
-  const [deleteMutation] = useDeletePermissionMutation();
-
-  const { create, update, remove } = useCrudHandlers({
-    create: createMutation,
-    update: updateMutation,
-    remove: deleteMutation,
+  const form = useCrudForm({
+    initialValues: { name: "" },
+    create: createPermission,
+    update: updatePermission,
+    remove: deletePermission,
+    onSuccess: closeModal,
   });
-
-  /* ================= FORM ================= */
-
-  const form = useModalForm(
-    { name: "" },
-    {
-      onSubmit: (values) =>
-        modalData?.id
-          ? update(modalData.id, { name: values.name })
-          : create(values),
-      onSuccess: closeModal,
-    }
-  );
-
-  /* ================= DELETE ================= */
 
   const handleDelete = (permission: Permission) =>
     confirmAction({
       message: "Are you sure you want to delete this permission?",
       confirmLabel: "Delete Permission",
       onConfirm: async () => {
-        await execute(() => remove(permission.id), {
-          variant: "danger",
-          defaultMessage: "Permission deleted successfully",
-        });
+        await form.remove(permission.id);
       },
     });
-
-  /* ================= TABLE ACTIONS ================= */
 
   const rowActions = useTableActions<Permission>({
     canEdit: can(PERMISSIONS.PERMISSION.MANAGE),
@@ -87,8 +66,6 @@ function PermissionsPage() {
     onDelete: handleDelete,
   });
 
-  /* ================= TABLE HEADER ================= */
-
   const columns = useMemo(
     () => (
       <tr>
@@ -99,7 +76,11 @@ function PermissionsPage() {
     []
   );
 
-  /* ================= VIEW ================= */
+  const handleSubmit = () => {
+    modalData?.id
+      ? form.update(modalData.id)
+      : form.create();
+  };
 
   return (
     <AdminPage
@@ -134,7 +115,7 @@ function PermissionsPage() {
         <CrudModal
           title={getModalTitle("Permission", modalData)}
           loading={form.loading}
-          onSave={form.submit}
+          onSave={handleSubmit}
           onClose={closeModal}
         >
           <FormInput

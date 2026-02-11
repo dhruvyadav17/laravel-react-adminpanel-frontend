@@ -1,6 +1,6 @@
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
-import { ADMIN_ROLES } from "../../constants/roles";
+import { ADMIN_ROLES } from "../../constants/rbac";
 
 export function useAuth() {
   const user = useSelector((s: RootState) => s.auth.user);

@@ -12,9 +12,10 @@ import RowActions from "../../components/table/RowActions";
 import AssignModal from "../../components/modals/AssignModal";
 
 import Pagination from "../../../components/common/Pagination";
-import TableSearch from "../../../components/common/TableSearch";
-import StatusBadge from "../../../components/common/StatusBadge";
-
+// import TableSearch from "../../../components/common/TableSearch";
+// import StatusBadge from "../../../components/common/StatusBadge";
+import { TableSearch, StatusBadge } 
+from "../../../components/common/TableUtils";
 import UserFormModal from "../../components/modals/UserFormModal";
 import { useTableActions } from "../../hooks/useTableActions";
 
@@ -26,8 +27,8 @@ import {
 
 import { execute } from "../../../utils/execute";
 import type { User } from "../../../types/models";
-import { PERMISSIONS } from "../../../constants/permissions";
-import { ICONS } from "../../../constants/icons";
+import { PERMISSIONS } from "../../../constants/rbac";
+import { ICONS } from "../../../constants/ui";
 
 function UsersPage() {
   const { modalType, modalData, openModal, closeModal } = useAppModal<any>();

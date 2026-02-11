@@ -7,7 +7,7 @@ import { useGetDashboardStatsQuery } from "../../../store/api";
 import InfoBox from "../../components/ui/InfoBox";
 
 // import { Card, CardBody } from "../../../components/ui/Card";
-import { ICONS } from "../../../constants/icons";
+import { ICONS } from "../../../constants/ui";
 import AdminPage from "../../components/page/AdminPage";
 
 export default function DashboardPage() {
