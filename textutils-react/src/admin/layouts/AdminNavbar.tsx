@@ -1,13 +1,11 @@
 import { NavLink } from "react-router-dom";
-import { useLogout } from "../../auth/hooks/useLogout";
+import AdminLogoutButton from "../components/common/AdminLogoutButton";
 
 type Props = {
   onToggle: () => void;
 };
 
 export default function AdminNavbar({ onToggle }: Props) {
-  const logout = useLogout();
-
   return (
     <>
       {/* LEFT */}
@@ -42,13 +40,7 @@ export default function AdminNavbar({ onToggle }: Props) {
             </NavLink>
 
             <div className="dropdown-divider" />
-
-            <button
-              className="dropdown-item text-danger"
-              onClick={() => logout("/admin/login")}
-            >
-              Logout
-            </button>
+              <AdminLogoutButton variant="dropdown" />
           </div>
         </li>
       </ul>

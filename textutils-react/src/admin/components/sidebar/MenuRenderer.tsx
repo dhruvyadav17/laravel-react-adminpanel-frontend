@@ -1,7 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import type { SidebarGroup } from "../../types/sidebar";
-import { useLogout } from "../../../auth/hooks/useLogout";
+import AdminLogoutButton from "../common/AdminLogoutButton";
 
 type Props = {
   group: SidebarGroup;
@@ -9,8 +9,6 @@ type Props = {
 
 export default function MenuRenderer({ group }: Props) {
   const location = useLocation();
-  const logout = useLogout();
-
   const items = group.children ?? [];
   if (!items.length) return null;
 
@@ -54,18 +52,7 @@ export default function MenuRenderer({ group }: Props) {
           if (item.action === "logout") {
             return (
               <li key={item.label} className="nav-item">
-                <a
-                  href="#"
-                  title={item.label}
-                  className="nav-link text-danger"
-                  onClick={e => {
-                    e.preventDefault();
-                    logout("/admin/login");
-                  }}
-                >
-                  <i className="fas fa-sign-out-alt nav-icon" />
-                  <p>{item.label}</p>
-                </a>
+                <AdminLogoutButton variant="sidebar" />
               </li>
             );
           }

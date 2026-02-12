@@ -1,13 +1,9 @@
 import { memo, useMemo } from "react";
 
-import AdminPage from "../../components/page/AdminPage";
-import AdminCard from "../../components/ui/AdminCard";
-import DataTable from "../../components/table/DataTable";
+import AdminTablePage from "../../components/page/AdminTablePage";
 import RowActions from "../../components/table/RowActions";
 import AssignModal from "../../components/modals/AssignModal";
-
-import CrudModal from "../../../components/common/CrudModal";
-import FormInput from "../../../components/common/FormInput";
+import EntityCrudModal from "../../components/modals/EntityCrudModal";
 
 import { useAppModal } from "../../../context/AppModalContext";
 import { useCrudForm } from "../../../hooks/useCrudForm";
@@ -25,7 +21,6 @@ import {
 import type { Role } from "../../../types/models";
 import { PERMISSIONS } from "../../../constants/rbac";
 import { ICONS } from "../../../constants/ui";
-import { getModalTitle } from "../../../utils/modalTitle";
 
 function RolesPage() {
   const confirmAction = useConfirmAction();
@@ -47,6 +42,8 @@ function RolesPage() {
     onSuccess: closeModal,
   });
 
+  /* ================= DELETE ================= */
+
   const handleDelete = (role: Role) =>
     confirmAction({
       message: "Are you sure you want to delete this role?",
@@ -55,6 +52,8 @@ function RolesPage() {
         await form.remove(role.id);
       },
     });
+
+  /* ================= ROW ACTIONS ================= */
 
   const rowActions = useTableActions<Role>({
     canEdit: can(PERMISSIONS.ROLE.MANAGE),
@@ -79,6 +78,8 @@ function RolesPage() {
     ],
   });
 
+  /* ================= TABLE COLUMNS ================= */
+
   const columns = useMemo(
     () => (
       <tr>
@@ -89,63 +90,45 @@ function RolesPage() {
     []
   );
 
-  const handleSubmit = () => {
-    modalType === "role-edit" && modalData?.id
-      ? form.update(modalData.id)
-      : form.create();
-  };
-
   return (
-    <AdminPage
-      title="Roles"
-      permission={PERMISSIONS.ROLE.MANAGE}
-      actionLabel="Add Role"
-      actionIcon={ICONS.ADD}
-      onAction={() => {
-        form.reset();
-        openModal("role-add");
-      }}
-    >
-      <AdminCard
-        title="Roles List"
+    <>
+      <AdminTablePage
+        title="Roles"
+        permission={PERMISSIONS.ROLE.MANAGE}
+        actionLabel="Add Role"
+        actionIcon={ICONS.ADD}
+        onAction={() => {
+          form.reset();
+          openModal("role-add");
+        }}
         loading={isLoading}
         empty={!isLoading && roles.length === 0}
         emptyText="No roles found"
+        columns={columns}
+        colSpan={2}
       >
-        <DataTable
-          columns={columns}
-          colSpan={2}
-          isLoading={isLoading}
-          isEmpty={!isLoading && roles.length === 0}
-        >
-          {roles.map((role) => (
-            <tr key={role.id}>
-              <td>{role.name}</td>
-              <td className="text-end">
-                <RowActions actions={rowActions(role)} />
-              </td>
-            </tr>
-          ))}
-        </DataTable>
-      </AdminCard>
+        {roles.map((role) => (
+          <tr key={role.id}>
+            <td>{role.name}</td>
+            <td className="text-end">
+              <RowActions actions={rowActions(role)} />
+            </td>
+          </tr>
+        ))}
+      </AdminTablePage>
+
+      {/* ================= ROLE CRUD MODAL ================= */}
 
       {(modalType === "role-add" || modalType === "role-edit") && (
-        <CrudModal
-          title={getModalTitle("Role", modalData)}
-          loading={form.loading}
-          onSave={handleSubmit}
+        <EntityCrudModal
+          entityName="Role"
+          modalData={modalData}
+          form={form}
           onClose={closeModal}
-        >
-          <FormInput
-            label="Role Name"
-            value={form.values.name}
-            error={form.errors.name?.[0]}
-            onChange={(v) => form.setField("name", v)}
-            disabled={form.loading}
-            required
-          />
-        </CrudModal>
+        />
       )}
+
+      {/* ================= ASSIGN PERMISSIONS MODAL ================= */}
 
       {modalType === "assign" &&
         modalData &&
@@ -157,7 +140,7 @@ function RolesPage() {
             onClose={closeModal}
           />
         )}
-    </AdminPage>
+    </>
   );
 }
 

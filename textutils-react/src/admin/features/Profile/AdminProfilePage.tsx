@@ -9,37 +9,40 @@ export default function AdminProfilePage() {
   return (
     <AdminPage title="Admin Profile">
       <AdminCard>
-        <p>
-          <strong>Name:</strong> {user?.name || "—"}
-        </p>
+        <div className="mb-3">
+          <strong>Name:</strong> {user?.name ?? "—"}
+        </div>
 
-        <p>
-          <strong>Email:</strong> {user?.email || "—"}
-        </p>
+        <div className="mb-3">
+          <strong>Email:</strong> {user?.email ?? "—"}
+        </div>
 
-        <p>
-          <strong>Roles:</strong> {roles.length ? roles.join(", ") : "—"}
-        </p>
+        <div className="mb-3">
+          <strong>Roles:</strong>{" "}
+          {roles.length ? roles.join(", ") : "—"}
+        </div>
 
-        <p>
+        <div className="mb-3">
           <strong>Account Type:</strong>{" "}
           {isSuperAdmin ? "Super Admin" : "Admin"}
-        </p>
+        </div>
 
         <hr />
 
-        <h5 className="mb-2">Permissions</h5>
+        <h6 className="mb-3">Permissions</h6>
 
         {permissions.length ? (
           <ul className="list-group list-group-flush">
-            {permissions.map((p) => (
-              <li key={p} className="list-group-item px-0">
-                {p}
+            {permissions.map((permission) => (
+              <li key={permission} className="list-group-item px-0">
+                {permission}
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-muted mb-0">No permissions assigned</p>
+          <p className="text-muted mb-0">
+            No permissions assigned
+          </p>
         )}
       </AdminCard>
     </AdminPage>

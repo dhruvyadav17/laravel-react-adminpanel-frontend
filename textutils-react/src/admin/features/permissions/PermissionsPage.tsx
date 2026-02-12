@@ -1,12 +1,8 @@
 import { memo, useMemo } from "react";
 
-import AdminPage from "../../components/page/AdminPage";
-import AdminCard from "../../components/ui/AdminCard";
-import DataTable from "../../components/table/DataTable";
+import AdminTablePage from "../../components/page/AdminTablePage";
 import RowActions from "../../components/table/RowActions";
-
-import CrudModal from "../../../components/common/CrudModal";
-import FormInput from "../../../components/common/FormInput";
+import EntityCrudModal from "../../components/modals/EntityCrudModal";
 
 import { useAppModal } from "../../../context/AppModalContext";
 import { useCrudForm } from "../../../hooks/useCrudForm";
@@ -22,9 +18,7 @@ import {
 } from "../../../store/api";
 
 import type { Permission } from "../../../types/models";
-import { PERMISSIONS, ADMIN_ROLES } from "../../../constants/rbac";
-
-import { getModalTitle } from "../../../utils/modalTitle";
+import { PERMISSIONS } from "../../../constants/rbac";
 
 function PermissionsPage() {
   const confirmAction = useConfirmAction();
@@ -47,6 +41,8 @@ function PermissionsPage() {
     onSuccess: closeModal,
   });
 
+  /* ================= DELETE ================= */
+
   const handleDelete = (permission: Permission) =>
     confirmAction({
       message: "Are you sure you want to delete this permission?",
@@ -55,6 +51,8 @@ function PermissionsPage() {
         await form.remove(permission.id);
       },
     });
+
+  /* ================= ROW ACTIONS ================= */
 
   const rowActions = useTableActions<Permission>({
     canEdit: can(PERMISSIONS.PERMISSION.MANAGE),
@@ -66,6 +64,8 @@ function PermissionsPage() {
     onDelete: handleDelete,
   });
 
+  /* ================= TABLE COLUMNS ================= */
+
   const columns = useMemo(
     () => (
       <tr>
@@ -76,59 +76,44 @@ function PermissionsPage() {
     []
   );
 
-  const handleSubmit = () => {
-    modalData?.id
-      ? form.update(modalData.id)
-      : form.create();
-  };
-
   return (
-    <AdminPage
-      title="Permissions"
-      permission={PERMISSIONS.PERMISSION.MANAGE}
-      actionLabel="Add Permission"
-      onAction={() => {
-        form.reset();
-        openModal("permission");
-      }}
-    >
-      <AdminCard
-        title="Permissions List"
+    <>
+      <AdminTablePage
+        title="Permissions"
+        permission={PERMISSIONS.PERMISSION.MANAGE}
+        actionLabel="Add Permission"
+        onAction={() => {
+          form.reset();
+          openModal("permission", null);
+        }}
         loading={isLoading}
         empty={!isLoading && permissions.length === 0}
         emptyText="No permissions found"
+        columns={columns}
+        colSpan={2}
       >
-        <DataTable columns={columns} colSpan={2}>
-          {!isLoading &&
-            permissions.map((permission) => (
-              <tr key={permission.id}>
-                <td>{permission.name}</td>
-                <td className="text-end">
-                  <RowActions actions={rowActions(permission)} />
-                </td>
-              </tr>
-            ))}
-        </DataTable>
-      </AdminCard>
+        {!isLoading &&
+          permissions.map((permission) => (
+            <tr key={permission.id}>
+              <td>{permission.name}</td>
+              <td className="text-end">
+                <RowActions actions={rowActions(permission)} />
+              </td>
+            </tr>
+          ))}
+      </AdminTablePage>
+
+      {/* ================= ENTITY CRUD MODAL ================= */}
 
       {modalType === "permission" && (
-        <CrudModal
-          title={getModalTitle("Permission", modalData)}
-          loading={form.loading}
-          onSave={handleSubmit}
+        <EntityCrudModal
+          entityName="Permission"
+          modalData={modalData}
+          form={form}
           onClose={closeModal}
-        >
-          <FormInput
-            label="Permission Name"
-            value={form.values.name}
-            error={form.errors.name?.[0]}
-            onChange={(v) => form.setField("name", v)}
-            disabled={form.loading}
-            required
-          />
-        </CrudModal>
+        />
       )}
-    </AdminPage>
+    </>
   );
 }
 

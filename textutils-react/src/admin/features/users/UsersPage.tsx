@@ -5,18 +5,15 @@ import { useAuth } from "../../../auth/hooks/useAuth";
 import { usePagination } from "../../../hooks/usePagination";
 import { useConfirmAction } from "../../../hooks/useConfirmAction";
 
-import AdminPage from "../../components/page/AdminPage";
-import AdminCard from "../../components/ui/AdminCard";
-import DataTable from "../../components/table/DataTable";
+import AdminTablePage from "../../components/page/AdminTablePage";
 import RowActions from "../../components/table/RowActions";
 import AssignModal from "../../components/modals/AssignModal";
+import UserFormModal from "../../components/modals/UserFormModal";
 
 import Pagination from "../../../components/common/Pagination";
-// import TableSearch from "../../../components/common/TableSearch";
-// import StatusBadge from "../../../components/common/StatusBadge";
 import { TableSearch, StatusBadge } 
-from "../../../components/common/TableUtils";
-import UserFormModal from "../../components/modals/UserFormModal";
+  from "../../../components/common/TableUtils";
+
 import { useTableActions } from "../../hooks/useTableActions";
 
 import {
@@ -123,46 +120,45 @@ function UsersPage() {
   );
 
   return (
-    <AdminPage
-      title="Users"
-      permission={PERMISSIONS.USER.CREATE}
-      actionLabel="Add User"
-      actionIcon={ICONS.ADD}
-      onAction={() => openModal("user-form", null)}
-    >
-      <TableSearch
-        value={search}
-        onChange={setSearch}
-        placeholder="Search by name or email..."
-      />
-
-      <AdminCard
-        title="Users List"
+    <>
+      <AdminTablePage
+        title="Users"
+        permission={PERMISSIONS.USER.CREATE}
+        actionLabel="Add User"
+        actionIcon={ICONS.ADD}
+        onAction={() => openModal("user-form", null)}
         loading={isLoading}
         empty={!isLoading && users.length === 0}
         emptyText="No users found"
+        columns={columns}
+        colSpan={5}
+        topContent={
+          <TableSearch
+            value={search}
+            onChange={setSearch}
+            placeholder="Search by name or email..."
+          />
+        }
       >
-        <DataTable columns={columns} colSpan={5}>
-          {!isLoading &&
-            users.map((user) => (
-              <tr key={user.id}>
-                <td>{user.name}</td>
-                <td>{user.email}</td>
-                <td>{user.roles?.join(", ") || "—"}</td>
-                <td>
-                  {user.deleted_at ? (
-                    <StatusBadge status="archived" />
-                  ) : (
-                    <StatusBadge active />
-                  )}
-                </td>
-                <td className="text-end">
-                  <RowActions actions={getRowActions(user)} />
-                </td>
-              </tr>
-            ))}
-        </DataTable>
-      </AdminCard>
+        {!isLoading &&
+          users.map((user) => (
+            <tr key={user.id}>
+              <td>{user.name}</td>
+              <td>{user.email}</td>
+              <td>{user.roles?.join(", ") || "—"}</td>
+              <td>
+                {user.deleted_at ? (
+                  <StatusBadge status="archived" />
+                ) : (
+                  <StatusBadge active />
+                )}
+              </td>
+              <td className="text-end">
+                <RowActions actions={getRowActions(user)} />
+              </td>
+            </tr>
+          ))}
+      </AdminTablePage>
 
       {meta && <Pagination meta={meta} onPageChange={setPage} />}
 
@@ -181,7 +177,7 @@ function UsersPage() {
           onClose={closeModal}
         />
       )}
-    </AdminPage>
+    </>
   );
 }
 

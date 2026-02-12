@@ -11,15 +11,10 @@ export default function AdminSidebar() {
     const el = sidebarRef.current;
     if (!el) return;
 
-    el.scrollTop = Number(
-      localStorage.getItem("sidebar-scroll") || 0
-    );
+    el.scrollTop = Number(localStorage.getItem("sidebar-scroll") || 0);
 
     const onScroll = () =>
-      localStorage.setItem(
-        "sidebar-scroll",
-        String(el.scrollTop)
-      );
+      localStorage.setItem("sidebar-scroll", String(el.scrollTop));
 
     el.addEventListener("scroll", onScroll);
     return () => el.removeEventListener("scroll", onScroll);
@@ -36,11 +31,8 @@ export default function AdminSidebar() {
 
       {/* MENU */}
       <nav className="mt-2">
-        <ul
-          className="nav nav-pills nav-sidebar flex-column"
-          role="menu"
-        >
-          {groups.map(group => (
+        <ul className="nav nav-pills nav-sidebar flex-column" role="menu">
+          {groups.map((group) => (
             <MenuRenderer key={group.label} group={group} />
           ))}
         </ul>
