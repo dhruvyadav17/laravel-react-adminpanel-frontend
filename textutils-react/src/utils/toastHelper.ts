@@ -1,20 +1,10 @@
-// src/utils/toastHelper.ts
-
 import { toast } from "react-toastify";
 
-/* =====================================================
-   MESSAGE EXTRACTION
-   -----------------------------------------------------
-   Priority:
-   1. Backend message
-   2. First validation error
-   3. Fallback
-===================================================== */
+type ToastVariant = "success" | "danger";
 
-function extractMessage(
-  input: any,
-  fallback: string
-): string {
+/* ================= MESSAGE EXTRACT ================= */
+
+function extractMessage(input: any, fallback: string): string {
   if (!input) return fallback;
 
   const data =
@@ -22,21 +12,18 @@ function extractMessage(
     input?.response?.data ??
     input;
 
-  /* ===== backend message ===== */
-  if (typeof data?.message === "string") {
+  if (
+    typeof data?.message === "string" &&
+    data.message.trim().length > 0
+  ) {
     return data.message;
   }
 
-  /* ===== validation errors ===== */
-  if (
-    data?.errors &&
-    typeof data.errors === "object"
-  ) {
+  if (data?.errors && typeof data.errors === "object") {
     const firstKey = Object.keys(data.errors)[0];
-    const firstError =
-      firstKey && data.errors[firstKey]?.[0];
+    const firstError = firstKey && data.errors[firstKey]?.[0];
 
-    if (firstError) {
+    if (typeof firstError === "string" && firstError.trim()) {
       return firstError;
     }
   }
@@ -44,24 +31,24 @@ function extractMessage(
   return fallback;
 }
 
-/* =====================================================
-   SUCCESS TOAST
-===================================================== */
+/* ================= SUCCESS / DANGER ================= */
 
 export const handleApiSuccess = (
   res?: any,
-  fallback = "Action completed successfully"
+  fallback = "Action completed successfully",
+  variant: ToastVariant = "success"
 ) => {
   const message = extractMessage(res, fallback);
+  if (!message) return;
 
-  if (!message) return; // silent success allowed
-
-  toast.success(message);
+  if (variant === "danger") {
+    toast.error(message); // 🔴 RED
+  } else {
+    toast.success(message); // 🟢 GREEN
+  }
 };
 
-/* =====================================================
-   ERROR TOAST
-===================================================== */
+/* ================= ERROR ================= */
 
 export const handleApiError = (
   error: any,
@@ -73,17 +60,9 @@ export const handleApiError = (
 
   let defaultMessage = fallback;
 
-  /* ===== auth related ===== */
-  if (status === 401) {
-    defaultMessage = "Please login to continue";
-  } else if (status === 403) {
-    defaultMessage = "You are not authorized";
-  }
+  if (status === 401) defaultMessage = "Please login to continue";
+  else if (status === 403) defaultMessage = "You are not authorized";
 
-  const message = extractMessage(
-    error,
-    defaultMessage
-  );
-
+  const message = extractMessage(error, defaultMessage);
   toast.error(message);
 };

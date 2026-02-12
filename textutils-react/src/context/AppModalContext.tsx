@@ -1,11 +1,11 @@
 import { createContext, useContext, useState } from "react";
-import type { ModalMap } from "../types/modal";
+import type { ModalMap } from "../admin/types/modal";
 
-type ModalType = keyof ModalMap;
+export type ModalType = keyof ModalMap;
 
 type ModalContextValue = {
   modalType: ModalType | null;
-  modalData: any;
+  modalData: ModalMap[ModalType] | null;
   openModal: <K extends ModalType>(
     type: K,
     data: ModalMap[K]
@@ -13,9 +13,8 @@ type ModalContextValue = {
   closeModal: () => void;
 };
 
-const AppModalContext = createContext<ModalContextValue | null>(
-  null
-);
+const AppModalContext =
+  createContext<ModalContextValue | null>(null);
 
 export function AppModalProvider({
   children,
@@ -24,9 +23,14 @@ export function AppModalProvider({
 }) {
   const [modalType, setModalType] =
     useState<ModalType | null>(null);
-  const [modalData, setModalData] = useState<any>(null);
 
-  const openModal = (type: ModalType, data: any) => {
+  const [modalData, setModalData] =
+    useState<ModalMap[ModalType] | null>(null);
+
+  const openModal = <K extends ModalType>(
+    type: K,
+    data: ModalMap[K]
+  ) => {
     setModalType(type);
     setModalData(data);
   };
@@ -38,19 +42,26 @@ export function AppModalProvider({
 
   return (
     <AppModalContext.Provider
-      value={{ modalType, modalData, openModal, closeModal }}
+      value={{
+        modalType,
+        modalData,
+        openModal,
+        closeModal,
+      }}
     >
       {children}
     </AppModalContext.Provider>
   );
 }
 
-export function useAppModal<T = any>() {
+export function useAppModal() {
   const ctx = useContext(AppModalContext);
+
   if (!ctx) {
     throw new Error(
       "useAppModal must be used inside AppModalProvider"
     );
   }
+
   return ctx;
 }

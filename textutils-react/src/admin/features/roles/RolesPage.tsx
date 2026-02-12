@@ -1,20 +1,15 @@
-import { memo } from "react";
+import { memo, useMemo } from "react";
+
+import AdminTablePage from "../../components/page/AdminTablePage";
+import RowActions from "../../components/table/RowActions";
+import AssignModal from "../../components/modals/AssignModal";
+import EntityCrudModal from "../../components/modals/EntityCrudModal";
+
 import { useAppModal } from "../../../context/AppModalContext";
-import { useBackendForm } from "../../../hooks/useBackendForm";
-import { useConfirmDelete } from "../../../hooks/useConfirmDelete";
+import { useCrudForm } from "../../../hooks/useCrudForm";
 import { useAuth } from "../../../auth/hooks/useAuth";
-
-import PageHeader from "../../../components/common/PageHeader";
-import DataTable from "../../../components/common/DataTable";
-import RowActions from "../../../components/common/RowActions";
-import Button from "../../../components/common/Button";
-import Can from "../../../components/common/Can";
-import Modal from "../../../components/common/Modal";
-import AssignModal from "../../../components/common/AssignModal";
-
-import Card from "../../../ui/Card";
-import CardHeader from "../../../ui/CardHeader";
-import CardBody from "../../../ui/CardBody";
+import { useConfirmAction } from "../../../hooks/useConfirmAction";
+import { useSoftDeleteRowActions } from "../../hooks/useSoftDeleteRowActions";
 
 import {
   useGetRolesQuery,
@@ -23,211 +18,202 @@ import {
   useDeleteRoleMutation,
 } from "../../../store/api";
 
-import { execute } from "../../../utils/execute";
 import type { Role } from "../../../types/models";
-
-import { PERMISSIONS } from "../../../constants/permissions";
-import { ICONS } from "../../../constants/icons";
+import { PERMISSIONS } from "../../../constants/rbac";
+import { ICONS } from "../../../constants/ui";
 
 function RolesPage() {
-  const confirmDelete = useConfirmDelete();
-
-  // 🔥 FIX: generic modal data
+  const confirmAction = useConfirmAction();
   const { modalType, modalData, openModal, closeModal } =
-    useAppModal<any>();
+    useAppModal();
 
-  const { data: roles = [], isLoading } = useGetRolesQuery();
+  const { can } = useAuth();
+
+  /* ================= QUERY ================= */
+
+  const {
+    data: roles = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useGetRolesQuery();
 
   const [createRole] = useCreateRoleMutation();
   const [updateRole] = useUpdateRoleMutation();
   const [deleteRole] = useDeleteRoleMutation();
 
-  const {
-    values,
-    errors,
-    loading,
-    setLoading,
-    setField,
-    handleError,
-    reset,
-  } = useBackendForm({ name: "" });
-
-  const { can } = useAuth();
-
-  /* ================= SAVE ================= */
-
-  const save = async () => {
-    try {
-      setLoading(true);
-
-      await execute(
-        () =>
-          modalType === "role-edit" && modalData?.id
-            ? updateRole({
-                id: modalData.id,
-                name: values.name,
-              }).unwrap()
-            : createRole(values).unwrap(),
-        modalType === "role-edit"
-          ? "Role updated"
-          : "Role created"
-      );
-
-      closeModal();
-      reset();
-    } catch (e) {
-      handleError(e);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const form = useCrudForm({
+    initialValues: { name: "" },
+    create: createRole,
+    update: updateRole,
+    remove: deleteRole,
+    onSuccess: closeModal,
+  });
 
   /* ================= DELETE ================= */
 
   const handleDelete = (role: Role) =>
-    confirmDelete(
-      "Are you sure you want to delete this role?",
-      async () => {
-        await execute(
-          () => deleteRole(role.id).unwrap(),
-          "Role deleted"
-        );
-      }
-    );
+    confirmAction({
+      message:
+        "Are you sure you want to delete this role?",
+      confirmLabel: "Delete Role",
+      onConfirm: async () => {
+        await form.remove(role.id);
+      },
+    });
+
+  /* ================= RESTORE (if soft delete exists) ================= */
+
+  const handleRestore = async (role: Role) => {
+    await form.remove(role.id); // Replace with restore API if available
+  };
 
   /* ================= ROW ACTIONS ================= */
 
-  const getRowActions = (role: Role) => [
-    {
-      key: "permissions",
-      icon: ICONS.PERMISSION,
-      title: "Assign Permissions",
-      show: can(PERMISSIONS.ROLE.MANAGE),
-      onClick: () =>
-        openModal("assign", {
-          mode: "role-permission",
-          entity: role,
-        }),
-    },
-    {
-      key: "edit",
-      icon: ICONS.EDIT,
-      title: "Edit Role",
-      show: can(PERMISSIONS.ROLE.MANAGE),
-      onClick: () => {
-        setField("name", role.name);
-        openModal("role-edit", role);
-      },
-    },
-    {
-      key: "delete",
-      icon: ICONS.DELETE,
-      title: "Delete Role",
-      variant: "danger" as const,
-      show: can(PERMISSIONS.ROLE.MANAGE),
-      onClick: () => handleDelete(role),
-    },
-  ];
+  const getRowActions =
+    useSoftDeleteRowActions<Role>({
+      isDeleted: (role) =>
+        !!role.deleted_at,
 
-  /* ================= VIEW ================= */
+      activeConfig: {
+        canEdit: can(
+          PERMISSIONS.ROLE.MANAGE
+        ),
+        canDelete: can(
+          PERMISSIONS.ROLE.MANAGE
+        ),
+
+        onEdit: (role) => {
+          form.setField(
+            "name",
+            role.name
+          );
+          openModal(
+            "role-edit",
+            role
+          );
+        },
+
+        onDelete: handleDelete,
+
+        extraActions: [
+          {
+            key: "permissions",
+            icon: ICONS.PERMISSION,
+            title:
+              "Assign Permissions",
+            show: can(
+              PERMISSIONS.ROLE.MANAGE
+            ),
+            onClick: (role) =>
+              openModal(
+                "assign",
+                {
+                  mode: "role-permission",
+                  entity: role,
+                }
+              ),
+          },
+        ],
+      },
+
+      deletedConfig: {
+        extraActions: [
+          {
+            key: "restore",
+            icon: ICONS.RESTORE,
+            title:
+              "Restore Role",
+            variant: "success",
+            onClick:
+              handleRestore,
+          },
+        ],
+      },
+    });
+
+  /* ================= TABLE COLUMNS ================= */
+
+  const columns = useMemo(
+    () => (
+      <tr>
+        <th>Name</th>
+        <th className="text-end">
+          Actions
+        </th>
+      </tr>
+    ),
+    []
+  );
 
   return (
-    <section className="content pt-3">
-      <div className="container-fluid">
-        <PageHeader
-          title="Roles"
-          action={
-            <Can permission={PERMISSIONS.ROLE.MANAGE}>
-              <Button
-                label="+ Add Role"
-                onClick={() => {
-                  reset();
-                  openModal("role-add");
-                }}
-              />
-            </Can>
-          }
-        />
+    <>
+      <AdminTablePage
+        title="Roles"
+        permission={
+          PERMISSIONS.ROLE.MANAGE
+        }
+        actionLabel="Add Role"
+        actionIcon={ICONS.ADD}
+        onAction={() => {
+          form.reset();
+          openModal(
+            "role-add",
+            null
+          );
+        }}
+        loading={isLoading}
+        error={isError}
+        onRetry={refetch}
+        empty={
+          !isLoading &&
+          !isError &&
+          roles.length === 0
+        }
+        emptyText="No roles found"
+        columns={columns}
+      >
+        {!isLoading &&
+          !isError &&
+          roles.map((role) => (
+            <tr key={role.id}>
+              <td>{role.name}</td>
+              <td className="text-end">
+                <RowActions
+                  actions={getRowActions(
+                    role
+                  )}
+                />
+              </td>
+            </tr>
+          ))}
+      </AdminTablePage>
 
-        <Card>
-          <CardHeader title="Roles List" />
-          <CardBody className="p-0">
-            <DataTable
-              isLoading={isLoading}
-              colSpan={2}
-              hasData={roles.length > 0}
-              columns={
-                <tr>
-                  <th>Name</th>
-                  <th
-                    className="text-right"
-                    style={{ width: 220 }}
-                  >
-                    Actions
-                  </th>
-                </tr>
-              }
-            >
-              {roles.map((role) => (
-                <tr key={role.id}>
-                  <td>{role.name}</td>
-                  <td className="text-right">
-                    <RowActions actions={getRowActions(role)} />
-                  </td>
-                </tr>
-              ))}
-            </DataTable>
-          </CardBody>
-        </Card>
+      {/* ================= ROLE CRUD MODAL ================= */}
 
-        {/* ADD / EDIT ROLE MODAL */}
-        {(modalType === "role-add" ||
-          modalType === "role-edit") && (
-          <Modal
-            title={
-              modalType === "role-edit"
-                ? "Edit Role"
-                : "Add Role"
-            }
+      {(modalType === "role-add" ||
+        modalType === "role-edit") && (
+          <EntityCrudModal
+            entityName="Role"
+            modalData={modalData}
+            form={form}
             onClose={closeModal}
-            onSave={save}
-            saveDisabled={loading}
-            saveText={
-              modalType === "role-edit"
-                ? "Update"
-                : "Save"
-            }
-          >
-            <input
-              className={`form-control ${
-                errors.name ? "is-invalid" : ""
-              }`}
-              value={values.name}
-              onChange={(e) =>
-                setField("name", e.target.value)
-              }
-              disabled={loading}
-              placeholder="Role name"
-            />
-
-            {errors.name && (
-              <div className="invalid-feedback">
-                {errors.name[0]}
-              </div>
-            )}
-          </Modal>
+          />
         )}
 
-        {/* ✅ GENERIC ASSIGN MODAL */}
-        {modalType === "assign" && modalData && (
+      {/* ================= ASSIGN PERMISSIONS MODAL ================= */}
+
+      {modalType === "assign" &&
+        modalData &&
+        "mode" in modalData &&
+        "entity" in modalData && (
           <AssignModal
             mode={modalData.mode}
             entity={modalData.entity}
             onClose={closeModal}
           />
         )}
-      </div>
-    </section>
+    </>
   );
 }
 

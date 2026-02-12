@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Spatie\Permission\PermissionRegistrar;
+use App\Models\Permission;
+use Illuminate\Support\Facades\DB;
 
 class UserService
 {
@@ -134,8 +136,31 @@ class UserService
 
     public function assignPermissions(User $user, array $permissions): void
     {
-        $user->syncPermissions($permissions);
+        DB::transaction(function () use ($user, $permissions) {
 
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
+            // 🔥 Clear cache BEFORE syncing
+            //app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+            // Sync permissions
+            $user->syncPermissions($permissions);
+
+            // Refresh model relations
+            //$user->load('permissions');
+        });
+    }
+
+    public function permissions(User $user): array
+    {
+        return [
+            'permissions' => Permission::query()
+                ->select('id', 'name')
+                ->orderBy('name')
+                ->get(),
+
+            'assigned' => $user
+                ->getAllPermissions()
+                ->pluck('name')
+                ->values(),
+        ];
     }
 }

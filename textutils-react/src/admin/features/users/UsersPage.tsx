@@ -1,25 +1,22 @@
-import { memo } from "react";
+import { memo, useMemo } from "react";
+
 import { useAppModal } from "../../../context/AppModalContext";
-import { useConfirmDelete } from "../../../hooks/useConfirmDelete";
 import { useAuth } from "../../../auth/hooks/useAuth";
-
-import PageHeader from "../../../components/common/PageHeader";
-import DataTable from "../../../components/common/DataTable";
-import RowActions from "../../../components/common/RowActions";
-import Button from "../../../components/common/Button";
-import Can from "../../../components/common/Can";
-import AssignModal from "../../../components/common/AssignModal";
-
-import Card from "../../../ui/Card";
-import CardHeader from "../../../ui/CardHeader";
-import CardBody from "../../../ui/CardBody";
-
-import UserFormModal from "./UserFormModal";
-import Pagination from "../../../components/common/Pagination";
 import { usePagination } from "../../../hooks/usePagination";
+import { useConfirmAction } from "../../../hooks/useConfirmAction";
 
-import { PERMISSIONS } from "../../../constants/permissions";
-import { ICONS } from "../../../constants/icons";
+import AdminTablePage from "../../components/page/AdminTablePage";
+import RowActions from "../../components/table/RowActions";
+import AssignModal from "../../components/modals/AssignModal";
+import UserFormModal from "../../components/modals/UserFormModal";
+
+import Pagination from "../../../components/common/Pagination";
+import {
+  TableSearch,
+  StatusBadge,
+} from "../../../components/common/TableUtils";
+
+import { useSoftDeleteRowActions } from "../../hooks/useSoftDeleteRowActions";
 
 import {
   useGetUsersQuery,
@@ -29,15 +26,27 @@ import {
 
 import { execute } from "../../../utils/execute";
 import type { User } from "../../../types/models";
+import { PERMISSIONS } from "../../../constants/rbac";
+import { ICONS } from "../../../constants/ui";
 
 function UsersPage() {
-  const confirmDelete = useConfirmDelete();
   const { modalType, modalData, openModal, closeModal } =
-    useAppModal<any>();
+    useAppModal();
 
-  const { page, setPage, search, setSearch } = usePagination();
+  const { page, setPage, search, setSearch } =
+    usePagination();
 
-  const { data, isLoading } = useGetUsersQuery(
+  const { can } = useAuth();
+  const confirmAction = useConfirmAction();
+
+  /* ================= QUERY ================= */
+
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch,
+  } = useGetUsersQuery(
     { page, search },
     { refetchOnMountOrArgChange: true }
   );
@@ -48,169 +57,192 @@ function UsersPage() {
   const [deleteUser] = useDeleteUserMutation();
   const [restoreUser] = useRestoreUserMutation();
 
-  const { can } = useAuth();
-
-  /* ================= ACTION HANDLERS ================= */
+  /* ================= ARCHIVE ================= */
 
   const handleArchive = (user: User) =>
-    confirmDelete(
-      "Are you sure you want to archive this user?",
-      async () => {
+    confirmAction({
+      message:
+        "Are you sure you want to archive this user?",
+      confirmLabel: "Yes, Archive",
+      onConfirm: async () => {
         await execute(
           () => deleteUser(user.id).unwrap(),
-          "User archived successfully"
+          {
+            defaultMessage:
+              "User archived successfully",
+          }
         );
+      },
+    });
+
+  /* ================= RESTORE ================= */
+
+  const handleRestore = (user: User) =>
+    execute(
+      () => restoreUser(user.id).unwrap(),
+      {
+        defaultMessage:
+          "User restored successfully",
       }
     );
 
-  const handleRestore = async (user: User) => {
-    await execute(
-      () => restoreUser(user.id).unwrap(),
-      "User restored successfully"
-    );
-  };
-
   /* ================= ROW ACTIONS ================= */
 
-  const getRowActions = (user: User) => {
-    if (user.deleted_at) {
-      return [
-        {
-          key: "restore",
-          icon: ICONS.RESTORE,
-          title: "Restore User",
-          variant: "success" as const,
-          onClick: () => handleRestore(user),
-        },
-      ];
-    }
+  const getRowActions =
+    useSoftDeleteRowActions<User>({
+      isDeleted: (user) => !!user.deleted_at,
 
-    return [
-      {
-        key: "roles",
-        icon: ICONS.ROLE,
-        title: "Assign Roles",
-        show: can(PERMISSIONS.USER.ASSIGN_ROLE),
-        onClick: () =>
-          openModal("assign", {
-            mode: "user-role",
-            entity: user,
-          }),
+      activeConfig: {
+        canDelete: can(PERMISSIONS.USER.DELETE),
+        onDelete: handleArchive,
+        extraActions: [
+          {
+            key: "roles",
+            icon: ICONS.ROLE,
+            title: "Assign Roles",
+            show: can(
+              PERMISSIONS.USER.ASSIGN_ROLE
+            ),
+            onClick: (user) =>
+              openModal("assign", {
+                mode: "user-role",
+                entity: user,
+              }),
+          },
+          {
+            key: "permissions",
+            icon: ICONS.PERMISSION,
+            title: "Assign Permissions",
+            show: can(
+              PERMISSIONS.USER.ASSIGN_PERMISSION
+            ),
+            onClick: (user) =>
+              openModal("assign", {
+                mode: "user-permission",
+                entity: user,
+              }),
+          },
+        ],
       },
-      {
-        key: "permissions",
-        icon: ICONS.PERMISSION,
-        title: "Assign Permissions",
-        show: can(PERMISSIONS.USER.ASSIGN_PERMISSION),
-        onClick: () =>
-          openModal("assign", {
-            mode: "user-permission",
-            entity: user,
-          }),
-      },
-      {
-        key: "archive",
-        icon: ICONS.DELETE,
-        title: "Archive User",
-        variant: "danger" as const,
-        show: can(PERMISSIONS.USER.DELETE),
-        onClick: () => handleArchive(user),
-      },
-    ];
-  };
 
-  /* ================= VIEW ================= */
+      deletedConfig: {
+        extraActions: [
+          {
+            key: "restore",
+            icon: ICONS.RESTORE,
+            title: "Restore User",
+            variant: "success",
+            onClick: handleRestore,
+          },
+        ],
+      },
+    });
+
+  /* ================= TABLE COLUMNS ================= */
+
+  const columns = useMemo(
+    () => (
+      <tr>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Roles</th>
+        <th>Status</th>
+        <th className="text-end">
+          Actions
+        </th>
+      </tr>
+    ),
+    []
+  );
 
   return (
-    <section className="content pt-3">
-      <div className="container-fluid">
-        <PageHeader
-          title="Users"
-          action={
-            <Can permission={PERMISSIONS.USER.CREATE}>
-              <Button
-                label="Add User"
-                icon={ICONS.ADD}
-                onClick={() => openModal("user-form", null)}
-              />
-            </Can>
-          }
-        />
-
-        {/* SEARCH */}
-        <div className="mb-3">
-          <input
-            className="form-control"
-            placeholder="Search by name or email..."
+    <>
+      <AdminTablePage
+        title="Users"
+        permission={PERMISSIONS.USER.CREATE}
+        actionLabel="Add User"
+        actionIcon={ICONS.ADD}
+        onAction={() =>
+          openModal("user-form", null)
+        }
+        loading={isLoading}
+        error={isError}
+        onRetry={refetch}
+        empty={
+          !isLoading &&
+          !isError &&
+          users.length === 0
+        }
+        emptyText="No users found"
+        columns={columns}
+        topContent={
+          <TableSearch
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={setSearch}
+            placeholder="Search by name or email..."
           />
-        </div>
+        }
+      >
+        {!isLoading &&
+          !isError &&
+          users.map((user) => (
+            <tr key={user.id}>
+              <td>{user.name}</td>
+              <td>{user.email}</td>
+              <td>
+                {user.roles?.join(", ") ||
+                  "—"}
+              </td>
+              <td>
+                {user.deleted_at ? (
+                  <StatusBadge
+                    status="archived"
+                  />
+                ) : (
+                  <StatusBadge active />
+                )}
+              </td>
+              <td className="text-end">
+                <RowActions
+                  actions={getRowActions(
+                    user
+                  )}
+                />
+              </td>
+            </tr>
+          ))}
+      </AdminTablePage>
 
-        <Card>
-          <CardHeader title="Users List" />
-          <CardBody className="p-0">
-            <DataTable
-              isLoading={isLoading}
-              colSpan={5}
-              hasData={users.length > 0}
-              columns={
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Roles</th>
-                  <th>Status</th>
-                  <th className="text-right">Actions</th>
-                </tr>
-              }
-            >
-              {users.map((user) => (
-                <tr key={user.id}>
-                  <td>{user.name}</td>
-                  <td>{user.email}</td>
-                  <td>{user.roles?.join(", ") || "—"}</td>
-                  <td>
-                    {user.deleted_at ? (
-                      <span className="badge badge-warning">
-                        Archived
-                      </span>
-                    ) : (
-                      <span className="badge badge-success">
-                        Active
-                      </span>
-                    )}
-                  </td>
-                  <td className="text-right">
-                    <RowActions actions={getRowActions(user)} />
-                  </td>
-                </tr>
-              ))}
-            </DataTable>
-          </CardBody>
-        </Card>
+      {meta && !isError && (
+        <Pagination
+          meta={meta}
+          onPageChange={setPage}
+        />
+      )}
 
-        {meta && (
-          <Pagination meta={meta} onPageChange={setPage} />
-        )}
+      {/* ================= USER FORM MODAL ================= */}
 
-        {/* MODALS */}
+      {modalType === "user-form" && (
+        <UserFormModal
+          user={modalData}
+          onClose={closeModal}
+          onSaved={closeModal}
+        />
+      )}
 
-        {modalType === "user-form" && (
-          <UserFormModal
-            onClose={closeModal}
-            onSaved={closeModal}
-          />
-        )}
+      {/* ================= ASSIGN MODAL ================= */}
 
-        {modalType === "assign" && modalData && (
+      {modalType === "assign" &&
+        modalData &&
+        "mode" in modalData &&
+        "entity" in modalData && (
           <AssignModal
             mode={modalData.mode}
             entity={modalData.entity}
             onClose={closeModal}
           />
         )}
-      </div>
-    </section>
+    </>
   );
 }
 

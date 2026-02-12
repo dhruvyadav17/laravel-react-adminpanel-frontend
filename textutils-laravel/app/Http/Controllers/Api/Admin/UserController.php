@@ -2,16 +2,16 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
-use App\Http\Controllers\Api\BaseApiController;
-use App\Http\Requests\Admin\StoreUserRequest;
+use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Models\User;
-use App\Models\Permission; // ✅ FIX: REQUIRED IMPORT
+use App\Models\Permission; 
 use App\Services\User\UserService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use App\Http\Requests\UserRequest;
 
-class UserController extends BaseApiController
+class UserController extends Controller
 {
     public function __construct(
         protected UserService $service
@@ -32,16 +32,11 @@ class UserController extends BaseApiController
 
     /* ================= CREATE ================= */
 
-    public function store(StoreUserRequest $request)
+    public function store(UserRequest $request)
     {
         $user = $this->service->create(
             $request->validated()
         );
-
-        Log::info('User created', [
-            'user_id' => $user->id,
-            'email'   => $user->email,
-        ]);
 
         return $this->success(
             'User created successfully',
@@ -103,40 +98,36 @@ class UserController extends BaseApiController
     {
         return $this->success(
             'User permissions fetched',
-            [
-                'permissions' => Permission::query()
-                    ->select('id', 'name')
-                    ->orderBy('name')
-                    ->get(),
-
-                'assigned' => $user
-                    ->getAllPermissions()
-                    ->pluck('name')
-                    ->values(),
-            ]
+            $this->service->permissions($user)
         );
     }
 
-    public function assignPermissions(Request $request, User $user)
-    {
-        $data = $request->validate([
-            'permissions'   => ['array'],
-            'permissions.*' => ['string', 'exists:permissions,name'],
-        ]);
+public function assignPermissions(Request $request, User $user)
+{
+    $data = $request->validate([
+        'permissions'   => ['nullable', 'array'],
+        'permissions.*' => ['string', 'exists:permissions,name'],
+    ]);
 
-        $this->service->assignPermissions(
-            $user,
-            $data['permissions'] ?? []
-        );
+    $permissions = $data['permissions'] ?? [];
 
-        return $this->success(
-            'Permissions updated successfully',
-            [
-                'assigned' => $user
-                    ->getAllPermissions()
-                    ->pluck('name')
-                    ->values(),
-            ]
-        );
-    }
+    $this->service->assignPermissions($user, $permissions);
+
+    // 🔥 Reload fresh permissions
+    $user->load('permissions');
+
+    Log::info('Assigned permissions to user', [
+        'user_id'     => $user->id,
+        'permissions' => $permissions,
+    ]);
+
+    return $this->success(
+        'Permissions assigned successfully.',
+        [
+            'assigned' => $user->permissions
+                ->pluck('name')
+                ->values(),
+        ]
+    );
+}
 }

@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Api\Auth;
 
 use App\Services\Auth\LoginService;
 use App\Http\Requests\Auth\LoginRequest;
-use App\Http\Controllers\Api\BaseApiController;
+use App\Http\Controllers\Controller;
 
-class LoginController extends BaseApiController
+class LoginController extends Controller
 {
     public function __invoke(
         LoginRequest $request,

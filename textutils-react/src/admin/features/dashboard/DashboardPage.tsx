@@ -1,46 +1,57 @@
+import { useMemo } from "react";
+
 import { useAuth } from "../../../auth/hooks/useAuth";
 import { useGetDashboardStatsQuery } from "../../../store/api";
-import InfoBox from "../../../ui/InfoBox";
-import { ICONS } from "../../../constants/icons";
 
-export default function Dashboard() {
+import AdminPage from "../../components/page/AdminPage";
+import AdminCard from "../../components/ui/AdminCard";
+import InfoBox from "../../components/ui/InfoBox";
+
+import { ICONS } from "../../../constants/ui";
+
+export default function DashboardPage() {
   const { user, permissions } = useAuth();
-  const { data: stats } = useGetDashboardStatsQuery();
+  const { data: stats, isLoading } = useGetDashboardStatsQuery();
+
+  const widgets = useMemo(
+    () => [
+      {
+        title: "Total Users",
+        value: stats?.total_users ?? 0,
+        icon: ICONS.USER,
+        color: "primary",
+      },
+      {
+        title: "Permissions",
+        value: permissions.length,
+        icon: ICONS.PERMISSION,
+        color: "success",
+      },
+      {
+        title: "Roles",
+        value: user?.roles?.length ?? 0,
+        icon: ICONS.ROLE,
+        color: "warning",
+      },
+    ],
+    [
+      stats?.total_users,
+      permissions.length,
+      user?.roles?.length,
+    ]
+  );
 
   return (
-    <section className="content pt-3">
-      <div className="container-fluid">
-        <h3 className="mb-3">Admin Dashboard</h3>
-
-        <div className="row">
-          <div className="col-md-3 col-sm-6">
-            <InfoBox
-              title="Total Users"
-              value={stats?.total_users ?? 0}
-              icon={ICONS.USER}
-              color="primary"
-            />
-          </div>
-
-          <div className="col-md-3 col-sm-6">
-            <InfoBox
-              title="Permissions"
-              value={permissions.length}
-              icon={ICONS.PERMISSION}
-              color="success"
-            />
-          </div>
-
-          <div className="col-md-3 col-sm-6">
-            <InfoBox
-              title="Roles"
-              value={user?.roles.length || 0}
-              icon={ICONS.ROLE}
-              color="warning"
-            />
-          </div>
+    <AdminPage title="Admin Dashboard">
+      <AdminCard loading={isLoading}>
+        <div className="row g-3">
+          {widgets.map(({ title, ...rest }) => (
+            <div key={title} className="col-lg-3 col-6">
+              <InfoBox title={title} {...rest} />
+            </div>
+          ))}
         </div>
-      </div>
-    </section>
+      </AdminCard>
+    </AdminPage>
   );
 }

@@ -1,42 +1,22 @@
 import type { User } from "../types/models";
 
 /**
- * Resolve post-login redirect
- * ------------------------------------
- * RULES:
- * - Admin login page → /admin/dashboard
- * - Normal login:
- *    - Admin → /admin/dashboard
- *    - User  → /profile
+ * FINAL RULE:
+ * - [] or ["user"]        → Frontend User (/profile)
+ * - anything else         → Admin Panel (/admin/dashboard)
  */
 export function resolveLoginRedirect(
   user: User | null,
-  fromAdminLogin: boolean
+  fromAdminLogin: boolean = false
 ): string {
   if (!user) return "/login";
 
-  /**
-   * 🛡 Normalize roles
-   * - backend safe
-   * - impersonation safe
-   */
-  const roles: string[] = Array.isArray(user.roles)
-    ? user.roles
-    : [];
+  const roles = Array.isArray(user.roles) ? user.roles : [];
 
-  const isAdmin =
-    roles.includes("super-admin") ||
-    roles.includes("admin");
+  const isFrontendUser =
+    roles.length === 0 || roles.every((r) => r === "user");
 
-  /* 🔥 ADMIN LOGIN PAGE ALWAYS → ADMIN */
-  if (fromAdminLogin) {
-    return isAdmin
-      ? "/admin/dashboard"
-      : "/profile";
-  }
-
-  /* 🔥 NORMAL LOGIN */
-  return isAdmin
-    ? "/admin/dashboard"
-    : "/profile";
+  return isFrontendUser
+    ? "/profile"
+    : "/admin/dashboard";
 }

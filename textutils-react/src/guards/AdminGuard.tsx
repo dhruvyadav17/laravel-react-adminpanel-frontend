@@ -9,7 +9,7 @@ export default function AdminGuard() {
   }
 
   if (!isAdmin) {
-    return <Navigate to="/admin/unauthorized" replace />;
+    return <Navigate to="/profile" replace />;
   }
 
   return <Outlet />;

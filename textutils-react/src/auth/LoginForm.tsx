@@ -13,13 +13,9 @@ import { resolveLoginRedirect } from "../utils/authRedirect";
 
 type Props = {
   title: string;
-  redirectAdmin?: boolean;
 };
 
-export default function LoginForm({
-  title,
-  redirectAdmin = false,
-}: Props) {
+export default function LoginForm({ title }: Props) {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
 
@@ -42,13 +38,15 @@ export default function LoginForm({
       return;
     }
 
-    const profileRes = await dispatch(
-      fetchProfileThunk()
-    );
+    const profileRes = await dispatch(fetchProfileThunk());
+
+    if (fetchProfileThunk.rejected.match(profileRes)) {
+      handleApiError(profileRes.payload || profileRes.error);
+      return;
+    }
 
     const redirectTo = resolveLoginRedirect(
-      profileRes.payload?.user ?? null,
-      redirectAdmin
+      profileRes.payload.user
     );
 
     navigate(redirectTo, { replace: true });

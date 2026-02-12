@@ -1,41 +1,50 @@
 import { useAuth } from "../../../auth/hooks/useAuth";
 
+import AdminPage from "../../components/page/AdminPage";
+import AdminCard from "../../components/ui/AdminCard";
+
 export default function AdminProfilePage() {
   const { user, roles, permissions, isSuperAdmin } = useAuth();
 
   return (
-    <div className="card">
-      <div className="card-header">
-        <h3>Admin Profile</h3>
-      </div>
+    <AdminPage title="Admin Profile">
+      <AdminCard>
+        <div className="mb-3">
+          <strong>Name:</strong> {user?.name ?? "—"}
+        </div>
 
-      <div className="card-body">
-        <p>
-          <strong>Name:</strong> {user?.name}
-        </p>
+        <div className="mb-3">
+          <strong>Email:</strong> {user?.email ?? "—"}
+        </div>
 
-        <p>
-          <strong>Email:</strong> {user?.email}
-        </p>
+        <div className="mb-3">
+          <strong>Roles:</strong>{" "}
+          {roles.length ? roles.join(", ") : "—"}
+        </div>
 
-        <p>
-          <strong>Roles:</strong> {roles.join(", ")}
-        </p>
-
-        <p>
+        <div className="mb-3">
           <strong>Account Type:</strong>{" "}
           {isSuperAdmin ? "Super Admin" : "Admin"}
-        </p>
+        </div>
 
         <hr />
 
-        <h5>Permissions</h5>
-        <ul>
-          {permissions.map((p) => (
-            <li key={p}>{p}</li>
-          ))}
-        </ul>
-      </div>
-    </div>
+        <h6 className="mb-3">Permissions</h6>
+
+        {permissions.length ? (
+          <ul className="list-group list-group-flush">
+            {permissions.map((permission) => (
+              <li key={permission} className="list-group-item px-0">
+                {permission}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-muted mb-0">
+            No permissions assigned
+          </p>
+        )}
+      </AdminCard>
+    </AdminPage>
   );
 }

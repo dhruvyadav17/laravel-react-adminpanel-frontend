@@ -1,7 +1,7 @@
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import api from "../../api/axios";
-import { handleApiError, handleApiSuccess } from "../../utils/toastHelper";
+import { execute } from "../../utils/execute";
 
 export default function ResetPassword() {
   const [params] = useSearchParams();
@@ -18,26 +18,28 @@ export default function ResetPassword() {
     e.preventDefault();
 
     if (password !== confirm) {
-      return alert("Passwords do not match");
+      // ✅ centralized error toast
+      throw new Error("Passwords do not match");
     }
 
-    try {
-      setLoading(true);
+    await execute(
+      async () => {
+        setLoading(true);
 
-      const res = await api.post("/reset-password", {
-        email,
-        token,
-        password,
-        password_confirmation: confirm,
-      });
+        const res = await api.post("/reset-password", {
+          email,
+          token,
+          password,
+          password_confirmation: confirm,
+        });
 
-      handleApiSuccess(res);
-      navigate("/login", { replace: true });
-    } catch (e) {
-      handleApiError(e);
-    } finally {
-      setLoading(false);
-    }
+        navigate("/login", { replace: true });
+        return res;
+      },
+      {
+        defaultMessage: "Password reset successfully",
+      }
+    ).finally(() => setLoading(false));
   };
 
   if (!token || !email) {

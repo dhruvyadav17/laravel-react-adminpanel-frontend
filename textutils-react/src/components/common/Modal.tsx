@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import Button from "./Button";
-import { ICONS } from "../../constants/icons";
+import { ICONS } from "../../constants/ui";
 
 type Props = {
   title: string;
@@ -9,9 +9,10 @@ type Props = {
   onClose: () => void;
 
   /* primary action */
-  onSave?: () => void;
+  onSave?: () => void | Promise<void>;
   saveText?: string;
   saveVariant?: "primary" | "success" | "danger";
+  saveDisabled?: boolean;
 
   /* secondary */
   cancelText?: string;
@@ -24,7 +25,7 @@ type Props = {
   size?: "sm" | "md" | "lg";
 
   /* advanced */
-  footer?: React.ReactNode; // 🔥 custom footer override
+  footer?: React.ReactNode;
 };
 
 export default function Modal({
@@ -35,6 +36,7 @@ export default function Modal({
   onSave,
   saveText = "Save",
   saveVariant = "primary",
+  saveDisabled = false,
   cancelText = "Cancel",
 
   loading = false,
@@ -43,7 +45,6 @@ export default function Modal({
   size = "md",
   footer,
 }: Props) {
-  /* ================= BODY LOCK ================= */
   useEffect(() => {
     document.body.classList.add("modal-open");
 
@@ -64,7 +65,6 @@ export default function Modal({
   const sizeClass =
     size === "sm" ? "modal-sm" : size === "lg" ? "modal-lg" : "";
 
-  /* ================= RENDER ================= */
   return (
     <>
       {/* BACKDROP */}
@@ -75,6 +75,7 @@ export default function Modal({
         className="modal fade show d-block"
         role="dialog"
         aria-modal="true"
+        onClick={!disableClose ? onClose : undefined}
       >
         <div
           className={`modal-dialog modal-dialog-centered ${sizeClass}`}
@@ -88,12 +89,9 @@ export default function Modal({
               {!disableClose && (
                 <button
                   type="button"
-                  className="close"
+                  className="btn-close"
                   onClick={onClose}
-                  aria-label="Close"
-                >
-                  ×
-                </button>
+                />
               )}
             </div>
 
@@ -102,15 +100,13 @@ export default function Modal({
 
             {/* FOOTER */}
             <div className="modal-footer justify-content-between">
-              {footer ? (
-                footer
-              ) : (
+              {footer ?? (
                 <>
                   <Button
                     label={cancelText}
                     variant="secondary"
                     onClick={onClose}
-                    disabled={disableClose || loading}
+                    disabled={loading || disableClose}
                   />
 
                   {onSave && (
@@ -119,6 +115,7 @@ export default function Modal({
                       icon={ICONS.SAVE}
                       variant={saveVariant}
                       loading={loading}
+                      disabled={saveDisabled}
                       onClick={onSave}
                     />
                   )}

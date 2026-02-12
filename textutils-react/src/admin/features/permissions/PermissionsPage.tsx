@@ -1,19 +1,14 @@
-import { memo } from "react";
-import Modal from "../../../components/common/Modal";
-import RowActions from "../../../components/common/RowActions";
-import Button from "../../../components/common/Button";
-import PageHeader from "../../../components/common/PageHeader";
-import DataTable from "../../../components/common/DataTable";
+import { memo, useMemo } from "react";
 
-import Card from "../../../ui/Card";
-import CardHeader from "../../../ui/CardHeader";
-import CardBody from "../../../ui/CardBody";
+import AdminTablePage from "../../components/page/AdminTablePage";
+import RowActions from "../../components/table/RowActions";
+import EntityCrudModal from "../../components/modals/EntityCrudModal";
 
 import { useAppModal } from "../../../context/AppModalContext";
-import { useBackendForm } from "../../../hooks/useBackendForm";
-import { useConfirmDelete } from "../../../hooks/useConfirmDelete";
+import { useCrudForm } from "../../../hooks/useCrudForm";
 import { useAuth } from "../../../auth/hooks/useAuth";
-import { ICONS } from "../../../constants/icons";
+import { useConfirmAction } from "../../../hooks/useConfirmAction";
+import { useTableActions } from "../../hooks/useTableActions";
 
 import {
   useGetPermissionsQuery,
@@ -22,188 +17,152 @@ import {
   useDeletePermissionMutation,
 } from "../../../store/api";
 
-import { execute } from "../../../utils/execute";
 import type { Permission } from "../../../types/models";
-
-import Can from "../../../components/common/Can";
-import { PERMISSIONS } from "../../../constants/permissions";
-import { title } from "process";
+import { PERMISSIONS } from "../../../constants/rbac";
+import { ICONS } from "../../../constants/ui";
 
 function PermissionsPage() {
-  const confirmDelete = useConfirmDelete();
+  const confirmAction = useConfirmAction();
 
   const { modalType, modalData, openModal, closeModal } =
-    useAppModal<Permission>();
-
-  const { data: permissions = [], isLoading } =
-    useGetPermissionsQuery();
-
-  const [createPermission] = useCreatePermissionMutation();
-  const [updatePermission] = useUpdatePermissionMutation();
-  const [deletePermission] = useDeletePermissionMutation();
-
-  const {
-    values,
-    errors,
-    loading,
-    setLoading,
-    setField,
-    handleError,
-    reset,
-  } = useBackendForm({ name: "" });
+    useAppModal();
 
   const { can } = useAuth();
 
-  /* ================= SAVE ================= */
+  /* ================= QUERY ================= */
 
-  const save = async () => {
-    try {
-      setLoading(true);
+  const {
+    data: permissions = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useGetPermissionsQuery();
 
-      await execute(
-        () =>
-          modalData?.id
-            ? updatePermission({
-                id: modalData.id,
-                name: values.name,
-              }).unwrap()
-            : createPermission(values).unwrap(),
-        modalData?.id
-          ? "Permission updated"
-          : "Permission created"
-      );
+  const [createPermission] =
+    useCreatePermissionMutation();
+  const [updatePermission] =
+    useUpdatePermissionMutation();
+  const [deletePermission] =
+    useDeletePermissionMutation();
 
-      closeModal();
-      reset();
-    } catch (e) {
-      handleError(e);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const form = useCrudForm({
+    initialValues: { name: "" },
+    create: createPermission,
+    update: updatePermission,
+    remove: deletePermission,
+    onSuccess: closeModal,
+  });
 
   /* ================= DELETE ================= */
 
   const handleDelete = (permission: Permission) =>
-    confirmDelete(
-      "Are you sure you want to delete this permission?",
-      async () => {
-        await execute(
-          () => deletePermission(permission.id).unwrap(),
-          "Permission deleted"
-        );
-      }
-    );
+    confirmAction({
+      message:
+        "Are you sure you want to delete this permission?",
+      confirmLabel: "Delete Permission",
+      onConfirm: async () => {
+        await form.remove(permission.id);
+      },
+    });
 
   /* ================= ROW ACTIONS ================= */
 
-  const getRowActions = (permission: Permission) => [
-    {
-      key: "edit",
-      label: "",
-      icon: ICONS.EDIT,
-      title: "Edit Permission",
-      show: can(PERMISSIONS.PERMISSION.MANAGE),
-      onClick: () => {
-        setField("name", permission.name);
-        openModal("permission", permission);
-      },
-    },
-    {
-      key: "delete",
-      label: "",
-      icon: ICONS.DELETE,
-      title: "Delete Permission",
-      variant: "danger" as const,
-      show: can(PERMISSIONS.PERMISSION.MANAGE),
-      onClick: () => handleDelete(permission),
-    },
-  ];
+  const rowActions =
+    useTableActions<Permission>({
+      canEdit: can(
+        PERMISSIONS.PERMISSION.MANAGE
+      ),
+      canDelete: can(
+        PERMISSIONS.PERMISSION.MANAGE
+      ),
 
-  /* ================= VIEW ================= */
+      onEdit: (permission) => {
+        form.setField(
+          "name",
+          permission.name
+        );
+        openModal(
+          "permission",
+          permission
+        );
+      },
+
+      onDelete: handleDelete,
+    });
+
+  /* ================= TABLE COLUMNS ================= */
+
+  const columns = useMemo(
+    () => (
+      <tr>
+        <th>Name</th>
+        <th className="text-end">
+          Actions
+        </th>
+      </tr>
+    ),
+    []
+  );
 
   return (
-    <section className="content pt-3">
-      <div className="container-fluid">
-        <PageHeader
-          title="Permissions"
-          action={
-            <Can permission={PERMISSIONS.PERMISSION.MANAGE}>
-              <Button
-                label="+ Add Permission"
-                onClick={() => {
-                  reset();
-                  openModal("permission");
-                }}
-              />
-            </Can>
-          }
-        />
+    <>
+      <AdminTablePage
+        title="Permissions"
+        permission={
+          PERMISSIONS.PERMISSION.MANAGE
+        }
+        actionLabel="Add Permission"
+        actionIcon={ICONS.ADD}
+        onAction={() => {
+          form.reset();
+          openModal(
+            "permission",
+            null
+          );
+        }}
+        loading={isLoading}
+        error={isError}
+        onRetry={refetch}
+        empty={
+          !isLoading &&
+          !isError &&
+          permissions.length === 0
+        }
+        emptyText="No permissions found"
+        columns={columns}
+      >
+        {!isLoading &&
+          !isError &&
+          permissions.map(
+            (permission) => (
+              <tr key={permission.id}>
+                <td>
+                  {permission.name}
+                </td>
+                <td className="text-end">
+                  <RowActions
+                    actions={rowActions(
+                      permission
+                    )}
+                  />
+                </td>
+              </tr>
+            )
+          )}
+      </AdminTablePage>
 
-        <Card>
-          <CardHeader title="Permissions List" />
-          <CardBody className="p-0">
-            <DataTable
-              isLoading={isLoading}
-              colSpan={2}
-              hasData={permissions.length > 0}
-              columns={
-                <tr>
-                  <th>Name</th>
-                  <th
-                    className="text-right"
-                    style={{ width: 180 }}
-                  >
-                    Actions
-                  </th>
-                </tr>
-              }
-            >
-              {permissions.map((permission) => (
-                <tr key={permission.id}>
-                  <td>{permission.name}</td>
-                  <td className="text-right">
-                    <RowActions
-                      actions={getRowActions(permission)}
-                    />
-                  </td>
-                </tr>
-              ))}
-            </DataTable>
-          </CardBody>
-        </Card>
+      {/* ================= CRUD MODAL ================= */}
 
-        {modalType === "permission" && (
-          <Modal
-            title={
-              modalData?.id ? "Edit Permission" : "Add Permission"
-            }
+      {modalType ===
+        "permission" &&(
+          <EntityCrudModal
+            entityName="Permission"
+            modalData={modalData}
+            form={form}
             onClose={closeModal}
-            onSave={save}
-            saveDisabled={loading}
-            saveText={modalData?.id ? "Update" : "Save"}
-          >
-            <input
-              className={`form-control ${
-                errors.name ? "is-invalid" : ""
-              }`}
-              value={values.name}
-              onChange={(e) =>
-                setField("name", e.target.value)
-              }
-              disabled={loading}
-              placeholder="Permission name"
-            />
-
-            {errors.name && (
-              <div className="invalid-feedback">
-                {errors.name[0]}
-              </div>
-            )}
-          </Modal>
+          />
         )}
-      </div>
-    </section>
+    </>
   );
 }
 

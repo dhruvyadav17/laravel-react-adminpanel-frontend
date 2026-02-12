@@ -1,4 +1,4 @@
-import { useBackendForm } from "../../hooks/useBackendForm";
+import { useState } from "react";
 import api from "../../api/axios";
 import { execute } from "../../utils/execute";
 
@@ -7,36 +7,56 @@ type FormValues = {
 };
 
 export default function ForgotPassword() {
-  const {
-    values,
-    errors,
-    loading,
-    setLoading,
-    setField,
-    handleError,
-    reset,
-  } = useBackendForm<FormValues>({
+  const [values, setValues] = useState<FormValues>({
     email: "",
   });
 
+  const [errors, setErrors] = useState<{
+    email?: string[];
+  }>({});
+
+  const [loading, setLoading] = useState(false);
+
+  /* ================= FIELD ================= */
+
+  const setField = (key: keyof FormValues, value: string) => {
+    setValues((prev) => ({ ...prev, [key]: value }));
+    setErrors((prev) => ({ ...prev, [key]: undefined }));
+  };
+
+  /* ================= ERROR HANDLER ================= */
+
+  const handleError = (error: any) => {
+    if (error?.response?.status === 422) {
+      setErrors(error.response.data?.errors || {});
+    }
+  };
+
   /* ================= SUBMIT ================= */
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    await execute(
-      async () => {
-        setLoading(true);
+    try {
+      setLoading(true);
 
-        const res = await api.post("/forgot-password", {
-          email: values.email,
-        });
+      await execute(
+        () =>
+          api.post("/forgot-password", {
+            email: values.email,
+          }),
+        {
+          defaultMessage:
+            "Password reset link sent to your email",
+        }
+      );
 
-        reset();
-        return res;
-      },
-      "Password reset link sent to your email"
-    ).catch(handleError)
-     .finally(() => setLoading(false));
+      setValues({ email: "" });
+    } catch (e) {
+      handleError(e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -44,7 +64,6 @@ export default function ForgotPassword() {
       <h4 className="mb-3">Forgot Password</h4>
 
       <form onSubmit={submit}>
-        {/* EMAIL */}
         <input
           type="email"
           className={`form-control mb-2 ${
@@ -52,7 +71,9 @@ export default function ForgotPassword() {
           }`}
           placeholder="Enter your email"
           value={values.email}
-          onChange={(e) => setField("email", e.target.value)}
+          onChange={(e) =>
+            setField("email", e.target.value)
+          }
           disabled={loading}
           required
         />
@@ -63,7 +84,10 @@ export default function ForgotPassword() {
           </div>
         )}
 
-        <button className="btn btn-primary w-100" disabled={loading}>
+        <button
+          className="btn btn-primary w-100"
+          disabled={loading}
+        >
           {loading ? "Sending..." : "Send Reset Link"}
         </button>
       </form>

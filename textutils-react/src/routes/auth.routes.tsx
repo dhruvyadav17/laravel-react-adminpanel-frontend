@@ -4,7 +4,6 @@ import Register from "../pages/auth/Register";
 import ForgotPassword from "../pages/auth/ForgotPassword";
 import ResetPassword from "../pages/auth/ResetPassword";
 import VerifyEmail from "../pages/auth/VerifyEmail";
-import ResendVerification from "../pages/auth/ResendVerification";
 
 import { RouteObject } from "react-router-dom";
 
@@ -18,7 +17,6 @@ export const authRoutes: RouteObject[] = [
       { path: "/forgot-password", element: <ForgotPassword /> },
       { path: "/reset-password", element: <ResetPassword /> },
       { path: "/verify-email", element: <VerifyEmail /> },
-      { path: "/email/resend", element: <ResendVerification /> },
     ],
   },
 ];

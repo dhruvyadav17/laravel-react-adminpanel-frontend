@@ -1,15 +1,17 @@
 import { Outlet, Navigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { resolveLoginRedirect } from "../../utils/authRedirect";
 
 export default function AuthLayout() {
-  const { isAuth, isAdmin } = useAuth();
-
-  if (isAuth && isAdmin) {
-    return <Navigate to="/admin/dashboard" replace />;
-  }
+  const { isAuth, user } = useAuth();
 
   if (isAuth) {
-    return <Navigate to="/profile" replace />;
+    return (
+      <Navigate
+        to={resolveLoginRedirect(user, false)}
+        replace
+      />
+    );
   }
 
   return (
