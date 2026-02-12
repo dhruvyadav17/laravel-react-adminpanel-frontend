@@ -22,6 +22,7 @@ import "bootstrap/dist/js/bootstrap.bundle.min.js";
 /* ===== TOAST ===== */
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import "./admin/styles/adminlte-sidebar-fix.css";
 
 setStore(store);
 

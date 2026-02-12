@@ -8,7 +8,7 @@ import ModalHost from "../../components/common/ModalHost";
 export default function AdminLayout() {
 
   useEffect(() => {
-    import("../styles/adminlte-sidebar-fix.css");
+    //import("../styles/adminlte-sidebar-fix.css");
     import("admin-lte/dist/js/adminlte.min.js");
 
     return () => {
