@@ -1,15 +1,8 @@
 // src/store/authSlice.ts
 
-import {
-  createSlice,
-  createAsyncThunk,
-  PayloadAction,
-} from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 
-import {
-  loginService,
-  profileService,
-} from "../services/authService";
+import { loginService, profileService } from "../services/authService";
 
 import type { User } from "../types/models";
 import { emitLogoutEvent } from "../utils/authEvents";
@@ -72,9 +65,7 @@ export const loginThunk = createAsyncThunk<
     const res = await loginService(data.email, data.password);
     return res.data.data;
   } catch (e: any) {
-    return rejectWithValue(
-      e.response?.data?.message || "Invalid credentials"
-    );
+    return rejectWithValue(e.response?.data?.message || "Invalid credentials");
   }
 });
 
@@ -104,14 +95,14 @@ export const fetchProfileThunk = createAsyncThunk<
  * - Clear storage
  * - Multi-tab sync
  */
-export const logoutThunk = createAsyncThunk(
-  "auth/logout",
-  async () => {
-    localStorage.clear();
-    emitLogoutEvent();
-    return true;
-  }
-);
+export const logoutThunk = createAsyncThunk("auth/logout", async () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("refresh_token");
+  localStorage.removeItem("user");
+  localStorage.removeItem("permissions");
+  emitLogoutEvent();
+  return true;
+});
 
 /* =====================================================
    SLICE
@@ -126,15 +117,9 @@ const authSlice = createSlice({
      * OPTIONAL
      * Manual permission override (rare / admin only)
      */
-    setPermissions(
-      state,
-      action: PayloadAction<string[]>
-    ) {
+    setPermissions(state, action: PayloadAction<string[]>) {
       state.permissions = action.payload;
-      localStorage.setItem(
-        "permissions",
-        JSON.stringify(action.payload)
-      );
+      localStorage.setItem("permissions", JSON.stringify(action.payload));
     },
   },
 
@@ -153,10 +138,7 @@ const authSlice = createSlice({
         localStorage.setItem("token", action.payload.token);
 
         if (action.payload.refresh_token) {
-          localStorage.setItem(
-            "refresh_token",
-            action.payload.refresh_token
-          );
+          localStorage.setItem("refresh_token", action.payload.refresh_token);
         }
       })
 
@@ -170,14 +152,11 @@ const authSlice = createSlice({
         state.user = action.payload.user;
         state.permissions = action.payload.permissions;
 
-        localStorage.setItem(
-          "user",
-          JSON.stringify(action.payload.user)
-        );
+        localStorage.setItem("user", JSON.stringify(action.payload.user));
 
         localStorage.setItem(
           "permissions",
-          JSON.stringify(action.payload.permissions)
+          JSON.stringify(action.payload.permissions),
         );
       })
 
