@@ -19,19 +19,27 @@ import {
 
 import type { Permission } from "../../../types/models";
 import { PERMISSIONS } from "../../../constants/rbac";
+import { ICONS } from "../../../constants/ui";
 
 function PermissionsPage() {
   const confirmAction = useConfirmAction();
+
   const { modalType, modalData, openModal, closeModal } =
-    useAppModal<Permission>();
+    useAppModal();
 
   const { can } = useAuth();
-  const { data: permissions = [], isLoading } =
-    useGetPermissionsQuery();
 
-  const [createPermission] = useCreatePermissionMutation();
-  const [updatePermission] = useUpdatePermissionMutation();
-  const [deletePermission] = useDeletePermissionMutation();
+  const {
+    data: permissions = [],
+    isLoading,
+  } = useGetPermissionsQuery();
+
+  const [createPermission] =
+    useCreatePermissionMutation();
+  const [updatePermission] =
+    useUpdatePermissionMutation();
+  const [deletePermission] =
+    useDeletePermissionMutation();
 
   const form = useCrudForm({
     initialValues: { name: "" },
@@ -45,7 +53,8 @@ function PermissionsPage() {
 
   const handleDelete = (permission: Permission) =>
     confirmAction({
-      message: "Are you sure you want to delete this permission?",
+      message:
+        "Are you sure you want to delete this permission?",
       confirmLabel: "Delete Permission",
       onConfirm: async () => {
         await form.remove(permission.id);
@@ -54,15 +63,28 @@ function PermissionsPage() {
 
   /* ================= ROW ACTIONS ================= */
 
-  const rowActions = useTableActions<Permission>({
-    canEdit: can(PERMISSIONS.PERMISSION.MANAGE),
-    canDelete: can(PERMISSIONS.PERMISSION.MANAGE),
-    onEdit: (permission) => {
-      form.setField("name", permission.name);
-      openModal("permission", permission);
-    },
-    onDelete: handleDelete,
-  });
+  const rowActions =
+    useTableActions<Permission>({
+      canEdit: can(
+        PERMISSIONS.PERMISSION.MANAGE
+      ),
+      canDelete: can(
+        PERMISSIONS.PERMISSION.MANAGE
+      ),
+
+      onEdit: (permission) => {
+        form.setField(
+          "name",
+          permission.name
+        );
+        openModal(
+          "permission",
+          permission
+        );
+      },
+
+      onDelete: handleDelete,
+    });
 
   /* ================= TABLE COLUMNS ================= */
 
@@ -70,7 +92,9 @@ function PermissionsPage() {
     () => (
       <tr>
         <th>Name</th>
-        <th className="text-end">Actions</th>
+        <th className="text-end">
+          Actions
+        </th>
       </tr>
     ),
     []
@@ -80,39 +104,61 @@ function PermissionsPage() {
     <>
       <AdminTablePage
         title="Permissions"
-        permission={PERMISSIONS.PERMISSION.MANAGE}
+        permission={
+          PERMISSIONS.PERMISSION.MANAGE
+        }
         actionLabel="Add Permission"
+        actionIcon={ICONS.ADD}
         onAction={() => {
           form.reset();
-          openModal("permission", null);
+          openModal(
+            "permission",
+            null
+          );
         }}
         loading={isLoading}
-        empty={!isLoading && permissions.length === 0}
+        empty={
+          !isLoading &&
+          permissions.length === 0
+        }
         emptyText="No permissions found"
         columns={columns}
-        colSpan={2}
       >
         {!isLoading &&
-          permissions.map((permission) => (
-            <tr key={permission.id}>
-              <td>{permission.name}</td>
-              <td className="text-end">
-                <RowActions actions={rowActions(permission)} />
-              </td>
-            </tr>
-          ))}
+          permissions.map(
+            (permission) => (
+              <tr
+                key={permission.id}
+              >
+                <td>
+                  {permission.name}
+                </td>
+                <td className="text-end">
+                  <RowActions
+                    actions={rowActions(
+                      permission
+                    )}
+                  />
+                </td>
+              </tr>
+            )
+          )}
       </AdminTablePage>
 
-      {/* ================= ENTITY CRUD MODAL ================= */}
+      {/* ================= CRUD MODAL ================= */}
 
-      {modalType === "permission" && (
-        <EntityCrudModal
-          entityName="Permission"
-          modalData={modalData}
-          form={form}
-          onClose={closeModal}
-        />
-      )}
+      {modalType ===
+        "permission" &&
+        modalData && (
+          <EntityCrudModal
+            entityName="Permission"
+            modalData={
+              modalData
+            }
+            form={form}
+            onClose={closeModal}
+          />
+        )}
     </>
   );
 }

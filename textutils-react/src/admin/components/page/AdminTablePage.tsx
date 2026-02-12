@@ -14,7 +14,6 @@ type Props = {
   emptyText?: string;
 
   columns: React.ReactNode;
-  colSpan: number;
   children: React.ReactNode;
 
   /** optional extra content (search etc.) */
@@ -31,7 +30,6 @@ export default function AdminTablePage({
   empty,
   emptyText,
   columns,
-  colSpan,
   children,
   topContent,
 }: Props) {
@@ -51,12 +49,7 @@ export default function AdminTablePage({
         empty={empty}
         emptyText={emptyText}
       >
-        <DataTable
-          columns={columns}
-          colSpan={colSpan}
-          isLoading={loading}
-          isEmpty={empty}
-        >
+        <DataTable columns={columns}>
           {children}
         </DataTable>
       </AdminCard>

@@ -68,11 +68,7 @@ api.interceptors.response.use(
 
     /* ================= 403 → UNAUTHORIZED ================= */
     if (status === 403) {
-      if (
-        !window.location.pathname.includes(
-          "/admin/unauthorized"
-        )
-      ) {
+      if (!window.location.pathname.includes("/admin/unauthorized")) {
         window.location.replace("/admin/unauthorized");
       }
     }
@@ -99,8 +95,15 @@ function forceLogout() {
   localStorage.removeItem("user");
   localStorage.removeItem("permissions");
 
-  /* 🔁 Hard redirect (safe reset) */
-  window.location.replace("/login");
+  /* 🔁 Context-aware redirect */
+  const currentPath = window.location.pathname;
+
+  const redirectTo =
+    currentPath.startsWith("/admin")
+      ? "/admin/login"
+      : "/login";
+
+  window.location.replace(redirectTo);
 }
 
 export default api;

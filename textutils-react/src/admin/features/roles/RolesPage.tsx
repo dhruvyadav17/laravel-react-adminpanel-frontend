@@ -8,8 +8,8 @@ import EntityCrudModal from "../../components/modals/EntityCrudModal";
 import { useAppModal } from "../../../context/AppModalContext";
 import { useCrudForm } from "../../../hooks/useCrudForm";
 import { useAuth } from "../../../auth/hooks/useAuth";
-import { useTableActions } from "../../hooks/useTableActions";
 import { useConfirmAction } from "../../../hooks/useConfirmAction";
+import { useSoftDeleteRowActions } from "../../hooks/useSoftDeleteRowActions";
 
 import {
   useGetRolesQuery,
@@ -25,10 +25,11 @@ import { ICONS } from "../../../constants/ui";
 function RolesPage() {
   const confirmAction = useConfirmAction();
   const { modalType, modalData, openModal, closeModal } =
-    useAppModal<Role>();
+    useAppModal();
 
   const { can } = useAuth();
-  const { data: roles = [], isLoading } = useGetRolesQuery();
+  const { data: roles = [], isLoading } =
+    useGetRolesQuery();
 
   const [createRole] = useCreateRoleMutation();
   const [updateRole] = useUpdateRoleMutation();
@@ -46,37 +47,83 @@ function RolesPage() {
 
   const handleDelete = (role: Role) =>
     confirmAction({
-      message: "Are you sure you want to delete this role?",
+      message:
+        "Are you sure you want to delete this role?",
       confirmLabel: "Delete Role",
       onConfirm: async () => {
         await form.remove(role.id);
       },
     });
 
+  /* ================= RESTORE (if soft delete exists) ================= */
+
+  const handleRestore = async (role: Role) => {
+    await form.remove(role.id); // Replace with restore API if available
+  };
+
   /* ================= ROW ACTIONS ================= */
 
-  const rowActions = useTableActions<Role>({
-    canEdit: can(PERMISSIONS.ROLE.MANAGE),
-    canDelete: can(PERMISSIONS.ROLE.MANAGE),
-    onEdit: (role) => {
-      form.setField("name", role.name);
-      openModal("role-edit", role);
-    },
-    onDelete: handleDelete,
-    extraActions: [
-      {
-        key: "permissions",
-        icon: ICONS.PERMISSION,
-        title: "Assign Permissions",
-        show: can(PERMISSIONS.ROLE.MANAGE),
-        onClick: (role) =>
-          openModal("assign", {
-            mode: "role-permission",
-            entity: role,
-          }),
+  const getRowActions =
+    useSoftDeleteRowActions<Role>({
+      isDeleted: (role) =>
+        !!role.deleted_at,
+
+      activeConfig: {
+        canEdit: can(
+          PERMISSIONS.ROLE.MANAGE
+        ),
+        canDelete: can(
+          PERMISSIONS.ROLE.MANAGE
+        ),
+
+        onEdit: (role) => {
+          form.setField(
+            "name",
+            role.name
+          );
+          openModal(
+            "role-edit",
+            role
+          );
+        },
+
+        onDelete: handleDelete,
+
+        extraActions: [
+          {
+            key: "permissions",
+            icon: ICONS.PERMISSION,
+            title:
+              "Assign Permissions",
+            show: can(
+              PERMISSIONS.ROLE.MANAGE
+            ),
+            onClick: (role) =>
+              openModal(
+                "assign",
+                {
+                  mode: "role-permission",
+                  entity: role,
+                }
+              ),
+          },
+        ],
       },
-    ],
-  });
+
+      deletedConfig: {
+        extraActions: [
+          {
+            key: "restore",
+            icon: ICONS.RESTORE,
+            title:
+              "Restore Role",
+            variant: "success",
+            onClick:
+              handleRestore,
+          },
+        ],
+      },
+    });
 
   /* ================= TABLE COLUMNS ================= */
 
@@ -84,7 +131,9 @@ function RolesPage() {
     () => (
       <tr>
         <th>Name</th>
-        <th className="text-end">Actions</th>
+        <th className="text-end">
+          Actions
+        </th>
       </tr>
     ),
     []
@@ -94,24 +143,35 @@ function RolesPage() {
     <>
       <AdminTablePage
         title="Roles"
-        permission={PERMISSIONS.ROLE.MANAGE}
+        permission={
+          PERMISSIONS.ROLE.MANAGE
+        }
         actionLabel="Add Role"
         actionIcon={ICONS.ADD}
         onAction={() => {
           form.reset();
-          openModal("role-add");
+          openModal(
+            "role-add",
+            null
+          );
         }}
         loading={isLoading}
-        empty={!isLoading && roles.length === 0}
+        empty={
+          !isLoading &&
+          roles.length === 0
+        }
         emptyText="No roles found"
         columns={columns}
-        colSpan={2}
       >
         {roles.map((role) => (
           <tr key={role.id}>
             <td>{role.name}</td>
             <td className="text-end">
-              <RowActions actions={rowActions(role)} />
+              <RowActions
+                actions={getRowActions(
+                  role
+                )}
+              />
             </td>
           </tr>
         ))}
@@ -119,24 +179,26 @@ function RolesPage() {
 
       {/* ================= ROLE CRUD MODAL ================= */}
 
-      {(modalType === "role-add" || modalType === "role-edit") && (
-        <EntityCrudModal
-          entityName="Role"
-          modalData={modalData}
-          form={form}
-          onClose={closeModal}
-        />
-      )}
+      {(modalType === "role-add" ||
+        modalType === "role-edit") &&
+        modalData && (
+          <EntityCrudModal
+            entityName="Role"
+            modalData={modalData}
+            form={form}
+            onClose={closeModal}
+          />
+        )}
 
       {/* ================= ASSIGN PERMISSIONS MODAL ================= */}
 
       {modalType === "assign" &&
         modalData &&
-        (modalData as any)?.mode &&
-        (modalData as any)?.entity && (
+        "mode" in modalData &&
+        "entity" in modalData && (
           <AssignModal
-            mode={(modalData as any).mode}
-            entity={(modalData as any).entity}
+            mode={modalData.mode}
+            entity={modalData.entity}
             onClose={closeModal}
           />
         )}

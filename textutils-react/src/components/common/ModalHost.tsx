@@ -3,24 +3,41 @@ import { useAppModal } from "../../context/AppModalContext";
 import CrudModal from "./CrudModal";
 
 export default function ModalHost() {
-  const { modalType, modalData, closeModal } = useAppModal();
-  const [loading, setLoading] = useState(false);
+  const { modalType, modalData, closeModal } =
+    useAppModal();
 
-  if (!modalType) return null;
+  const [loading, setLoading] =
+    useState(false);
+
+  if (!modalType || !modalData)
+    return null;
 
   switch (modalType) {
-    case "confirm-delete":
+    /* ===================================================== */
+    /* ================= CONFIRM DELETE ==================== */
+    /* ===================================================== */
+
+    case "confirm-delete": {
+      // TypeScript now safely narrows modalData
+      const {
+        message,
+        confirmLabel,
+        onConfirm,
+      } = modalData;
+
       return (
         <CrudModal
           title="Confirm Action"
-          saveText={modalData.confirmLabel ?? "Delete"}
+          saveText={
+            confirmLabel ?? "Delete"
+          }
           saveVariant="danger"
           loading={loading}
           onClose={closeModal}
           onSave={async () => {
             try {
               setLoading(true);
-              await modalData.onConfirm();
+              await onConfirm();
               closeModal();
             } finally {
               setLoading(false);
@@ -28,10 +45,15 @@ export default function ModalHost() {
           }}
         >
           <p className="text-danger mb-0">
-            {modalData.message}
+            {message}
           </p>
         </CrudModal>
       );
+    }
+
+    /* ===================================================== */
+    /* ================= DEFAULT =========================== */
+    /* ===================================================== */
 
     default:
       return null;
