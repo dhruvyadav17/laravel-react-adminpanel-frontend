@@ -39,7 +39,14 @@ function UsersPage() {
   const { can } = useAuth();
   const confirmAction = useConfirmAction();
 
-  const { data, isLoading } = useGetUsersQuery(
+  /* ================= QUERY ================= */
+
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch,
+  } = useGetUsersQuery(
     { page, search },
     { refetchOnMountOrArgChange: true }
   );
@@ -159,8 +166,12 @@ function UsersPage() {
           openModal("user-form", null)
         }
         loading={isLoading}
+        error={isError}
+        onRetry={refetch}
         empty={
-          !isLoading && users.length === 0
+          !isLoading &&
+          !isError &&
+          users.length === 0
         }
         emptyText="No users found"
         columns={columns}
@@ -173,6 +184,7 @@ function UsersPage() {
         }
       >
         {!isLoading &&
+          !isError &&
           users.map((user) => (
             <tr key={user.id}>
               <td>{user.name}</td>
@@ -201,7 +213,7 @@ function UsersPage() {
           ))}
       </AdminTablePage>
 
-      {meta && (
+      {meta && !isError && (
         <Pagination
           meta={meta}
           onPageChange={setPage}
@@ -210,13 +222,13 @@ function UsersPage() {
 
       {/* ================= USER FORM MODAL ================= */}
 
-      {modalType === "user-form" &&  (
-          <UserFormModal
-            user={modalData}
-            onClose={closeModal}
-            onSaved={closeModal}
-          />
-        )}
+      {modalType === "user-form" && (
+        <UserFormModal
+          user={modalData}
+          onClose={closeModal}
+          onSaved={closeModal}
+        />
+      )}
 
       {/* ================= ASSIGN MODAL ================= */}
 

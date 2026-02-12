@@ -11,6 +11,8 @@ type Props = {
 
   loading?: boolean;
   empty?: boolean;
+  error?: boolean;
+  onRetry?: () => void;
   emptyText?: string;
 
   columns: React.ReactNode;
@@ -26,9 +28,11 @@ export default function AdminTablePage({
   actionLabel,
   actionIcon,
   onAction,
-  loading,
-  empty,
-  emptyText,
+  loading = false,
+  empty = false,
+  error = false,
+  onRetry,
+  emptyText = "No data available",
   columns,
   children,
   topContent,
@@ -47,6 +51,8 @@ export default function AdminTablePage({
         title={`${title} List`}
         loading={loading}
         empty={empty}
+        error={error}
+        onRetry={onRetry}
         emptyText={emptyText}
       >
         <DataTable columns={columns}>

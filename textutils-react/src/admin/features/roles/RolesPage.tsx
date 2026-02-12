@@ -28,8 +28,15 @@ function RolesPage() {
     useAppModal();
 
   const { can } = useAuth();
-  const { data: roles = [], isLoading } =
-    useGetRolesQuery();
+
+  /* ================= QUERY ================= */
+
+  const {
+    data: roles = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useGetRolesQuery();
 
   const [createRole] = useCreateRoleMutation();
   const [updateRole] = useUpdateRoleMutation();
@@ -156,31 +163,36 @@ function RolesPage() {
           );
         }}
         loading={isLoading}
+        error={isError}
+        onRetry={refetch}
         empty={
           !isLoading &&
+          !isError &&
           roles.length === 0
         }
         emptyText="No roles found"
         columns={columns}
       >
-        {roles.map((role) => (
-          <tr key={role.id}>
-            <td>{role.name}</td>
-            <td className="text-end">
-              <RowActions
-                actions={getRowActions(
-                  role
-                )}
-              />
-            </td>
-          </tr>
-        ))}
+        {!isLoading &&
+          !isError &&
+          roles.map((role) => (
+            <tr key={role.id}>
+              <td>{role.name}</td>
+              <td className="text-end">
+                <RowActions
+                  actions={getRowActions(
+                    role
+                  )}
+                />
+              </td>
+            </tr>
+          ))}
       </AdminTablePage>
 
       {/* ================= ROLE CRUD MODAL ================= */}
 
       {(modalType === "role-add" ||
-        modalType === "role-edit") &&(
+        modalType === "role-edit") && (
           <EntityCrudModal
             entityName="Role"
             modalData={modalData}

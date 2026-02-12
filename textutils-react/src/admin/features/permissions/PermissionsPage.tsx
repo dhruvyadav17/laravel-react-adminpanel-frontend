@@ -29,9 +29,13 @@ function PermissionsPage() {
 
   const { can } = useAuth();
 
+  /* ================= QUERY ================= */
+
   const {
     data: permissions = [],
     isLoading,
+    isError,
+    refetch,
   } = useGetPermissionsQuery();
 
   const [createPermission] =
@@ -117,19 +121,21 @@ function PermissionsPage() {
           );
         }}
         loading={isLoading}
+        error={isError}
+        onRetry={refetch}
         empty={
           !isLoading &&
+          !isError &&
           permissions.length === 0
         }
         emptyText="No permissions found"
         columns={columns}
       >
         {!isLoading &&
+          !isError &&
           permissions.map(
             (permission) => (
-              <tr
-                key={permission.id}
-              >
+              <tr key={permission.id}>
                 <td>
                   {permission.name}
                 </td>
@@ -148,12 +154,10 @@ function PermissionsPage() {
       {/* ================= CRUD MODAL ================= */}
 
       {modalType ===
-        "permission" && (
+        "permission" &&(
           <EntityCrudModal
             entityName="Permission"
-            modalData={
-              modalData
-            }
+            modalData={modalData}
             form={form}
             onClose={closeModal}
           />
