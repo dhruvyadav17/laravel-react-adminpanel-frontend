@@ -148,8 +148,7 @@ function PermissionsPage() {
       {/* ================= CRUD MODAL ================= */}
 
       {modalType ===
-        "permission" &&
-        modalData && (
+        "permission" && (
           <EntityCrudModal
             entityName="Permission"
             modalData={

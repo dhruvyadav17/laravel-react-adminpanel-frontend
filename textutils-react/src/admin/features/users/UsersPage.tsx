@@ -210,8 +210,7 @@ function UsersPage() {
 
       {/* ================= USER FORM MODAL ================= */}
 
-      {modalType === "user-form" &&
-        modalData && (
+      {modalType === "user-form" &&  (
           <UserFormModal
             user={modalData}
             onClose={closeModal}

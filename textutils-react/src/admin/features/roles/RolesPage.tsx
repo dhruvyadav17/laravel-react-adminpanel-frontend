@@ -180,8 +180,7 @@ function RolesPage() {
       {/* ================= ROLE CRUD MODAL ================= */}
 
       {(modalType === "role-add" ||
-        modalType === "role-edit") &&
-        modalData && (
+        modalType === "role-edit") &&(
           <EntityCrudModal
             entityName="Role"
             modalData={modalData}
