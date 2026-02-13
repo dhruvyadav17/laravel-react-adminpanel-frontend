@@ -2,13 +2,13 @@ import { memo, useMemo } from "react";
 
 import AdminTablePage from "../../components/page/AdminTablePage";
 import RowActions from "../../components/table/RowActions";
-import EntityCrudModal from "../../components/modals/EntityCrudModal";
+import FormModal from "../../../components/common/FormModal";
 
 import { useAppModal } from "../../../context/AppModalContext";
 import { useCrudForm } from "../../../hooks/useCrudForm";
 import { useAuth } from "../../../auth/hooks/useAuth";
 import { useConfirmAction } from "../../../hooks/useConfirmAction";
-import { useTableActions } from "../../hooks/useTableActions";
+import { useRowActions } from "../../hooks/useRowActions";
 
 import {
   useGetPermissionsQuery,
@@ -45,8 +45,14 @@ function PermissionsPage() {
   const [deletePermission] =
     useDeletePermissionMutation();
 
+  /* ================= FORM ================= */
+
+  const permissionInitialValues = {
+    name: "",
+  };
+
   const form = useCrudForm({
-    initialValues: { name: "" },
+    initialValues: permissionInitialValues,
     create: createPermission,
     update: updatePermission,
     remove: deletePermission,
@@ -67,27 +73,24 @@ function PermissionsPage() {
 
   /* ================= ROW ACTIONS ================= */
 
-  const rowActions =
-    useTableActions<Permission>({
-      canEdit: can(
-        PERMISSIONS.PERMISSION.MANAGE
-      ),
-      canDelete: can(
-        PERMISSIONS.PERMISSION.MANAGE
-      ),
+  const getRowActions = (permission: Permission) =>
+    useRowActions<Permission>({
+      row: permission,
 
-      onEdit: (permission) => {
-        form.setField(
-          "name",
-          permission.name
-        );
-        openModal(
-          "permission",
-          permission
-        );
+      edit: {
+        enabled: can(
+          PERMISSIONS.PERMISSION.MANAGE
+        ),
+        onClick: (p) =>
+          openModal("permission-form", p),
       },
 
-      onDelete: handleDelete,
+      delete: {
+        enabled: can(
+          PERMISSIONS.PERMISSION.MANAGE
+        ),
+        onClick: handleDelete,
+      },
     });
 
   /* ================= TABLE COLUMNS ================= */
@@ -113,13 +116,9 @@ function PermissionsPage() {
         }
         actionLabel="Add Permission"
         actionIcon={ICONS.ADD}
-        onAction={() => {
-          form.reset();
-          openModal(
-            "permission",
-            null
-          );
-        }}
+        onAction={() =>
+          openModal("permission-form", null)
+        }
         loading={isLoading}
         error={isError}
         onRetry={refetch}
@@ -136,12 +135,10 @@ function PermissionsPage() {
           permissions.map(
             (permission) => (
               <tr key={permission.id}>
-                <td>
-                  {permission.name}
-                </td>
+                <td>{permission.name}</td>
                 <td className="text-end">
                   <RowActions
-                    actions={rowActions(
+                    actions={getRowActions(
                       permission
                     )}
                   />
@@ -151,17 +148,32 @@ function PermissionsPage() {
           )}
       </AdminTablePage>
 
-      {/* ================= CRUD MODAL ================= */}
+      {/* ================= FORM MODAL ================= */}
 
       {modalType ===
-        "permission" &&(
-          <EntityCrudModal
-            entityName="Permission"
-            modalData={modalData}
-            form={form}
-            onClose={closeModal}
-          />
-        )}
+        "permission-form" && (
+        <FormModal
+          title={
+            modalData
+              ? "Edit Permission"
+              : "Add Permission"
+          }
+          entity={modalData}
+          initialValues={
+            permissionInitialValues
+          }
+          form={form}
+          onClose={closeModal}
+          fields={[
+            {
+              name: "name",
+              label:
+                "Permission Name",
+              required: true,
+            },
+          ]}
+        />
+      )}
     </>
   );
 }

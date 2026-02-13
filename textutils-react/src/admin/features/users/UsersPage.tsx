@@ -4,11 +4,12 @@ import { useAppModal } from "../../../context/AppModalContext";
 import { useAuth } from "../../../auth/hooks/useAuth";
 import { usePagination } from "../../../hooks/usePagination";
 import { useConfirmAction } from "../../../hooks/useConfirmAction";
+import { useCrudForm } from "../../../hooks/useCrudForm";
 
 import AdminTablePage from "../../components/page/AdminTablePage";
 import RowActions from "../../components/table/RowActions";
 import AssignModal from "../../components/modals/AssignModal";
-import UserFormModal from "../../components/modals/UserFormModal";
+import FormModal from "../../../components/common/FormModal";
 
 import Pagination from "../../../components/common/Pagination";
 import {
@@ -16,12 +17,14 @@ import {
   StatusBadge,
 } from "../../../components/common/TableUtils";
 
-import { useSoftDeleteRowActions } from "../../hooks/useSoftDeleteRowActions";
+import { useRowActions } from "../../hooks/useRowActions";
 
 import {
   useGetUsersQuery,
   useDeleteUserMutation,
   useRestoreUserMutation,
+  useCreateUserMutation,
+  useUpdateUserMutation,
 } from "../../../store/api";
 
 import { execute } from "../../../utils/execute";
@@ -56,6 +59,24 @@ function UsersPage() {
 
   const [deleteUser] = useDeleteUserMutation();
   const [restoreUser] = useRestoreUserMutation();
+  const [createUser] = useCreateUserMutation();
+  const [updateUser] = useUpdateUserMutation();
+
+  /* ================= FORM ================= */
+
+  const userInitialValues = {
+    name: "",
+    email: "",
+    password: "",
+    password_confirmation: "",
+  };
+
+  const userForm = useCrudForm({
+    initialValues: userInitialValues,
+    create: createUser,
+    update: updateUser,
+    onSuccess: closeModal,
+  });
 
   /* ================= ARCHIVE ================= */
 
@@ -88,54 +109,57 @@ function UsersPage() {
 
   /* ================= ROW ACTIONS ================= */
 
-  const getRowActions =
-    useSoftDeleteRowActions<User>({
-      isDeleted: (user) => !!user.deleted_at,
+  const getRowActions = (user: User) =>
+    useRowActions<User>({
+      row: user,
+      isDeleted: !!user.deleted_at,
 
-      activeConfig: {
-        canDelete: can(PERMISSIONS.USER.DELETE),
-        onDelete: handleArchive,
-        extraActions: [
-          {
-            key: "roles",
-            icon: ICONS.ROLE,
-            title: "Assign Roles",
-            show: can(
-              PERMISSIONS.USER.ASSIGN_ROLE
-            ),
-            onClick: (user) =>
-              openModal("assign", {
-                mode: "user-role",
-                entity: user,
-              }),
-          },
-          {
-            key: "permissions",
-            icon: ICONS.PERMISSION,
-            title: "Assign Permissions",
-            show: can(
-              PERMISSIONS.USER.ASSIGN_PERMISSION
-            ),
-            onClick: (user) =>
-              openModal("assign", {
-                mode: "user-permission",
-                entity: user,
-              }),
-          },
-        ],
+      delete: {
+        enabled: can(PERMISSIONS.USER.DELETE),
+        onClick: handleArchive,
       },
 
-      deletedConfig: {
-        extraActions: [
-          {
-            key: "restore",
-            icon: ICONS.RESTORE,
-            title: "Restore User",
-            variant: "success",
-            onClick: handleRestore,
-          },
-        ],
+      restore: {
+        enabled: true,
+        onClick: handleRestore,
       },
+
+      extra: [
+        {
+          key: "edit",
+          icon: ICONS.EDIT,
+          title: "Edit User",
+          show: can(PERMISSIONS.USER.UPDATE),
+          onClick: (u) =>
+            openModal("user-form", u),
+        },
+        {
+          key: "roles",
+          icon: ICONS.ROLE,
+          title: "Assign Roles",
+          show: can(
+            PERMISSIONS.USER.ASSIGN_ROLE
+          ),
+          onClick: (u) =>
+            openModal("assign", {
+              mode: "user-role",
+              entity: u,
+            }),
+        },
+        {
+          key: "permissions",
+          icon: ICONS.PERMISSION,
+          title: "Assign Permissions",
+          show: can(
+            PERMISSIONS.USER.ASSIGN_PERMISSION
+          ),
+          onClick: (u) =>
+            openModal("assign", {
+              mode: "user-permission",
+              entity: u,
+            }),
+        },
+      ],
     });
 
   /* ================= TABLE COLUMNS ================= */
@@ -190,23 +214,18 @@ function UsersPage() {
               <td>{user.name}</td>
               <td>{user.email}</td>
               <td>
-                {user.roles?.join(", ") ||
-                  "—"}
+                {user.roles?.join(", ") || "—"}
               </td>
               <td>
                 {user.deleted_at ? (
-                  <StatusBadge
-                    status="archived"
-                  />
+                  <StatusBadge status="archived" />
                 ) : (
                   <StatusBadge active />
                 )}
               </td>
               <td className="text-end">
                 <RowActions
-                  actions={getRowActions(
-                    user
-                  )}
+                  actions={getRowActions(user)}
                 />
               </td>
             </tr>
@@ -220,13 +239,44 @@ function UsersPage() {
         />
       )}
 
-      {/* ================= USER FORM MODAL ================= */}
+      {/* ================= FORM MODAL ================= */}
 
       {modalType === "user-form" && (
-        <UserFormModal
-          user={modalData}
+        <FormModal
+          title={
+            modalData
+              ? "Edit User"
+              : "Add User"
+          }
+          entity={modalData}
+          initialValues={userInitialValues}
+          form={userForm}
           onClose={closeModal}
-          onSaved={closeModal}
+          fields={[
+            {
+              name: "name",
+              label: "Name",
+              required: true,
+            },
+            {
+              name: "email",
+              label: "Email",
+              type: "email",
+              required: true,
+            },
+            {
+              name: "password",
+              label: "Password",
+              type: "password",
+              required: !modalData,
+            },
+            {
+              name: "password_confirmation",
+              label: "Confirm Password",
+              type: "password",
+              required: !modalData,
+            },
+          ]}
         />
       )}
 
