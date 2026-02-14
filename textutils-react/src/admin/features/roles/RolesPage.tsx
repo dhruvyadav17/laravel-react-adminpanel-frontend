@@ -1,12 +1,11 @@
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState } from "react";
 
 import AdminTablePage from "../../components/page/AdminTablePage";
 import RowActions from "../../components/table/RowActions";
 import AssignModal from "../../components/modals/AssignModal";
 import FormModal from "../../../components/common/FormModal";
 
-import { useAppModal } from "../../../context/AppModalContext";
-import { useCrudForm } from "../../../hooks/useCrudForm";
+import { useCrud } from "../../../hooks/useCrud";
 import { useAuth } from "../../../auth/hooks/useAuth";
 import { useConfirmAction } from "../../../hooks/useConfirmAction";
 import { useRowActions } from "../../hooks/useRowActions";
@@ -23,12 +22,14 @@ import { PERMISSIONS } from "../../../constants/rbac";
 import { ICONS } from "../../../constants/ui";
 
 function RolesPage() {
-  const confirmAction = useConfirmAction();
-  const { modalType, modalData, openModal, closeModal } =
-    useAppModal();
   const { can } = useAuth();
+  const confirmAction = useConfirmAction();
 
-  /* ================= QUERY ================= */
+  const [editingRole, setEditingRole] =
+    useState<Role | null>(null);
+
+  const [assignRole, setAssignRole] =
+    useState<Role | null>(null);
 
   const {
     data: roles = [],
@@ -41,58 +42,35 @@ function RolesPage() {
   const [updateRole] = useUpdateRoleMutation();
   const [deleteRole] = useDeleteRoleMutation();
 
-  /* ================= FORM ================= */
-
-  const roleInitialValues = { name: "" };
-
-  const form = useCrudForm({
-    initialValues: roleInitialValues,
+  const crud = useCrud<Role>({
     create: createRole,
     update: updateRole,
     remove: deleteRole,
-    onSuccess: closeModal,
+    onSuccess: () => setEditingRole(null),
   });
-
-  /* ================= DELETE ================= */
 
   const handleDelete = (role: Role) =>
     confirmAction({
       message:
         "Are you sure you want to delete this role?",
       confirmLabel: "Delete Role",
-      onConfirm: async () => {
-        await form.remove(role.id);
-      },
+      onConfirm: async () =>
+        crud.remove(role.id),
     });
-
-  /* ================= RESTORE ================= */
-  // ⚠ Replace when restore API exists
-
-  const handleRestore = async (role: Role) => {
-    await form.remove(role.id);
-  };
-
-  /* ================= ROW ACTIONS ================= */
 
   const getRowActions = (role: Role) =>
     useRowActions<Role>({
       row: role,
-      isDeleted: !!role.deleted_at,
 
       edit: {
         enabled: can(PERMISSIONS.ROLE.MANAGE),
         onClick: (r) =>
-          openModal("role-form", r),
+          setEditingRole(r),
       },
 
       delete: {
         enabled: can(PERMISSIONS.ROLE.MANAGE),
         onClick: handleDelete,
-      },
-
-      restore: {
-        enabled: !!role.deleted_at,
-        onClick: handleRestore,
       },
 
       extra: [
@@ -104,15 +82,10 @@ function RolesPage() {
             PERMISSIONS.ROLE.MANAGE
           ),
           onClick: (r) =>
-            openModal("assign", {
-              mode: "role-permission",
-              entity: r,
-            }),
+            setAssignRole(r),
         },
       ],
     });
-
-  /* ================= TABLE COLUMNS ================= */
 
   const columns = useMemo(
     () => (
@@ -126,6 +99,8 @@ function RolesPage() {
     []
   );
 
+  const initialValues = { name: "" };
+
   return (
     <>
       <AdminTablePage
@@ -134,7 +109,7 @@ function RolesPage() {
         actionLabel="Add Role"
         actionIcon={ICONS.ADD}
         onAction={() =>
-          openModal("role-form", null)
+          setEditingRole({} as Role)
         }
         loading={isLoading}
         error={isError}
@@ -154,26 +129,39 @@ function RolesPage() {
               <td>{role.name}</td>
               <td className="text-end">
                 <RowActions
-                  actions={getRowActions(role)}
+                  actions={getRowActions(
+                    role
+                  )}
                 />
               </td>
             </tr>
           ))}
       </AdminTablePage>
 
-      {/* ================= FORM MODAL ================= */}
-
-      {modalType === "role-form" && (
+      {editingRole && (
         <FormModal
           title={
-            modalData
+            editingRole.id
               ? "Edit Role"
               : "Add Role"
           }
-          entity={modalData}
-          initialValues={roleInitialValues}
-          form={form}
-          onClose={closeModal}
+          entity={editingRole}
+          initialValues={initialValues}
+          form={{
+            values: editingRole,
+            errors: {},
+            loading: crud.loading,
+            setField: () => {},
+            setAllValues: () => {},
+            reset: () => {},
+            create: () =>
+              crud.create(editingRole),
+            update: (id: number) =>
+              crud.update(id, editingRole),
+          }}
+          onClose={() =>
+            setEditingRole(null)
+          }
           fields={[
             {
               name: "name",
@@ -184,18 +172,15 @@ function RolesPage() {
         />
       )}
 
-      {/* ================= ASSIGN MODAL ================= */}
-
-      {modalType === "assign" &&
-        modalData &&
-        "mode" in modalData &&
-        "entity" in modalData && (
-          <AssignModal
-            mode={modalData.mode}
-            entity={modalData.entity}
-            onClose={closeModal}
-          />
-        )}
+      {assignRole && (
+        <AssignModal
+          mode="role-permission"
+          entity={assignRole}
+          onClose={() =>
+            setAssignRole(null)
+          }
+        />
+      )}
     </>
   );
 }

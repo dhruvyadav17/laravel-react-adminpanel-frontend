@@ -1,19 +1,14 @@
-import { useAppModal } from "../context/AppModalContext";
-
 type ConfirmOptions = {
   message: string;
-  onConfirm: () => Promise<void>;
-  confirmLabel?: string;
+  onConfirm: () => Promise<void> | void;
 };
 
 export function useConfirmAction() {
-  const { openModal } = useAppModal();
+  return async ({ message, onConfirm }: ConfirmOptions) => {
+    const confirmed = window.confirm(message);
 
-  return ({ message, onConfirm, confirmLabel }: ConfirmOptions) => {
-    openModal("confirm-delete", {
-      message,
-      onConfirm,
-      confirmLabel,
-    });
+    if (!confirmed) return;
+
+    await onConfirm();
   };
 }

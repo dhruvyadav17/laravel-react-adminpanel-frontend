@@ -1,63 +1,94 @@
 import { Outlet } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import "admin-lte/dist/css/adminlte.min.css";
+
 import AdminNavbar from "./AdminNavbar";
 import AdminSidebar from "./AdminSidebar";
-import ModalHost from "../../components/common/ModalHost";
 
 export default function AdminLayout() {
-
   useEffect(() => {
-    //import("../styles/adminlte-sidebar-fix.css");
     import("admin-lte/dist/js/adminlte.min.js");
-
-    return () => {
-      // optional cleanup (future safety)
-    };
   }, []);
 
   const [collapsed, setCollapsed] = useState(false);
   const sidebarRef = useRef<HTMLElement | null>(null);
 
   /* ================= SIDEBAR CLASS ================= */
+
   useEffect(() => {
-    document.body.classList.toggle("sidebar-collapse", collapsed);
-    document.body.classList.toggle("sidebar-open", !collapsed);
+    document.body.classList.toggle(
+      "sidebar-collapse",
+      collapsed
+    );
+    document.body.classList.toggle(
+      "sidebar-open",
+      !collapsed
+    );
 
     return () => {
-      document.body.classList.remove("sidebar-collapse", "sidebar-open");
+      document.body.classList.remove(
+        "sidebar-collapse",
+        "sidebar-open"
+      );
     };
   }, [collapsed]);
 
   /* ================= MOBILE OUTSIDE CLICK ================= */
+
   useEffect(() => {
-    const isMobile = window.innerWidth < 992;
+    const isMobile =
+      window.innerWidth < 992;
+
     if (!collapsed || !isMobile) return;
 
     const handler = (e: MouseEvent) => {
       const sidebar = sidebarRef.current;
-      const toggleBtn = document.querySelector(".sidebar-toggle");
+      const toggleBtn =
+        document.querySelector(".sidebar-toggle");
 
-      if (sidebar && sidebar.contains(e.target as Node)) return;
+      if (
+        sidebar &&
+        sidebar.contains(e.target as Node)
+      )
+        return;
 
-      if (toggleBtn && toggleBtn.contains(e.target as Node)) return;
+      if (
+        toggleBtn &&
+        toggleBtn.contains(e.target as Node)
+      )
+        return;
 
       setCollapsed(false);
     };
 
-    document.addEventListener("click", handler);
-    return () => document.removeEventListener("click", handler);
+    document.addEventListener(
+      "click",
+      handler
+    );
+
+    return () =>
+      document.removeEventListener(
+        "click",
+        handler
+      );
   }, [collapsed]);
 
   return (
     <div className="app-wrapper layout-fixed">
       {/* HEADER */}
       <nav className="app-header navbar navbar-expand bg-body border-bottom">
-        <AdminNavbar onToggle={() => setCollapsed((v) => !v)} />
+        <AdminNavbar
+          onToggle={() =>
+            setCollapsed((v) => !v)
+          }
+        />
       </nav>
 
       {/* SIDEBAR */}
-      <aside className="app-sidebar shadow" ref={sidebarRef}>
+      <aside
+        className="app-sidebar shadow"
+        ref={sidebarRef}
+      >
         <AdminSidebar />
       </aside>
 
@@ -67,8 +98,6 @@ export default function AdminLayout() {
           <Outlet />
         </div>
       </main>
-
-      <ModalHost />
     </div>
   );
 }

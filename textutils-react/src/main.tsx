@@ -7,7 +7,6 @@ import App from "./App";
 import { store } from "./store";
 import { setStore } from "./store/storeAccessor";
 
-import { AppModalProvider } from "./context/AppModalContext";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 
 import { listenAuthEvents } from "./utils/authEvents";
@@ -16,6 +15,7 @@ import { logoutThunk } from "./store/authSlice";
 /* ===== CSS ORDER (DON'T CHANGE) ===== */
 import "bootstrap/dist/css/bootstrap.min.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
+
 /* ===== JS ===== */
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 
@@ -36,10 +36,11 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <ErrorBoundary>
       <Provider store={store}>
         <BrowserRouter>
-          <AppModalProvider>
-            <App />
-            <ToastContainer position="top-right" autoClose={3000} />
-          </AppModalProvider>
+          <App />
+          <ToastContainer
+            position="top-right"
+            autoClose={3000}
+          />
         </BrowserRouter>
       </Provider>
     </ErrorBoundary>

@@ -1,10 +1,9 @@
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState } from "react";
 
-import { useAppModal } from "../../../context/AppModalContext";
 import { useAuth } from "../../../auth/hooks/useAuth";
 import { usePagination } from "../../../hooks/usePagination";
 import { useConfirmAction } from "../../../hooks/useConfirmAction";
-import { useCrudForm } from "../../../hooks/useCrudForm";
+import { useCrud } from "../../../hooks/useCrud";
 
 import AdminTablePage from "../../components/page/AdminTablePage";
 import RowActions from "../../components/table/RowActions";
@@ -33,14 +32,47 @@ import { PERMISSIONS } from "../../../constants/rbac";
 import { ICONS } from "../../../constants/ui";
 
 function UsersPage() {
-  const { modalType, modalData, openModal, closeModal } =
-    useAppModal();
-
   const { page, setPage, search, setSearch } =
     usePagination();
 
   const { can } = useAuth();
   const confirmAction = useConfirmAction();
+
+  /* ================= LOCAL MODAL STATE ================= */
+
+  const [editingUser, setEditingUser] =
+    useState<User | null>(null);
+
+  const [assignData, setAssignData] =
+    useState<{
+      mode: "user-role" | "user-permission";
+      entity: User;
+    } | null>(null);
+
+  /* ================= LOCAL FORM STATE ================= */
+
+  const initialValues = {
+    name: "",
+    email: "",
+    password: "",
+    password_confirmation: "",
+  };
+
+  const [formValues, setFormValues] =
+    useState(initialValues);
+
+  const setField = (
+    key: keyof typeof initialValues,
+    value: any
+  ) => {
+    setFormValues((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
+
+  const resetForm = () =>
+    setFormValues(initialValues);
 
   /* ================= QUERY ================= */
 
@@ -62,21 +94,30 @@ function UsersPage() {
   const [createUser] = useCreateUserMutation();
   const [updateUser] = useUpdateUserMutation();
 
-  /* ================= FORM ================= */
-
-  const userInitialValues = {
-    name: "",
-    email: "",
-    password: "",
-    password_confirmation: "",
-  };
-
-  const userForm = useCrudForm({
-    initialValues: userInitialValues,
+  const crud = useCrud<User>({
     create: createUser,
     update: updateUser,
-    onSuccess: closeModal,
+    remove: deleteUser,
+    onSuccess: () => {
+      resetForm();
+      setEditingUser(null);
+    },
   });
+
+  /* ================= EDIT SYNC ================= */
+
+  const openEdit = (user: User | null) => {
+    if (user) {
+      setFormValues({
+        ...initialValues,
+        ...user,
+      });
+    } else {
+      resetForm();
+    }
+
+    setEditingUser(user ?? ({} as User));
+  };
 
   /* ================= ARCHIVE ================= */
 
@@ -85,15 +126,8 @@ function UsersPage() {
       message:
         "Are you sure you want to archive this user?",
       confirmLabel: "Yes, Archive",
-      onConfirm: async () => {
-        await execute(
-          () => deleteUser(user.id).unwrap(),
-          {
-            defaultMessage:
-              "User archived successfully",
-          }
-        );
-      },
+      onConfirm: async () =>
+        crud.remove(user.id),
     });
 
   /* ================= RESTORE ================= */
@@ -120,19 +154,16 @@ function UsersPage() {
       },
 
       restore: {
-        enabled: true,
+        enabled: !!user.deleted_at,
         onClick: handleRestore,
       },
 
+      edit: {
+        enabled: can(PERMISSIONS.USER.UPDATE),
+        onClick: () => openEdit(user),
+      },
+
       extra: [
-        {
-          key: "edit",
-          icon: ICONS.EDIT,
-          title: "Edit User",
-          show: can(PERMISSIONS.USER.UPDATE),
-          onClick: (u) =>
-            openModal("user-form", u),
-        },
         {
           key: "roles",
           icon: ICONS.ROLE,
@@ -140,10 +171,10 @@ function UsersPage() {
           show: can(
             PERMISSIONS.USER.ASSIGN_ROLE
           ),
-          onClick: (u) =>
-            openModal("assign", {
+          onClick: () =>
+            setAssignData({
               mode: "user-role",
-              entity: u,
+              entity: user,
             }),
         },
         {
@@ -153,10 +184,10 @@ function UsersPage() {
           show: can(
             PERMISSIONS.USER.ASSIGN_PERMISSION
           ),
-          onClick: (u) =>
-            openModal("assign", {
+          onClick: () =>
+            setAssignData({
               mode: "user-permission",
-              entity: u,
+              entity: user,
             }),
         },
       ],
@@ -186,9 +217,7 @@ function UsersPage() {
         permission={PERMISSIONS.USER.CREATE}
         actionLabel="Add User"
         actionIcon={ICONS.ADD}
-        onAction={() =>
-          openModal("user-form", null)
-        }
+        onAction={() => openEdit(null)}
         loading={isLoading}
         error={isError}
         onRetry={refetch}
@@ -226,7 +255,9 @@ function UsersPage() {
               </td>
               <td className="text-end">
                 <RowActions
-                  actions={getRowActions(user)}
+                  actions={getRowActions(
+                    user
+                  )}
                 />
               </td>
             </tr>
@@ -242,17 +273,30 @@ function UsersPage() {
 
       {/* ================= FORM MODAL ================= */}
 
-      {modalType === "user-form" && (
+      {editingUser && (
         <FormModal
           title={
-            modalData
+            editingUser.id
               ? "Edit User"
               : "Add User"
           }
-          entity={modalData}
-          initialValues={userInitialValues}
-          form={userForm}
-          onClose={closeModal}
+          entity={editingUser}
+          initialValues={initialValues}
+          form={{
+            values: formValues,
+            errors: {},
+            loading: crud.loading,
+            setField,
+            setAllValues: setFormValues,
+            reset: resetForm,
+            create: () =>
+              crud.create(formValues),
+            update: (id: number) =>
+              crud.update(id, formValues),
+          }}
+          onClose={() =>
+            setEditingUser(null)
+          }
           fields={[
             {
               name: "name",
@@ -269,30 +313,27 @@ function UsersPage() {
               name: "password",
               label: "Password",
               type: "password",
-              required: !modalData,
+              required: !editingUser?.id,
             },
             {
               name: "password_confirmation",
               label: "Confirm Password",
               type: "password",
-              required: !modalData,
+              required: !editingUser?.id,
             },
           ]}
         />
       )}
 
-      {/* ================= ASSIGN MODAL ================= */}
-
-      {modalType === "assign" &&
-        modalData &&
-        "mode" in modalData &&
-        "entity" in modalData && (
-          <AssignModal
-            mode={modalData.mode}
-            entity={modalData.entity}
-            onClose={closeModal}
-          />
-        )}
+      {assignData && (
+        <AssignModal
+          mode={assignData.mode}
+          entity={assignData.entity}
+          onClose={() =>
+            setAssignData(null)
+          }
+        />
+      )}
     </>
   );
 }

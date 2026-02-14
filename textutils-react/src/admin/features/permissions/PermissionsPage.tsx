@@ -1,11 +1,10 @@
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState } from "react";
 
 import AdminTablePage from "../../components/page/AdminTablePage";
 import RowActions from "../../components/table/RowActions";
 import FormModal from "../../../components/common/FormModal";
 
-import { useAppModal } from "../../../context/AppModalContext";
-import { useCrudForm } from "../../../hooks/useCrudForm";
+import { useCrud } from "../../../hooks/useCrud";
 import { useAuth } from "../../../auth/hooks/useAuth";
 import { useConfirmAction } from "../../../hooks/useConfirmAction";
 import { useRowActions } from "../../hooks/useRowActions";
@@ -22,12 +21,11 @@ import { PERMISSIONS } from "../../../constants/rbac";
 import { ICONS } from "../../../constants/ui";
 
 function PermissionsPage() {
-  const confirmAction = useConfirmAction();
-  const { modalType, modalData, openModal, closeModal } =
-    useAppModal();
   const { can } = useAuth();
+  const confirmAction = useConfirmAction();
 
-  /* ================= QUERY ================= */
+  const [editingPermission, setEditingPermission] =
+    useState<Permission | null>(null);
 
   const {
     data: permissions = [],
@@ -43,35 +41,28 @@ function PermissionsPage() {
   const [deletePermission] =
     useDeletePermissionMutation();
 
-  /* ================= FORM ================= */
-
-  const permissionInitialValues = {
-    name: "",
-  };
-
-  const form = useCrudForm({
-    initialValues: permissionInitialValues,
+  const crud = useCrud<Permission>({
     create: createPermission,
     update: updatePermission,
     remove: deletePermission,
-    onSuccess: closeModal,
+    onSuccess: () =>
+      setEditingPermission(null),
   });
 
-  /* ================= DELETE ================= */
-
-  const handleDelete = (permission: Permission) =>
+  const handleDelete = (
+    permission: Permission
+  ) =>
     confirmAction({
       message:
         "Are you sure you want to delete this permission?",
       confirmLabel: "Delete Permission",
-      onConfirm: async () => {
-        await form.remove(permission.id);
-      },
+      onConfirm: async () =>
+        crud.remove(permission.id),
     });
 
-  /* ================= ROW ACTIONS ================= */
-
-  const getRowActions = (permission: Permission) =>
+  const getRowActions = (
+    permission: Permission
+  ) =>
     useRowActions<Permission>({
       row: permission,
 
@@ -80,7 +71,7 @@ function PermissionsPage() {
           PERMISSIONS.PERMISSION.MANAGE
         ),
         onClick: (p) =>
-          openModal("permission-form", p),
+          setEditingPermission(p),
       },
 
       delete: {
@@ -91,27 +82,33 @@ function PermissionsPage() {
       },
     });
 
-  /* ================= TABLE COLUMNS ================= */
-
   const columns = useMemo(
     () => (
       <tr>
         <th>Name</th>
-        <th className="text-end">Actions</th>
+        <th className="text-end">
+          Actions
+        </th>
       </tr>
     ),
     []
   );
 
+  const initialValues = { name: "" };
+
   return (
     <>
       <AdminTablePage
         title="Permissions"
-        permission={PERMISSIONS.PERMISSION.MANAGE}
+        permission={
+          PERMISSIONS.PERMISSION.MANAGE
+        }
         actionLabel="Add Permission"
         actionIcon={ICONS.ADD}
         onAction={() =>
-          openModal("permission-form", null)
+          setEditingPermission(
+            {} as Permission
+          )
         }
         loading={isLoading}
         error={isError}
@@ -129,7 +126,9 @@ function PermissionsPage() {
           permissions.map(
             (permission) => (
               <tr key={permission.id}>
-                <td>{permission.name}</td>
+                <td>
+                  {permission.name}
+                </td>
                 <td className="text-end">
                   <RowActions
                     actions={getRowActions(
@@ -142,25 +141,35 @@ function PermissionsPage() {
           )}
       </AdminTablePage>
 
-      {/* ================= FORM MODAL ================= */}
-
-      {modalType === "permission-form" && (
+      {editingPermission && (
         <FormModal
           title={
-            modalData
+            editingPermission.id
               ? "Edit Permission"
               : "Add Permission"
           }
-          entity={modalData}
-          initialValues={
-            permissionInitialValues
+          entity={editingPermission}
+          initialValues={initialValues}
+          form={{
+            values: editingPermission,
+            errors: {},
+            loading: crud.loading,
+            setField: () => {},
+            setAllValues: () => {},
+            reset: () => {},
+            create: () =>
+              crud.create(editingPermission),
+            update: (id: number) =>
+              crud.update(id, editingPermission),
+          }}
+          onClose={() =>
+            setEditingPermission(null)
           }
-          form={form}
-          onClose={closeModal}
           fields={[
             {
               name: "name",
-              label: "Permission Name",
+              label:
+                "Permission Name",
               required: true,
             },
           ]}
