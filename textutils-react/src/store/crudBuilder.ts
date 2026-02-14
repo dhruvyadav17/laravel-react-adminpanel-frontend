@@ -22,7 +22,17 @@ type QueryParams = {
 };
 
 /* ======================================================
-   GENERIC CRUD BUILDER
+   HELPERS
+====================================================== */
+
+const capitalize = (value: string) =>
+  value.charAt(0).toUpperCase() + value.slice(1);
+
+const singularize = (value: string) =>
+  value.endsWith("s") ? value.slice(0, -1) : value;
+
+/* ======================================================
+   ENTERPRISE CRUD BUILDER (AUTO TAG)
 ====================================================== */
 
 export function createCrudEndpoints<
@@ -30,18 +40,17 @@ export function createCrudEndpoints<
   Tag extends string
 >(
   builder: EndpointBuilder<any, Tag, any>,
-  resource: string,
-  tag: Tag,
-  isPaginated: boolean = true
+  options: {
+    resource: string;
+    isPaginated?: boolean;
+  }
 ) {
-  const capitalize = (value: string) =>
-    value.charAt(0).toUpperCase() + value.slice(1);
+  const { resource, isPaginated = true } = options;
 
-  const singular = (value: string) =>
-    capitalize(value.endsWith("s") ? value.slice(0, -1) : value);
+  const tag = capitalize(resource) as Tag;
 
   const capitalized = capitalize(resource);
-  const singularName = singular(resource);
+  const singularName = capitalize(singularize(resource));
 
   return {
     /* ================= GET ================= */
@@ -76,7 +85,6 @@ export function createCrudEndpoints<
     }),
 
     /* ================= UPDATE ================= */
-    // ✅ Backward compatible — no nested { data }
 
     [`update${singularName}`]: builder.mutation<
       T,

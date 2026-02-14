@@ -13,9 +13,20 @@ export const adminApi = baseApi.injectEndpoints({
 
     /* ================= GENERIC CRUD ================= */
 
-    ...createCrudEndpoints<User>(builder, "users", "Users"),
-    ...createCrudEndpoints<Role>(builder, "roles", "Roles", false),
-    ...createCrudEndpoints<Permission>(builder, "permissions", "Permissions", false),
+    ...createCrudEndpoints<User>(builder, {
+      resource: "users",
+      isPaginated: true,
+    }),
+
+    ...createCrudEndpoints<Role>(builder, {
+      resource: "roles",
+      isPaginated: false,
+    }),
+
+    ...createCrudEndpoints<Permission>(builder, {
+      resource: "permissions",
+      isPaginated: false,
+    }),
 
     /* ================= USERS EXTRA ================= */
 
@@ -103,11 +114,6 @@ export const adminApi = baseApi.injectEndpoints({
 
   }),
 });
-
-/* ======================================================
-   HOOK EXPORTS (IMPORTANT)
-====================================================== */
-
 export const {
 
   /* ===== USERS ===== */
