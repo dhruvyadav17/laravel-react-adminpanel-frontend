@@ -26,7 +26,7 @@ import {
   useUpdateUserMutation,
 } from "../../../store/api";
 
-import { execute } from "../../../utils/execute";
+import { execute } from "../../../utils/feedback";
 import type { User } from "../../../types/models";
 import { PERMISSIONS } from "../../../constants/rbac";
 import { ICONS } from "../../../constants/ui";

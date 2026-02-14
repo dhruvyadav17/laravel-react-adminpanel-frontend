@@ -1,7 +1,7 @@
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import api from "../../api/axios";
-import { execute } from "../../utils/execute";
+import { execute } from "../../utils/feedback";
 
 export default function ResetPassword() {
   const [params] = useSearchParams();

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import api from "../../api/axios";
-import { execute } from "../../utils/execute";
+import { execute } from "../../utils/feedback";
 
 type FormValues = {
   email: string;

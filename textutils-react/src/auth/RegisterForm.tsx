@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import { registerService } from "../services/authService";
-import { handleApiError } from "../utils/toastHelper";
+import { showError, showSuccess } from "../utils/feedback";
 
 export default function RegisterForm() {
   const navigate = useNavigate();
@@ -13,14 +14,30 @@ export default function RegisterForm() {
     password_confirmation: "",
   });
 
-  const submit = async (e: React.FormEvent) => {
+  const [loading, setLoading] =
+    useState(false);
+
+  const submit = async (
+    e: React.FormEvent
+  ) => {
     e.preventDefault();
 
     try {
+      setLoading(true);
+
       await registerService(form);
-      navigate("/verify-email", { replace: true });
-    } catch (e: any) {
-      handleApiError(e);
+
+      showSuccess(
+        "Registration successful. Please verify your email."
+      );
+
+      navigate("/verify-email", {
+        replace: true,
+      });
+    } catch (error: any) {
+      showError(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -30,8 +47,12 @@ export default function RegisterForm() {
         className="form-control mb-2"
         placeholder="Name"
         required
+        value={form.name}
         onChange={(e) =>
-          setForm({ ...form, name: e.target.value })
+          setForm({
+            ...form,
+            name: e.target.value,
+          })
         }
       />
 
@@ -40,8 +61,12 @@ export default function RegisterForm() {
         type="email"
         placeholder="Email"
         required
+        value={form.email}
         onChange={(e) =>
-          setForm({ ...form, email: e.target.value })
+          setForm({
+            ...form,
+            email: e.target.value,
+          })
         }
       />
 
@@ -50,8 +75,12 @@ export default function RegisterForm() {
         type="password"
         placeholder="Password"
         required
+        value={form.password}
         onChange={(e) =>
-          setForm({ ...form, password: e.target.value })
+          setForm({
+            ...form,
+            password: e.target.value,
+          })
         }
       />
 
@@ -60,16 +89,23 @@ export default function RegisterForm() {
         type="password"
         placeholder="Confirm Password"
         required
+        value={form.password_confirmation}
         onChange={(e) =>
           setForm({
             ...form,
-            password_confirmation: e.target.value,
+            password_confirmation:
+              e.target.value,
           })
         }
       />
 
-      <button className="btn btn-primary w-100">
-        Sign Up
+      <button
+        className="btn btn-primary w-100"
+        disabled={loading}
+      >
+        {loading
+          ? "Creating account..."
+          : "Sign Up"}
       </button>
     </form>
   );
