@@ -41,8 +41,6 @@ export default function FormModal<T extends Record<string, any>>({
   onClose,
   saveText,
 }: Props<T>) {
-  /* ================= EDIT SYNC ================= */
-
   useEffect(() => {
     if (entity) {
       form.setAllValues({
@@ -54,15 +52,11 @@ export default function FormModal<T extends Record<string, any>>({
     }
   }, [entity]);
 
-  /* ================= SUBMIT ================= */
-
   const handleSubmit = () => {
     entity?.id
       ? form.update(entity.id)
       : form.create();
   };
-
-  /* ================= VIEW ================= */
 
   return (
     <CrudModal

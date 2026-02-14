@@ -214,7 +214,8 @@ function UsersPage() {
               <td>{user.name}</td>
               <td>{user.email}</td>
               <td>
-                {user.roles?.join(", ") || "—"}
+                {user.roles?.join(", ") ||
+                  "—"}
               </td>
               <td>
                 {user.deleted_at ? (

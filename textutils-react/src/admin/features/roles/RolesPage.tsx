@@ -2,6 +2,7 @@ import { memo, useMemo } from "react";
 
 import AdminTablePage from "../../components/page/AdminTablePage";
 import RowActions from "../../components/table/RowActions";
+import AssignModal from "../../components/modals/AssignModal";
 import FormModal from "../../../components/common/FormModal";
 
 import { useAppModal } from "../../../context/AppModalContext";
@@ -11,86 +12,104 @@ import { useConfirmAction } from "../../../hooks/useConfirmAction";
 import { useRowActions } from "../../hooks/useRowActions";
 
 import {
-  useGetPermissionsQuery,
-  useCreatePermissionMutation,
-  useUpdatePermissionMutation,
-  useDeletePermissionMutation,
+  useGetRolesQuery,
+  useCreateRoleMutation,
+  useUpdateRoleMutation,
+  useDeleteRoleMutation,
 } from "../../../store/api";
 
-import type { Permission } from "../../../types/models";
+import type { Role } from "../../../types/models";
 import { PERMISSIONS } from "../../../constants/rbac";
 import { ICONS } from "../../../constants/ui";
 
-function PermissionsPage() {
+function RolesPage() {
   const confirmAction = useConfirmAction();
-
   const { modalType, modalData, openModal, closeModal } =
     useAppModal();
-
   const { can } = useAuth();
 
   /* ================= QUERY ================= */
 
   const {
-    data: permissions = [],
+    data: roles = [],
     isLoading,
     isError,
     refetch,
-  } = useGetPermissionsQuery();
+  } = useGetRolesQuery();
 
-  const [createPermission] =
-    useCreatePermissionMutation();
-  const [updatePermission] =
-    useUpdatePermissionMutation();
-  const [deletePermission] =
-    useDeletePermissionMutation();
+  const [createRole] = useCreateRoleMutation();
+  const [updateRole] = useUpdateRoleMutation();
+  const [deleteRole] = useDeleteRoleMutation();
 
   /* ================= FORM ================= */
 
-  const permissionInitialValues = {
-    name: "",
-  };
+  const roleInitialValues = { name: "" };
 
   const form = useCrudForm({
-    initialValues: permissionInitialValues,
-    create: createPermission,
-    update: updatePermission,
-    remove: deletePermission,
+    initialValues: roleInitialValues,
+    create: createRole,
+    update: updateRole,
+    remove: deleteRole,
     onSuccess: closeModal,
   });
 
   /* ================= DELETE ================= */
 
-  const handleDelete = (permission: Permission) =>
+  const handleDelete = (role: Role) =>
     confirmAction({
       message:
-        "Are you sure you want to delete this permission?",
-      confirmLabel: "Delete Permission",
+        "Are you sure you want to delete this role?",
+      confirmLabel: "Delete Role",
       onConfirm: async () => {
-        await form.remove(permission.id);
+        await form.remove(role.id);
       },
     });
 
+  /* ================= RESTORE ================= */
+  // ⚠ Replace when restore API exists
+
+  const handleRestore = async (role: Role) => {
+    await form.remove(role.id);
+  };
+
   /* ================= ROW ACTIONS ================= */
 
-  const getRowActions = (permission: Permission) =>
-    useRowActions<Permission>({
-      row: permission,
+  const getRowActions = (role: Role) =>
+    useRowActions<Role>({
+      row: role,
+      isDeleted: !!role.deleted_at,
 
       edit: {
-        enabled: can(
-          PERMISSIONS.PERMISSION.MANAGE
-        ),
-        onClick: (p) =>
-          openModal("permission-form", p),
+        enabled: can(PERMISSIONS.ROLE.MANAGE),
+        onClick: (r) =>
+          openModal("role-form", r),
       },
 
       delete: {
-        enabled: can(
-          PERMISSIONS.PERMISSION.MANAGE
-        ),
+        enabled: can(PERMISSIONS.ROLE.MANAGE),
         onClick: handleDelete,
       },
+
+      restore: {
+        enabled: !!role.deleted_at,
+        onClick: handleRestore,
+      },
+
+      extra: [
+        {
+          key: "permissions",
+          icon: ICONS.PERMISSION,
+          title: "Assign Permissions",
+          show: can(
+            PERMISSIONS.ROLE.MANAGE
+          ),
+          onClick: (r) =>
+            openModal("assign", {
+              mode: "role-permission",
+              entity: r,
+            }),
+        },
+      ],
     });
 
   /* ================= TABLE COLUMNS ================= */
@@ -110,14 +129,12 @@ function PermissionsPage() {
   return (
     <>
       <AdminTablePage
-        title="Permissions"
-        permission={
-          PERMISSIONS.PERMISSION.MANAGE
-        }
-        actionLabel="Add Permission"
+        title="Roles"
+        permission={PERMISSIONS.ROLE.MANAGE}
+        actionLabel="Add Role"
         actionIcon={ICONS.ADD}
         onAction={() =>
-          openModal("permission-form", null)
+          openModal("role-form", null)
         }
         loading={isLoading}
         error={isError}
@@ -125,57 +142,62 @@ function PermissionsPage() {
         empty={
           !isLoading &&
           !isError &&
-          permissions.length === 0
+          roles.length === 0
         }
-        emptyText="No permissions found"
+        emptyText="No roles found"
         columns={columns}
       >
         {!isLoading &&
           !isError &&
-          permissions.map(
-            (permission) => (
-              <tr key={permission.id}>
-                <td>{permission.name}</td>
-                <td className="text-end">
-                  <RowActions
-                    actions={getRowActions(
-                      permission
-                    )}
-                  />
-                </td>
-              </tr>
-            )
-          )}
+          roles.map((role) => (
+            <tr key={role.id}>
+              <td>{role.name}</td>
+              <td className="text-end">
+                <RowActions
+                  actions={getRowActions(role)}
+                />
+              </td>
+            </tr>
+          ))}
       </AdminTablePage>
 
       {/* ================= FORM MODAL ================= */}
 
-      {modalType ===
-        "permission-form" && (
+      {modalType === "role-form" && (
         <FormModal
           title={
             modalData
-              ? "Edit Permission"
-              : "Add Permission"
+              ? "Edit Role"
+              : "Add Role"
           }
           entity={modalData}
-          initialValues={
-            permissionInitialValues
-          }
+          initialValues={roleInitialValues}
           form={form}
           onClose={closeModal}
           fields={[
             {
               name: "name",
-              label:
-                "Permission Name",
+              label: "Role Name",
               required: true,
             },
           ]}
         />
       )}
+
+      {/* ================= ASSIGN MODAL ================= */}
+
+      {modalType === "assign" &&
+        modalData &&
+        "mode" in modalData &&
+        "entity" in modalData && (
+          <AssignModal
+            mode={modalData.mode}
+            entity={modalData.entity}
+            onClose={closeModal}
+          />
+        )}
     </>
   );
 }
 
-export default memo(PermissionsPage);
+export default memo(RolesPage);

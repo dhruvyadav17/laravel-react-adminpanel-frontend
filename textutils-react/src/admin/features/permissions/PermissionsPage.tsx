@@ -23,10 +23,8 @@ import { ICONS } from "../../../constants/ui";
 
 function PermissionsPage() {
   const confirmAction = useConfirmAction();
-
   const { modalType, modalData, openModal, closeModal } =
     useAppModal();
-
   const { can } = useAuth();
 
   /* ================= QUERY ================= */
@@ -99,9 +97,7 @@ function PermissionsPage() {
     () => (
       <tr>
         <th>Name</th>
-        <th className="text-end">
-          Actions
-        </th>
+        <th className="text-end">Actions</th>
       </tr>
     ),
     []
@@ -111,9 +107,7 @@ function PermissionsPage() {
     <>
       <AdminTablePage
         title="Permissions"
-        permission={
-          PERMISSIONS.PERMISSION.MANAGE
-        }
+        permission={PERMISSIONS.PERMISSION.MANAGE}
         actionLabel="Add Permission"
         actionIcon={ICONS.ADD}
         onAction={() =>
@@ -150,8 +144,7 @@ function PermissionsPage() {
 
       {/* ================= FORM MODAL ================= */}
 
-      {modalType ===
-        "permission-form" && (
+      {modalType === "permission-form" && (
         <FormModal
           title={
             modalData
@@ -167,8 +160,7 @@ function PermissionsPage() {
           fields={[
             {
               name: "name",
-              label:
-                "Permission Name",
+              label: "Permission Name",
               required: true,
             },
           ]}
